@@ -19,7 +19,9 @@ pub async fn create_dataset(
     Json(body): Json<CreateDatasetRequest>,
 ) -> Result<Json<Dataset>, AdsError> {
     if body.duo_codes.is_empty() {
-        return Err(AdsError::BadRequest("duo_codes must not be empty".to_string()));
+        return Err(AdsError::BadRequest(
+            "duo_codes must not be empty".to_string(),
+        ));
     }
     let dataset = state.store.create_dataset(&body).await?;
     Ok(Json(dataset))

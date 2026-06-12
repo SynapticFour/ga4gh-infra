@@ -22,7 +22,9 @@ pub async fn create_project(
         return Err(AdsError::Forbidden);
     }
     if body.duo_codes.is_empty() {
-        return Err(AdsError::BadRequest("duo_codes must not be empty".to_string()));
+        return Err(AdsError::BadRequest(
+            "duo_codes must not be empty".to_string(),
+        ));
     }
     let project = state.store.create_project(&body).await?;
     Ok(Json(project))

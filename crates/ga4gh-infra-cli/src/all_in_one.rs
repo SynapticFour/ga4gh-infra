@@ -63,9 +63,10 @@ pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
     let duo_service = tokio::spawn(async move { duo_service::run(config.duo_service).await });
     let service_registry =
         tokio::spawn(async move { service_registry::run(config.service_registry).await });
-    let access_decision_service = tokio::spawn(async move {
-        access_decision_service::run(config.access_decision_service).await
-    });
+    let access_decision_service =
+        tokio::spawn(
+            async move { access_decision_service::run(config.access_decision_service).await },
+        );
 
     tokio::select! {
         result = broker => result.map_err(|err| anyhow::anyhow!("broker task panicked: {err}"))??,

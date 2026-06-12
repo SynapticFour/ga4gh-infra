@@ -11,8 +11,8 @@ use ga4gh_types::{
     AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestStatus, AdsEvent,
     AdsEventType, CreateAccessRequestBody, CreateDatasetRequest, CreatePermissionMappingRequest,
     CreatePermissionSourceRequest, CreateProjectRequest, CreateVisaSourceRequest, Dataset, DuoCode,
-    DuoEvaluationResult, Grant, GrantSource, PermissionMapping, PermissionSource, Researcher,
-    ResearchProject, VisaSource,
+    DuoEvaluationResult, Grant, GrantSource, PermissionMapping, PermissionSource, ResearchProject,
+    Researcher, VisaSource,
 };
 use sqlx::Row;
 use tracing::instrument;
@@ -21,7 +21,9 @@ use uuid::Uuid;
 use crate::auth::{hash_api_key, verify_api_key};
 use crate::config::{DatabaseConfig, DatabaseDriver};
 use crate::error::AdsError;
-use crate::events::{grant_created, grant_revoked, request_approved, request_created, request_rejected};
+use crate::events::{
+    grant_created, grant_revoked, request_approved, request_created, request_rejected,
+};
 
 #[cfg(feature = "postgres")]
 use sqlx::PgPool;
@@ -95,10 +97,12 @@ macro_rules! parse_dataset {
             description: row.try_get("description").map_err(map_db_err)?,
             duo_codes,
             external_id: row.try_get("external_id").map_err(map_db_err)?,
-            auto_approve_enabled: row.try_get::<i64, _>("auto_approve_enabled").map_err(map_db_err)?
+            auto_approve_enabled: row
+                .try_get::<i32, _>("auto_approve_enabled")
+                .map_err(map_db_err)?
                 != 0,
             auto_approve_threshold: row
-                .try_get::<i64, _>("auto_approve_threshold")
+                .try_get::<i32, _>("auto_approve_threshold")
                 .map_err(map_db_err)? as u8,
             created_at: dt_from_ts(row.try_get("created_at").map_err(map_db_err)?),
             updated_at: dt_from_ts(row.try_get("updated_at").map_err(map_db_err)?),
@@ -136,10 +140,14 @@ macro_rules! parse_access_request {
             id: Uuid::parse_str(&row.try_get::<String, _>("id").map_err(map_db_err)?)
                 .map_err(map_db_err)?,
             researcher_id: row.try_get("researcher_id").map_err(map_db_err)?,
-            dataset_id: Uuid::parse_str(&row.try_get::<String, _>("dataset_id").map_err(map_db_err)?)
-                .map_err(map_db_err)?,
-            project_id: Uuid::parse_str(&row.try_get::<String, _>("project_id").map_err(map_db_err)?)
-                .map_err(map_db_err)?,
+            dataset_id: Uuid::parse_str(
+                &row.try_get::<String, _>("dataset_id").map_err(map_db_err)?,
+            )
+            .map_err(map_db_err)?,
+            project_id: Uuid::parse_str(
+                &row.try_get::<String, _>("project_id").map_err(map_db_err)?,
+            )
+            .map_err(map_db_err)?,
             status: parse_status(&row.try_get::<String, _>("status").map_err(map_db_err)?)?,
             justification: row.try_get("justification").map_err(map_db_err)?,
             duo_evaluation,
@@ -159,8 +167,10 @@ macro_rules! parse_grant {
             id: Uuid::parse_str(&row.try_get::<String, _>("id").map_err(map_db_err)?)
                 .map_err(map_db_err)?,
             researcher_id: row.try_get("researcher_id").map_err(map_db_err)?,
-            dataset_id: Uuid::parse_str(&row.try_get::<String, _>("dataset_id").map_err(map_db_err)?)
-                .map_err(map_db_err)?,
+            dataset_id: Uuid::parse_str(
+                &row.try_get::<String, _>("dataset_id").map_err(map_db_err)?,
+            )
+            .map_err(map_db_err)?,
             request_id: request_id
                 .map(|id| Uuid::parse_str(&id))
                 .transpose()
@@ -214,8 +224,8 @@ impl AdsStore {
 
     #[cfg(feature = "sqlite")]
     async fn connect_sqlite(url: &str, webhook_urls: Vec<String>) -> Result<Self, AdsError> {
-        use std::str::FromStr;
         use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+        use std::str::FromStr;
 
         let options = SqliteConnectOptions::from_str(url)
             .map_err(|err| AdsError::Database(format!("invalid SQLite URL: {err}")))?
@@ -260,18 +270,20 @@ impl AdsStore {
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                let row = sqlx::query("SELECT COUNT(*) AS count FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(map_db_err)?;
+                let row =
+                    sqlx::query("SELECT COUNT(*) AS count FROM api_keys WHERE revoked_at IS NULL")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(map_db_err)?;
                 Ok(row.get::<i64, _>("count"))
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                let row = sqlx::query("SELECT COUNT(*) AS count FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(map_db_err)?;
+                let row =
+                    sqlx::query("SELECT COUNT(*) AS count FROM api_keys WHERE revoked_at IS NULL")
+                        .fetch_one(pool)
+                        .await
+                        .map_err(map_db_err)?;
                 Ok(row.get::<i64, _>("count"))
             }
             #[allow(unreachable_patterns)]
@@ -318,10 +330,11 @@ impl AdsStore {
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                let rows = sqlx::query("SELECT name, key_hash FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_all(pool)
-                    .await
-                    .map_err(map_db_err)?;
+                let rows =
+                    sqlx::query("SELECT name, key_hash FROM api_keys WHERE revoked_at IS NULL")
+                        .fetch_all(pool)
+                        .await
+                        .map_err(map_db_err)?;
                 for row in rows {
                     let name: String = row.get("name");
                     let hash: String = row.get("key_hash");
@@ -333,10 +346,11 @@ impl AdsStore {
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                let rows = sqlx::query("SELECT name, key_hash FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_all(pool)
-                    .await
-                    .map_err(map_db_err)?;
+                let rows =
+                    sqlx::query("SELECT name, key_hash FROM api_keys WHERE revoked_at IS NULL")
+                        .fetch_all(pool)
+                        .await
+                        .map_err(map_db_err)?;
                 for row in rows {
                     let name: String = row.get("name");
                     let hash: String = row.get("key_hash");
@@ -532,7 +546,10 @@ impl AdsStore {
         }
     }
 
-    pub async fn create_project(&self, req: &CreateProjectRequest) -> Result<ResearchProject, AdsError> {
+    pub async fn create_project(
+        &self,
+        req: &CreateProjectRequest,
+    ) -> Result<ResearchProject, AdsError> {
         self.ensure_researcher_exists(&req.researcher_id).await?;
         let id = Uuid::new_v4();
         let now = Utc::now();
@@ -644,9 +661,7 @@ impl AdsStore {
             .map_err(map_db_err)?;
 
         let mut status = AccessRequestStatus::Pending;
-        if dataset.auto_approve_enabled
-            && evaluation.as_ref().is_some_and(|e| e.auto_approvable)
-        {
+        if dataset.auto_approve_enabled && evaluation.as_ref().is_some_and(|e| e.auto_approvable) {
             status = AccessRequestStatus::Approved;
         }
 
@@ -736,9 +751,11 @@ impl AdsStore {
                 .fetch_optional(pool)
                 .await
                 .map_err(map_db_err)?;
-                row.map(|row| -> Result<AccessRequest, AdsError> { Ok(parse_access_request!(&row)) })
-                    .transpose()?
-                    .ok_or(AdsError::NotFound)
+                row.map(|row| -> Result<AccessRequest, AdsError> {
+                    Ok(parse_access_request!(&row))
+                })
+                .transpose()?
+                .ok_or(AdsError::NotFound)
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
@@ -751,9 +768,11 @@ impl AdsStore {
                 .fetch_optional(pool)
                 .await
                 .map_err(map_db_err)?;
-                row.map(|row| -> Result<AccessRequest, AdsError> { Ok(parse_access_request!(&row)) })
-                    .transpose()?
-                    .ok_or(AdsError::NotFound)
+                row.map(|row| -> Result<AccessRequest, AdsError> {
+                    Ok(parse_access_request!(&row))
+                })
+                .transpose()?
+                .ok_or(AdsError::NotFound)
             }
             #[allow(unreachable_patterns)]
             _ => Err(AdsError::Config("no database driver enabled".to_string())),
@@ -775,7 +794,9 @@ impl AdsStore {
                 .await
                 .map_err(map_db_err)?;
                 rows.into_iter()
-                    .map(|row| -> Result<AccessRequest, AdsError> { Ok(parse_access_request!(&row)) })
+                    .map(|row| -> Result<AccessRequest, AdsError> {
+                        Ok(parse_access_request!(&row))
+                    })
                     .collect()
             }
             #[cfg(feature = "sqlite")]
@@ -791,7 +812,9 @@ impl AdsStore {
                 .await
                 .map_err(map_db_err)?;
                 rows.into_iter()
-                    .map(|row| -> Result<AccessRequest, AdsError> { Ok(parse_access_request!(&row)) })
+                    .map(|row| -> Result<AccessRequest, AdsError> {
+                        Ok(parse_access_request!(&row))
+                    })
                     .collect()
             }
             #[allow(unreachable_patterns)]
@@ -928,23 +951,27 @@ impl AdsStore {
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                sqlx::query("UPDATE access_requests SET status = $1, updated_at = $2 WHERE id = $3")
-                    .bind(status_str(request.status))
-                    .bind(request.updated_at.timestamp())
-                    .bind(request.id.to_string())
-                    .execute(pool)
-                    .await
-                    .map_err(map_db_err)?;
+                sqlx::query(
+                    "UPDATE access_requests SET status = $1, updated_at = $2 WHERE id = $3",
+                )
+                .bind(status_str(request.status))
+                .bind(request.updated_at.timestamp())
+                .bind(request.id.to_string())
+                .execute(pool)
+                .await
+                .map_err(map_db_err)?;
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                sqlx::query("UPDATE access_requests SET status = $1, updated_at = $2 WHERE id = $3")
-                    .bind(status_str(request.status))
-                    .bind(request.updated_at.timestamp())
-                    .bind(request.id.to_string())
-                    .execute(pool)
-                    .await
-                    .map_err(map_db_err)?;
+                sqlx::query(
+                    "UPDATE access_requests SET status = $1, updated_at = $2 WHERE id = $3",
+                )
+                .bind(status_str(request.status))
+                .bind(request.updated_at.timestamp())
+                .bind(request.id.to_string())
+                .execute(pool)
+                .await
+                .map_err(map_db_err)?;
             }
         }
         Ok(())
@@ -1180,7 +1207,10 @@ impl AdsStore {
             .collect())
     }
 
-    pub async fn create_visa_source(&self, req: &CreateVisaSourceRequest) -> Result<VisaSource, AdsError> {
+    pub async fn create_visa_source(
+        &self,
+        req: &CreateVisaSourceRequest,
+    ) -> Result<VisaSource, AdsError> {
         let source = VisaSource {
             id: Uuid::new_v4(),
             name: req.name.clone(),
@@ -1359,7 +1389,9 @@ impl AdsStore {
         Ok(created)
     }
 
-    async fn list_active_permission_mappings(&self) -> Result<Vec<ActivePermissionMapping>, AdsError> {
+    async fn list_active_permission_mappings(
+        &self,
+    ) -> Result<Vec<ActivePermissionMapping>, AdsError> {
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
@@ -1420,7 +1452,11 @@ impl AdsStore {
         }
     }
 
-    async fn has_active_grant(&self, researcher_id: &str, dataset_id: Uuid) -> Result<bool, AdsError> {
+    async fn has_active_grant(
+        &self,
+        researcher_id: &str,
+        dataset_id: Uuid,
+    ) -> Result<bool, AdsError> {
         let grants = self.list_grants(Some(researcher_id)).await?;
         Ok(grants.iter().any(|grant| grant.dataset_id == dataset_id))
     }

@@ -46,7 +46,10 @@ pub async fn introspect(
     }
 
     let grant_ids: Vec<_> = grants.iter().map(|g| g.id).collect();
-    let mut duo_codes = grants.first().map(|g| g.duo_codes.clone()).unwrap_or_default();
+    let mut duo_codes = grants
+        .first()
+        .map(|g| g.duo_codes.clone())
+        .unwrap_or_default();
     for grant in &grants[1..] {
         for code in &grant.duo_codes {
             if !duo_codes.contains(code) {

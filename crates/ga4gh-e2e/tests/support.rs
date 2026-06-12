@@ -76,7 +76,8 @@ pub async fn broker_login(client: &Client) -> (String, String) {
         .next()
         .expect("cookie pair")
         .to_string();
-    let auth_url = login.json::<serde_json::Value>().await.expect("login json")["authorization_url"]
+    let auth_url = login.json::<serde_json::Value>().await.expect("login json")
+        ["authorization_url"]
         .as_str()
         .expect("authorization_url")
         .replace("mock-idp:9000", "localhost:9000");

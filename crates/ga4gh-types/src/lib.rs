@@ -23,14 +23,16 @@ pub use ads::{
     CreatePermissionSourceRequest, CreateProjectRequest, CreateVisaSourceRequest, DacActionRequest,
     DacQueueResponse, Dataset, DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse,
     GrantSource, IntrospectRequest, IntrospectResponse, PermissionMapping, PermissionSource,
-    Researcher, ResearcherAffiliation, ResearcherSyncRequest, ResearcherVisasResponse,
-    ResearchProject, SignedVisasResponse, VisaSource,
+    ResearchProject, Researcher, ResearcherAffiliation, ResearcherSyncRequest,
+    ResearcherVisasResponse, SignedVisasResponse, VisaSource,
 };
 pub use agreement::{
     AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, DecisionRecord,
     DuoCodeAssertion, PolicyProfile,
 };
-pub use compatibility::{check_compatibility, find_matching_template, is_permission, permission_satisfies};
+pub use compatibility::{
+    check_compatibility, find_matching_template, is_permission, permission_satisfies,
+};
 pub use duo::{DuoCode, DuoCodeError};
 pub use passport::{Passport, PassportClaims};
 pub use service_info::{ServiceInfo, ServiceOrganization, ServiceType};

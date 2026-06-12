@@ -31,10 +31,7 @@ pub async fn dac_approve(
     let actor = body
         .actor
         .unwrap_or_else(|| format!("dac:{}", operator.name));
-    let request = state
-        .store
-        .dac_approve(id, &actor, body.reason)
-        .await?;
+    let request = state.store.dac_approve(id, &actor, body.reason).await?;
     Ok(Json(request))
 }
 
@@ -48,10 +45,7 @@ pub async fn dac_reject(
     let actor = body
         .actor
         .unwrap_or_else(|| format!("dac:{}", operator.name));
-    let request = state
-        .store
-        .dac_reject(id, &actor, body.reason)
-        .await?;
+    let request = state.store.dac_reject(id, &actor, body.reason).await?;
     Ok(Json(request))
 }
 
@@ -65,9 +59,6 @@ pub async fn dac_escalate(
     let actor = body
         .actor
         .unwrap_or_else(|| format!("dac:{}", operator.name));
-    let request = state
-        .store
-        .dac_escalate(id, &actor, body.reason)
-        .await?;
+    let request = state.store.dac_escalate(id, &actor, body.reason).await?;
     Ok(Json(request))
 }

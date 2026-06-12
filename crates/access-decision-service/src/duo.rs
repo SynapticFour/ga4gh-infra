@@ -2,7 +2,9 @@
 
 //! DUO compatibility evaluation for datasets and research projects.
 
-use ga4gh_types::{is_permission, permission_satisfies, DuoCode, DuoEvaluateRequest, DuoEvaluationResult};
+use ga4gh_types::{
+    is_permission, permission_satisfies, DuoCode, DuoEvaluateRequest, DuoEvaluationResult,
+};
 
 use crate::error::AdsError;
 use crate::store::AdsStore;
@@ -123,11 +125,7 @@ pub async fn evaluate_request(
         project_duo = project.duo_codes;
     }
 
-    Ok(evaluate_duo_codes(
-        &dataset_duo,
-        &project_duo,
-        threshold,
-    ))
+    Ok(evaluate_duo_codes(&dataset_duo, &project_duo, threshold))
 }
 
 #[cfg(test)]

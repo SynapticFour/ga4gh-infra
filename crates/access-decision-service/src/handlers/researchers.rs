@@ -54,9 +54,7 @@ pub async fn get_researcher_signed_visas(
     let claims = researcher_visas(&researcher, &grants, &state.config.visas);
 
     let visa_jwts = if let Some(client) = &state.visa_registry {
-        client
-            .publish_and_fetch_jwts(&id, &claims.visas)
-            .await?
+        client.publish_and_fetch_jwts(&id, &claims.visas).await?
     } else {
         return Err(AdsError::Config(
             "visa_registry integration is not configured".to_string(),

@@ -64,9 +64,7 @@ pub fn extract_bearer(headers: &HeaderMap) -> Result<&str, AdsError> {
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .ok_or(AdsError::Unauthorized)?;
-    value
-        .strip_prefix("Bearer ")
-        .ok_or(AdsError::Unauthorized)
+    value.strip_prefix("Bearer ").ok_or(AdsError::Unauthorized)
 }
 
 pub fn extract_api_key(headers: &HeaderMap) -> Result<&str, AdsError> {
@@ -77,10 +75,7 @@ pub fn extract_api_key(headers: &HeaderMap) -> Result<&str, AdsError> {
 }
 
 impl AuthenticatedResearcher {
-    pub async fn from_headers(
-        state: &AppState,
-        headers: &HeaderMap,
-    ) -> Result<Self, AdsError> {
+    pub async fn from_headers(state: &AppState, headers: &HeaderMap) -> Result<Self, AdsError> {
         let token = extract_bearer(headers)?;
         Self::from_token(&state.jwks, token).await
     }

@@ -6,8 +6,8 @@ use access_decision_service::config::{DatabaseConfig, DatabaseDriver};
 use access_decision_service::permissions::sync_researcher;
 use access_decision_service::store::AdsStore;
 use ga4gh_types::{
-    CreateDatasetRequest, CreatePermissionMappingRequest, CreatePermissionSourceRequest,
-    DuoCode, ResearcherSyncRequest,
+    CreateDatasetRequest, CreatePermissionMappingRequest, CreatePermissionSourceRequest, DuoCode,
+    ResearcherSyncRequest,
 };
 use serde_json::json;
 use testcontainers::runners::AsyncRunner;

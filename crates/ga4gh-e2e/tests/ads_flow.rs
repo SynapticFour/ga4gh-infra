@@ -7,9 +7,7 @@ mod support;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
-use support::{
-    ads_api_key, ads_url, broker_login, sample_resource_url, wait_for_service,
-};
+use support::{ads_api_key, ads_url, broker_login, sample_resource_url, wait_for_service};
 
 #[tokio::test]
 #[ignore = "requires docker compose stack with ADS and sample-resource ads config"]
@@ -48,10 +46,7 @@ async fn stack_ads_grant_authorizes_via_introspect() {
         .json::<serde_json::Value>()
         .await
         .expect("dataset json");
-    let ads_dataset_id = ads_dataset["id"]
-        .as_str()
-        .expect("dataset id")
-        .to_string();
+    let ads_dataset_id = ads_dataset["id"].as_str().expect("dataset id").to_string();
 
     let project_response = client
         .post(format!("{}/ads/v1/projects", ads_url()))

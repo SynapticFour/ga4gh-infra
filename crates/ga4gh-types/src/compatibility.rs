@@ -169,7 +169,8 @@ pub fn check_compatibility(
                 {
                     unsatisfied_codes.push(*required);
                 }
-            } else if !requester_modifiers.contains(required) && !unsatisfied_codes.contains(required)
+            } else if !requester_modifiers.contains(required)
+                && !unsatisfied_codes.contains(required)
             {
                 unsatisfied_codes.push(*required);
             }
@@ -220,7 +221,8 @@ pub fn find_matching_template<'a>(
             .iter()
             .all(|code| dataset_codes.contains(code))
             && (tmpl.allowed_duo_codes.is_empty()
-                || dataset_codes.len() <= tmpl.required_duo_codes.len() + tmpl.allowed_duo_codes.len())
+                || dataset_codes.len()
+                    <= tmpl.required_duo_codes.len() + tmpl.allowed_duo_codes.len())
     })
 }
 
@@ -273,10 +275,7 @@ mod tests {
     #[test]
     fn missing_modifier_is_incompatible() {
         let requester = profile("req", vec![assertion(DuoCode::Gru)]);
-        let dataset = profile(
-            "ds",
-            vec![assertion(DuoCode::Gru), assertion(DuoCode::Npu)],
-        );
+        let dataset = profile("ds", vec![assertion(DuoCode::Gru), assertion(DuoCode::Npu)]);
         let result = check_compatibility(&requester, &dataset, None);
         assert!(!result.compatible);
         assert!(result.unsatisfied_codes.contains(&DuoCode::Npu));
@@ -288,10 +287,7 @@ mod tests {
             "req",
             vec![assertion(DuoCode::Gru), assertion(DuoCode::Irb)],
         );
-        let dataset = profile(
-            "ds",
-            vec![assertion(DuoCode::Gru), assertion(DuoCode::Irb)],
-        );
+        let dataset = profile("ds", vec![assertion(DuoCode::Gru), assertion(DuoCode::Irb)]);
         let result = check_compatibility(&requester, &dataset, None);
         assert!(result.compatible);
         assert!(!result.conditions.is_empty());
@@ -307,11 +303,11 @@ mod tests {
 
     #[test]
     fn template_match_adds_visa_condition_when_missing() {
-        let requester = profile("req", vec![assertion(DuoCode::Gru), assertion(DuoCode::Npu)]);
-        let dataset = profile(
-            "ds",
+        let requester = profile(
+            "req",
             vec![assertion(DuoCode::Gru), assertion(DuoCode::Npu)],
         );
+        let dataset = profile("ds", vec![assertion(DuoCode::Gru), assertion(DuoCode::Npu)]);
         let template = AgreementTemplate {
             id: "tmpl".to_string(),
             name: "T".to_string(),
@@ -348,9 +344,6 @@ mod tests {
             is_illustrative: true,
         };
         let result = check_compatibility(&requester, &dataset, Some(&template));
-        assert!(result
-            .conditions
-            .iter()
-            .any(|c| c.contains("illustrative")));
+        assert!(result.conditions.iter().any(|c| c.contains("illustrative")));
     }
 }

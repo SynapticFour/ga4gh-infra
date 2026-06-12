@@ -4,8 +4,8 @@
 
 use std::path::PathBuf;
 
-use access_decision_service::AdsConfig;
 use aai_broker::BrokerConfig;
+use access_decision_service::AdsConfig;
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use duo_service::DuoServiceConfig;

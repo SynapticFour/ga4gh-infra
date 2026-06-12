@@ -24,10 +24,7 @@ enum GrantAuth {
     Dac,
 }
 
-async fn authorize_grants(
-    state: &AppState,
-    headers: &HeaderMap,
-) -> Result<GrantAuth, AdsError> {
+async fn authorize_grants(state: &AppState, headers: &HeaderMap) -> Result<GrantAuth, AdsError> {
     if DacOperator::from_headers(state, headers).await.is_ok() {
         return Ok(GrantAuth::Dac);
     }
@@ -42,9 +39,7 @@ pub async fn list_grants(
     Query(query): Query<GrantListQuery>,
 ) -> Result<Json<GrantListResponse>, AdsError> {
     let grants = match authorize_grants(&state, &headers).await? {
-        GrantAuth::Researcher(researcher) => {
-            state.store.list_grants(Some(&researcher.sub)).await?
-        }
+        GrantAuth::Researcher(researcher) => state.store.list_grants(Some(&researcher.sub)).await?,
         GrantAuth::Dac => {
             state
                 .store

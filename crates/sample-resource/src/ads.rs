@@ -21,10 +21,7 @@ impl AdsClient {
     /// Build a client from configuration and environment.
     pub fn new(config: &AdsSection, http: Client) -> Result<Self, SampleResourceError> {
         let api_key = std::env::var(&config.api_key_env).map_err(|err| {
-            SampleResourceError::Config(format!(
-                "ADS API key env `{}`: {err}",
-                config.api_key_env
-            ))
+            SampleResourceError::Config(format!("ADS API key env `{}`: {err}", config.api_key_env))
         })?;
         Ok(Self {
             base_url: config.url.trim_end_matches('/').to_string(),
@@ -61,10 +58,9 @@ impl AdsClient {
             )));
         }
 
-        let body: IntrospectResponse = response
-            .json()
-            .await
-            .map_err(|err| SampleResourceError::AdsService(format!("ADS introspect JSON: {err}")))?;
+        let body: IntrospectResponse = response.json().await.map_err(|err| {
+            SampleResourceError::AdsService(format!("ADS introspect JSON: {err}"))
+        })?;
 
         Ok(body.active)
     }
@@ -101,11 +97,9 @@ mod tests {
         )
         .expect("client");
 
-        assert!(
-            client
-                .is_access_active("passport-jwt", "dataset-demo")
-                .await
-                .expect("introspect")
-        );
+        assert!(client
+            .is_access_active("passport-jwt", "dataset-demo")
+            .await
+            .expect("introspect"));
     }
 }

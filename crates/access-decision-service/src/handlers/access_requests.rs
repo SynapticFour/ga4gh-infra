@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use axum::extract::{Path, State};
 use axum::Json;
-use ga4gh_types::{CreateAccessRequestBody, AccessRequest};
+use ga4gh_types::{AccessRequest, CreateAccessRequestBody};
 use tracing::instrument;
 use uuid::Uuid;
 

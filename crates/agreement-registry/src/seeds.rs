@@ -19,8 +19,7 @@ pub fn seed_templates() -> Result<Vec<AgreementTemplate>, AgreementRegistryError
     SEEDS
         .iter()
         .map(|json| {
-            serde_json::from_str(json)
-                .map_err(|err| AgreementRegistryError::Parse(err.to_string()))
+            serde_json::from_str(json).map_err(|err| AgreementRegistryError::Parse(err.to_string()))
         })
         .collect()
 }
@@ -33,7 +32,9 @@ mod tests {
     fn loads_all_seed_templates() {
         let templates = seed_templates().expect("seeds");
         assert_eq!(templates.len(), 5);
-        assert!(templates.iter().any(|t| t.id == "ega-general-research-use-v1"));
+        assert!(templates
+            .iter()
+            .any(|t| t.id == "ega-general-research-use-v1"));
         assert!(templates
             .iter()
             .any(|t| t.id == "bbmri-registered-access-illustrative-v1" && t.is_illustrative));

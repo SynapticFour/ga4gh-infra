@@ -55,9 +55,7 @@ impl AppState {
         }
 
         let visa_registry = match (&config.visa_registry, config.visa_registry_api_key()) {
-            (Some(cfg), Ok(Some(api_key))) => {
-                Some(VisaRegistryClient::new(cfg, api_key)?)
-            }
+            (Some(cfg), Ok(Some(api_key))) => Some(VisaRegistryClient::new(cfg, api_key)?),
             (Some(_), Ok(None)) => {
                 return Err(AdsError::Config(
                     "visa_registry configured but API key env var is unset".to_string(),
@@ -89,7 +87,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/researchers/:id/signed-visas",
             get(handlers::get_researcher_signed_visas),
         )
-        .route("/researchers/:id/visas", get(handlers::get_researcher_visas))
+        .route(
+            "/researchers/:id/visas",
+            get(handlers::get_researcher_visas),
+        )
         .route("/datasets", post(handlers::create_dataset))
         .route("/datasets/:id", get(handlers::get_dataset))
         .route("/projects", post(handlers::create_project))
@@ -107,8 +108,14 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(handlers::get_grant).delete(handlers::revoke_grant),
         )
         .route("/introspect", post(handlers::introspect))
-        .route("/permission-sources", post(handlers::create_permission_source))
-        .route("/permission-mappings", post(handlers::create_permission_mapping))
+        .route(
+            "/permission-sources",
+            post(handlers::create_permission_source),
+        )
+        .route(
+            "/permission-mappings",
+            post(handlers::create_permission_mapping),
+        )
         .with_state(state.clone());
 
     Router::new()

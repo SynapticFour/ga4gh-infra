@@ -11,8 +11,8 @@ mod introspect;
 mod permissions;
 mod projects;
 mod researchers;
-mod sync;
 mod service_info;
+mod sync;
 
 pub use access_requests::{create_access_request, get_access_request};
 pub use dac::{dac_approve, dac_escalate, dac_reject, list_dac_requests};

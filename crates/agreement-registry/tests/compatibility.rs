@@ -1,8 +1,8 @@
 //! Integration-style test using seed template and in-memory registry (no HTTP).
 
+use agreement_registry::InMemoryRegistry;
 use chrono::Utc;
 use ga4gh_types::{CompatibilityCheckRequest, DuoCode, DuoCodeAssertion, PolicyProfile, VisaType};
-use agreement_registry::InMemoryRegistry;
 
 fn assertion(code: DuoCode, modifier_value: Option<&str>) -> DuoCodeAssertion {
     DuoCodeAssertion {
