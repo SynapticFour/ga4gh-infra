@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ga4gh-types::agreement` — `PolicyProfile`, `AgreementTemplate`, `CompatibilityCheckResult`, `DecisionRecord`, and related types for optional agreement-registry component.
+- `ga4gh-types::compatibility` — technical DUO profile matching (`check_compatibility`).
+
 ## [0.1.0] - 2026-06-12
 
 ### Added

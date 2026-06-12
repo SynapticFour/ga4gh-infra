@@ -1,0 +1,11 @@
+{
+  "id": "bbmri-registered-access-illustrative-v1",
+  "name": "BBMRI-ERIC registered access (illustrative DUO profile)",
+  "version": "1.0.0",
+  "description": "Illustrative DUO code set for federated biobank registered access; BBMRI-ERIC negotiates legal terms bilaterally — DUO tags collections but does not replace MTA/DTA text.",
+  "required_duo_codes": ["GRU", "NPU"],
+  "allowed_duo_codes": ["IRB", "COL"],
+  "required_visa_types": ["AffiliationAndRole", "ControlledAccessGrants"],
+  "reference_url": "https://www.bbmri-eric.eu/",
+  "is_illustrative": true
+}

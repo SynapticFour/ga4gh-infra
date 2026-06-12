@@ -1,0 +1,11 @@
+{
+  "id": "ega-general-research-use-v1",
+  "name": "EGA general research use (GRU)",
+  "version": "1.0.0",
+  "description": "Dataset tagged for GA4GH general research use as documented for EGA submitters and DAC policies.",
+  "required_duo_codes": ["GRU"],
+  "allowed_duo_codes": ["NPU", "NCU", "PUB", "COL", "IRB"],
+  "required_visa_types": ["ControlledAccessGrants"],
+  "reference_url": "https://ega-archive.org/access/data-access-committee/data-use-ontology/",
+  "is_illustrative": false
+}

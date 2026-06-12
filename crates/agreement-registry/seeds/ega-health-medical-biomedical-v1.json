@@ -1,0 +1,11 @@
+{
+  "id": "ega-health-medical-biomedical-v1",
+  "name": "EGA / dbGaP health or medical or biomedical research (HMB)",
+  "version": "1.0.0",
+  "description": "Health, medical, or biomedical research permission — common in NIH dbGaP consent groups and EGA DUO tagging.",
+  "required_duo_codes": ["HMB"],
+  "allowed_duo_codes": ["NPU", "NCU", "PUB", "IRB"],
+  "required_visa_types": ["ControlledAccessGrants", "ResearcherStatus"],
+  "reference_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10504671/",
+  "is_illustrative": false
+}

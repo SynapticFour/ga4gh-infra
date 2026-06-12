@@ -33,6 +33,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "agreement-registry"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "ga4gh-types",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1111,9 +1124,11 @@ dependencies = [
 name = "ga4gh-types"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "uuid",
 ]
 
 [[package]]

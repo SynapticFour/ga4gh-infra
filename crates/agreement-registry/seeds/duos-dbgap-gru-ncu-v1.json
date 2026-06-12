@@ -1,0 +1,11 @@
+{
+  "id": "duos-dbgap-gru-ncu-v1",
+  "name": "DUOS / dbGaP GRU with non-commercial use (NCU)",
+  "version": "1.0.0",
+  "description": "Broad Institute DUOS pattern: general research permission with explicit non-commercial modifier, common in dbGaP structured data use limitations.",
+  "required_duo_codes": ["GRU", "NCU"],
+  "allowed_duo_codes": ["PUB", "COL", "IRB"],
+  "required_visa_types": ["ControlledAccessGrants"],
+  "reference_url": "https://duos.broadinstitute.org/",
+  "is_illustrative": false
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ega-disease-specific-mondo-v1",
+  "name": "EGA disease-specific research with MONDO modifier",
+  "version": "1.0.0",
+  "description": "Disease-specific (DS) permission as used at EGA; requires an ontology term (MONDO) alongside DS per EGA DAC portal guidance.",
+  "required_duo_codes": ["DS"],
+  "allowed_duo_codes": ["RS", "PUB", "IRB"],
+  "required_visa_types": ["ControlledAccessGrants"],
+  "reference_url": "https://dac.ega-archive.org/take-the-tour/policies/create",
+  "is_illustrative": false
+}

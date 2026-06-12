@@ -18,11 +18,16 @@ flowchart LR
     IdP[Upstream OIDC IdP]
   end
 
+  subgraph legal [External legal layer - optional]
+    Ferrum[Ferrum / DTA systems]
+  end
+
   subgraph ga4gh [GA4GH Infra]
     Broker[aai-broker]
     Visas[visa-registry]
     DUO[duo-service]
     SvcReg[service-registry]
+    AgrReg[agreement-registry optional]
   end
 
   subgraph resource [Resource boundary]
@@ -39,7 +44,12 @@ flowchart LR
   CH -->|JWKS| Broker
   CH -->|JWKS| Visas
   API -->|POST /match| DUO
+  Ferrum -.->|source_document_ref opaque id| AgrReg
+  AgrReg -.->|PolicyProfile DUO sets| DUO
+  AgrReg -.->|visa_types / profiles| Visas
 ```
+
+`agreement-registry` is **optional** and loosely coupled — broker, visa-registry, duo-service, and clearinghouse do not depend on it. It operationalizes MRCG-style policy-to-DUO translation and institution compatibility (levels 2–3). See [agreement-registry/architecture.md](agreement-registry/architecture.md).
 
 ## Components
 
@@ -52,7 +62,8 @@ flowchart LR
 | `sample-resource` | 8084 | Reference resource API using clearinghouse axum integration |
 | `mock-idp` | 9000 | Test upstream OIDC provider (docker/CI only) |
 | `ga4gh-clearinghouse` | library | Validates Passports and Visas at resource boundaries |
-| `ga4gh-types` | library | Shared GA4GH data structures |
+| `ga4gh-types` | library | Shared GA4GH data structures (Passport, Visa, DUO, agreement profiles) |
+| `agreement-registry` | optional service | Policy profiles, agreement templates, compatibility checks (Phase 8) |
 
 PostgreSQL backs `visa-registry` and `service-registry` in production stacks; visa-registry also supports SQLite for demo/edge (see [configuration.md](configuration.md)).
 

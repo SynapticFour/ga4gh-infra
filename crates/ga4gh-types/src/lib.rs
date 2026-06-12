@@ -9,11 +9,18 @@
 
 #![deny(missing_docs)]
 
+pub mod agreement;
+pub mod compatibility;
 pub mod duo;
 pub mod passport;
 pub mod service_info;
 pub mod visa;
 
+pub use agreement::{
+    AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, DecisionRecord,
+    DuoCodeAssertion, PolicyProfile,
+};
+pub use compatibility::{check_compatibility, find_matching_template, is_permission, permission_satisfies};
 pub use duo::{DuoCode, DuoCodeError};
 pub use passport::{Passport, PassportClaims};
 pub use service_info::{ServiceInfo, ServiceOrganization, ServiceType};
