@@ -134,7 +134,8 @@ async fn rejects_expired_passport() {
     .await
     .expect("clearinghouse");
 
-    let expired_passport = issuer.mint_passport_jwt_with_expiry("researcher@example.org", vec![], 1);
+    let expired_passport =
+        issuer.mint_passport_jwt_with_expiry("researcher@example.org", vec![], 1);
     let err = clearinghouse
         .validate_passport(&expired_passport)
         .await

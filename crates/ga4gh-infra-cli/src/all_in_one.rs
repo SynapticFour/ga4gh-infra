@@ -48,7 +48,9 @@ pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
     duo_service::validate_log_level(&config.duo_service).map_err(anyhow::Error::msg)?;
     service_registry::validate_log_level(&config.service_registry).map_err(anyhow::Error::msg)?;
 
-    tracing::info!("starting all-in-one ga4gh-infra (broker, visa-registry, duo-service, service-registry)");
+    tracing::info!(
+        "starting all-in-one ga4gh-infra (broker, visa-registry, duo-service, service-registry)"
+    );
 
     let broker = tokio::spawn(async move { aai_broker::run(config.broker).await });
     let visa_registry = tokio::spawn(async move { visa_registry::run(config.visa_registry).await });

@@ -62,7 +62,7 @@ docker compose -f docker/docker-compose.sqlite.yml --env-file docker/.env.exampl
 Component image tags match crate versions independently (see [docs/versioning.md](../docs/versioning.md)):
 
 ```env
-GA4GH_IMAGE_PREFIX=ghcr.io/SynapticFour
+GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
 AAI_BROKER_VERSION=0.1.0
 VISA_REGISTRY_VERSION=0.1.0
 # ...

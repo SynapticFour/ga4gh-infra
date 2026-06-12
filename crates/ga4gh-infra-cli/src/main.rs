@@ -84,10 +84,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::VisaRegistry { config } => {
             let cfg = VisaRegistryConfig::load_from_file(&config).with_context(|| {
-                format!(
-                    "loading visa registry config from {}",
-                    config.display()
-                )
+                format!("loading visa registry config from {}", config.display())
             })?;
             visa_registry::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
             visa_registry::run(cfg).await
@@ -100,18 +97,14 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::ServiceRegistry { config } => {
             let cfg = ServiceRegistryConfig::load_from_file(&config).with_context(|| {
-                format!(
-                    "loading service registry config from {}",
-                    config.display()
-                )
+                format!("loading service registry config from {}", config.display())
             })?;
             service_registry::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
             service_registry::run(cfg).await
         }
         Commands::AllInOne { config } => {
-            let cfg = AllInOneConfig::load_from_file(&config).with_context(|| {
-                format!("loading all-in-one config from {}", config.display())
-            })?;
+            let cfg = AllInOneConfig::load_from_file(&config)
+                .with_context(|| format!("loading all-in-one config from {}", config.display()))?;
             run_all_in_one(cfg).await
         }
         Commands::Keygen {

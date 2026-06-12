@@ -13,6 +13,6 @@ pub mod terms;
 pub use app::{build_router, AppState};
 pub use config::DuoServiceConfig;
 pub use error::DuoServiceError;
-pub use startup::{run, validate_log_level};
 pub use matcher::{MatchRequest, MatchResponse};
+pub use startup::{run, validate_log_level};
 pub use terms::{DuoCatalog, DuoTerm};

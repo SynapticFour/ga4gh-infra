@@ -247,8 +247,11 @@ mod tests {
             .await;
 
         let jwks_uri = format!("{}/jwks.json", server.uri());
-        let cache = JwksCache::new(vec![test_broker(jwks_uri.clone())], Duration::from_secs(300))
-            .expect("cache");
+        let cache = JwksCache::new(
+            vec![test_broker(jwks_uri.clone())],
+            Duration::from_secs(300),
+        )
+        .expect("cache");
 
         cache
             .decoding_key_for(&jwks_uri, "cache-test-kid")

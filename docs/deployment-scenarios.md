@@ -35,7 +35,7 @@ How to run `ga4gh-infra` in common environments.
 3. Mount production PEM keys; never use `docker/secrets/` keys.
 4. Pin image versions in [`docker/.env.example`](../docker/.env.example):
    ```env
-   GA4GH_IMAGE_PREFIX=ghcr.io/SynapticFour
+   GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
    AAI_BROKER_VERSION=0.3.0
    VISA_REGISTRY_VERSION=0.1.5
    ```

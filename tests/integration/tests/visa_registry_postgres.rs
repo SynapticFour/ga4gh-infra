@@ -8,8 +8,7 @@ use visa_registry::config::{DatabaseConfig, DatabaseDriver};
 use visa_registry::store::{NewVisaAssertion, VisaStore};
 
 fn fixtures_dir() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../fixtures")
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../fixtures")
 }
 
 #[tokio::test]
@@ -51,5 +50,9 @@ async fn postgres_crud_lifecycle_via_testcontainers() {
     assert_eq!(active[0].id, created.id);
 
     store.revoke_assertion(created.id).await.expect("revoke");
-    assert!(store.list_active_for_sub(&sub).await.expect("list").is_empty());
+    assert!(store
+        .list_active_for_sub(&sub)
+        .await
+        .expect("list")
+        .is_empty());
 }

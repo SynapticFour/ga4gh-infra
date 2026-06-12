@@ -24,10 +24,7 @@ pub fn generate_pem(output: &Path, bits: usize) -> Result<()> {
     }
 
     if output.exists() {
-        anyhow::bail!(
-            "refusing to overwrite existing key at {}",
-            output.display()
-        );
+        anyhow::bail!("refusing to overwrite existing key at {}", output.display());
     }
 
     let mut rng = thread_rng();

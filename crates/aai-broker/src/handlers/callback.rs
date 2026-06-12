@@ -111,7 +111,10 @@ pub async fn callback(
     Ok(response)
 }
 
-fn validate_csrf_state(session: &crate::session::RpSession, returned_state: &str) -> Result<(), BrokerError> {
+fn validate_csrf_state(
+    session: &crate::session::RpSession,
+    returned_state: &str,
+) -> Result<(), BrokerError> {
     if returned_state != session.csrf_state {
         return Err(BrokerError::AuthenticationFailed);
     }
@@ -189,7 +192,7 @@ mod tests {
 
     #[test]
     fn rejects_mismatched_csrf_state() {
-        use crate::session::{RpSession, unix_now};
+        use crate::session::{unix_now, RpSession};
 
         let session = RpSession {
             idp_name: "mock-idp".to_string(),

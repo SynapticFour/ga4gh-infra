@@ -244,7 +244,7 @@ Changes from dev stack:
 Pin image versions in `.env`:
 
 ```env
-GA4GH_IMAGE_PREFIX=ghcr.io/SynapticFour
+GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
 AAI_BROKER_VERSION=0.1.0
 VISA_REGISTRY_VERSION=0.1.0
 ```

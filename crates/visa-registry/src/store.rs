@@ -322,29 +322,25 @@ impl VisaStore {
         let now = unix_now();
         let affected = match &self.pool {
             #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query(
-                    "UPDATE visa_assertions SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
-                )
-                .bind(now)
-                .bind(id.to_string())
-                .execute(pool)
-                .await
-                .map_err(|err| RegistryError::Database(err.to_string()))?
-                .rows_affected()
-            }
+            DbPool::Postgres(pool) => sqlx::query(
+                "UPDATE visa_assertions SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
+            )
+            .bind(now)
+            .bind(id.to_string())
+            .execute(pool)
+            .await
+            .map_err(|err| RegistryError::Database(err.to_string()))?
+            .rows_affected(),
             #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query(
-                    "UPDATE visa_assertions SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
-                )
-                .bind(now)
-                .bind(id.to_string())
-                .execute(pool)
-                .await
-                .map_err(|err| RegistryError::Database(err.to_string()))?
-                .rows_affected()
-            }
+            DbPool::Sqlite(pool) => sqlx::query(
+                "UPDATE visa_assertions SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
+            )
+            .bind(now)
+            .bind(id.to_string())
+            .execute(pool)
+            .await
+            .map_err(|err| RegistryError::Database(err.to_string()))?
+            .rows_affected(),
         };
 
         if affected == 0 {
@@ -413,19 +409,19 @@ impl VisaStore {
     async fn count_active_api_keys(&self) -> Result<i64, RegistryError> {
         match &self.pool {
             #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => sqlx::query_scalar(
-                "SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL",
-            )
-            .fetch_one(pool)
-            .await
-            .map_err(|err| RegistryError::Database(err.to_string())),
+            DbPool::Postgres(pool) => {
+                sqlx::query_scalar("SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL")
+                    .fetch_one(pool)
+                    .await
+                    .map_err(|err| RegistryError::Database(err.to_string()))
+            }
             #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => sqlx::query_scalar(
-                "SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL",
-            )
-            .fetch_one(pool)
-            .await
-            .map_err(|err| RegistryError::Database(err.to_string())),
+            DbPool::Sqlite(pool) => {
+                sqlx::query_scalar("SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL")
+                    .fetch_one(pool)
+                    .await
+                    .map_err(|err| RegistryError::Database(err.to_string()))
+            }
         }
     }
 }

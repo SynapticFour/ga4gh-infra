@@ -112,9 +112,8 @@ mod tests {
         .await
         .expect("clearinghouse");
 
-        let payload = URL_SAFE_NO_PAD.encode(
-            br#"{"iss":"https://trusted.example.org","exp":1,"sub":"user@example.org"}"#,
-        );
+        let payload = URL_SAFE_NO_PAD
+            .encode(br#"{"iss":"https://trusted.example.org","exp":1,"sub":"user@example.org"}"#);
         let token = format!("eyJhbGciOiJSUzI1NiJ9.{payload}.signature");
 
         let err = clearinghouse

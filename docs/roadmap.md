@@ -115,7 +115,7 @@ See `docker/config/*.toml` and `docs/architecture.md` for the current dev layout
 |-----|----------|-------------|
 | **SAML2 upstream IdP** | High | Original project goal: connect institutes with SAML2 IdPs. Only OIDC upstream (via `openidconnect`) is implemented. Requires SAML SP library, metadata, assertion mapping to broker identity, and likely separate config section. |
 | **crates.io publish** | Medium | `ga4gh-types` and `ga4gh-clearinghouse` have README, keywords, and `#![deny(missing_docs)]`. Not yet published; version is `0.1.0`, repository URL is a placeholder. |
-| **Real repository metadata** | Done | `SynapticFour/ga4gh-infra` on GitHub; GHCR prefix `ghcr.io/SynapticFour` |
+| **Real repository metadata** | Done | `SynapticFour/ga4gh-infra` on GitHub; GHCR prefix `ghcr.io/synapticfour` (lowercase required) |
 
 ---
 
