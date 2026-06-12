@@ -6,6 +6,7 @@ edition = "2021"
 publish = false
 
 [dev-dependencies]
+access-decision-service = { path = "../../crates/access-decision-service" }
 visa-registry = { path = "../../crates/visa-registry" }
 ga4gh-types = { workspace = true }
 tokio = { workspace = true }

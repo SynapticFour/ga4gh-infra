@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/SynapticFour/ga4gh-infra/graph/badge.svg)](https://codecov.io/gh/SynapticFour/ga4gh-infra)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Self-hostable Rust implementation of GA4GH infrastructure: OIDC brokering, Passport/Visa issuance, DUO matching, and a Service Registry.
+Self-hostable Rust implementation of GA4GH infrastructure: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, and a Service Registry.
 
 > **Legal notice:** This repository documents technical capabilities and operating guidance. It is not legal advice and does not by itself provide regulatory certification or compliance guarantees. Compliance outcomes depend on operator configuration, contracts, and organisational controls. Passport and visa flows may involve identifiable researcher data — assess your legal basis before production use. See [docs/limitations.md](docs/limitations.md).
 
@@ -50,6 +50,7 @@ See **[docs/getting-started.md](docs/getting-started.md)** for both paths, Pi/AR
 | [`visa-registry`](crates/visa-registry) | Visa store + DAC API (Postgres or SQLite) |
 | [`duo-service`](crates/duo-service) | DUO catalog and `/match` |
 | [`service-registry`](crates/service-registry) | GA4GH Service Registry |
+| [`access-decision-service`](crates/access-decision-service) | Access Decision Service (ADS) |
 | [`ga4gh-infra-cli`](crates/ga4gh-infra-cli) | Combined `ga4gh-infra` binary |
 
 The broker is an **OIDC Relying Party** — it does not replace your institute IdP. Resource services validate Passports with `ga4gh-clearinghouse`.

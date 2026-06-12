@@ -5,6 +5,7 @@
 use std::path::Path;
 
 use aai_broker::BrokerConfig;
+use access_decision_service::AdsConfig;
 use duo_service::DuoServiceConfig;
 use serde::Deserialize;
 use service_registry::RegistryConfig as ServiceRegistryConfig;
@@ -28,6 +29,9 @@ pub struct AllInOneConfig {
     /// Service registry settings (`service-registry`).
     #[serde(rename = "service_registry")]
     pub service_registry: ServiceRegistryConfig,
+    /// Access Decision Service settings (`access-decision-service`).
+    #[serde(rename = "access_decision_service")]
+    pub access_decision_service: AdsConfig,
 }
 
 impl AllInOneConfig {
@@ -41,15 +45,17 @@ impl AllInOneConfig {
     }
 }
 
-/// Run all four services concurrently in the current Tokio runtime.
+/// Run all core services concurrently in the current Tokio runtime.
 pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
     aai_broker::validate_log_level(&config.broker).map_err(anyhow::Error::msg)?;
     visa_registry::validate_log_level(&config.visa_registry).map_err(anyhow::Error::msg)?;
     duo_service::validate_log_level(&config.duo_service).map_err(anyhow::Error::msg)?;
     service_registry::validate_log_level(&config.service_registry).map_err(anyhow::Error::msg)?;
+    access_decision_service::validate_log_level(&config.access_decision_service)
+        .map_err(anyhow::Error::msg)?;
 
     tracing::info!(
-        "starting all-in-one ga4gh-infra (broker, visa-registry, duo-service, service-registry)"
+        "starting all-in-one ga4gh-infra (broker, visa-registry, duo-service, service-registry, access-decision-service)"
     );
 
     let broker = tokio::spawn(async move { aai_broker::run(config.broker).await });
@@ -57,12 +63,16 @@ pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
     let duo_service = tokio::spawn(async move { duo_service::run(config.duo_service).await });
     let service_registry =
         tokio::spawn(async move { service_registry::run(config.service_registry).await });
+    let access_decision_service = tokio::spawn(async move {
+        access_decision_service::run(config.access_decision_service).await
+    });
 
     tokio::select! {
         result = broker => result.map_err(|err| anyhow::anyhow!("broker task panicked: {err}"))??,
         result = visa_registry => result.map_err(|err| anyhow::anyhow!("visa-registry task panicked: {err}"))??,
         result = duo_service => result.map_err(|err| anyhow::anyhow!("duo-service task panicked: {err}"))??,
         result = service_registry => result.map_err(|err| anyhow::anyhow!("service-registry task panicked: {err}"))??,
+        result = access_decision_service => result.map_err(|err| anyhow::anyhow!("access-decision-service task panicked: {err}"))??,
     }
 
     Ok(())
@@ -135,6 +145,25 @@ mod tests {
 
             [service_registry.auth]
             registration_api_key_env = "SERVICE_REGISTRY_REGISTRATION_KEY"
+
+            [access_decision_service.server]
+            host = "127.0.0.1"
+            port = 8090
+            external_url = "http://localhost:8090"
+            environment = "development"
+
+            [access_decision_service.database]
+            url_env = "ADS_DATABASE_URL"
+
+            [access_decision_service.oidc]
+            jwks_cache_ttl_seconds = 300
+
+            [[access_decision_service.oidc.trusted_brokers]]
+            issuer = "http://localhost:8080"
+            jwks_uri = "http://localhost:8080/jwks.json"
+
+            [access_decision_service.auth]
+            bootstrap_api_key_env = "ADS_DAC_API_KEY"
         "#;
 
         let config: AllInOneConfig = config::Config::builder()
@@ -148,5 +177,6 @@ mod tests {
         assert_eq!(config.visa_registry.server.port, 8081);
         assert_eq!(config.duo_service.server.port, 8082);
         assert_eq!(config.service_registry.server.port, 8083);
+        assert_eq!(config.access_decision_service.server.port, 8090);
     }
 }

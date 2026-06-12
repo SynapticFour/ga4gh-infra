@@ -1,0 +1,29 @@
+[server]
+host = "0.0.0.0"
+port = 8090
+external_url = "http://localhost:8090"
+environment = "development"
+
+[database]
+url_env = "ADS_DATABASE_URL"
+auto_migrate = true
+
+[oidc]
+jwks_cache_ttl_seconds = 300
+
+[[oidc.trusted_brokers]]
+issuer = "http://localhost:8080"
+jwks_uri = "http://aai-broker:8080/jwks.json"
+
+[auth]
+bootstrap_api_key_env = "ADS_DAC_API_KEY"
+
+[visas]
+default_source_url = "http://access-decision-service:8090"
+
+[visa_registry]
+url = "http://visa-registry:8081"
+api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+
+[webhooks]
+urls = []

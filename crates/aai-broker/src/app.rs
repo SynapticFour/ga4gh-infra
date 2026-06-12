@@ -8,6 +8,7 @@ use axum::routing::get;
 use axum::Router;
 use tower_http::trace::TraceLayer;
 
+use crate::ads::AdsClient;
 use crate::config::BrokerConfig;
 use crate::handlers;
 use crate::keys::SigningKeys;
@@ -29,6 +30,8 @@ pub struct AppState {
     pub upstream: UpstreamRegistry,
     /// Visa source HTTP clients.
     pub visa_sources: Vec<VisaSourceClient>,
+    /// Optional ADS client for researcher sync and signed visas.
+    pub ads: Option<AdsClient>,
     /// Cached researcher profiles for `/userinfo`.
     pub profiles: ProfileStore,
     /// Shared HTTP client for upstream OIDC requests.
@@ -49,6 +52,11 @@ impl AppState {
             .iter()
             .map(VisaSourceClient::new)
             .collect::<Result<Vec<_>, _>>()?;
+        let ads = config
+            .ads
+            .as_ref()
+            .map(AdsClient::new)
+            .transpose()?;
 
         Ok(Arc::new(Self {
             sessions: SessionManager::new(&cookie_secret, config.session.session_lifetime_seconds),
@@ -56,6 +64,7 @@ impl AppState {
             keys,
             upstream,
             visa_sources,
+            ads,
             profiles: ProfileStore::default(),
             http_client,
         }))

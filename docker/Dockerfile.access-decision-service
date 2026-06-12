@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+# GA4GH Access Decision Service image. Build from repo root:
+#   docker build -f docker/Dockerfile.access-decision-service -t ghcr.io/<org>/access-decision-service:0.1.0 .
+
+FROM rust:1-bookworm AS builder
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY tests/integration ./tests/integration
+
+RUN cargo build --release -p access-decision-service
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh \
+    && mkdir -p /data && chown ga4gh:ga4gh /data
+
+COPY --from=builder /app/target/release/access-decision-service /usr/local/bin/access-decision-service
+
+USER ga4gh
+WORKDIR /app
+VOLUME ["/data"]
+ENTRYPOINT ["/usr/local/bin/access-decision-service"]

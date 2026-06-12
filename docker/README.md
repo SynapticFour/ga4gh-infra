@@ -10,6 +10,7 @@ All Docker build contexts live under `docker/`. Build from the **repository root
 | `Dockerfile.visa-registry` | `visa-registry` | `VISA_REGISTRY_VERSION` |
 | `Dockerfile.duo-service` | `duo-service` | `DUO_SERVICE_VERSION` |
 | `Dockerfile.service-registry` | `service-registry` | `SERVICE_REGISTRY_VERSION` |
+| `Dockerfile.access-decision-service` | `access-decision-service` | `ACCESS_DECISION_SERVICE_VERSION` |
 | `Dockerfile.all-in-one` | `ga4gh-infra` (combined CLI) | `GA4GH_INFRA_VERSION` |
 | `Dockerfile.mock-idp` | `mock-idp` (dev/CI only) | `MOCK_IDP_VERSION` |
 | `Dockerfile.sample-resource` | `sample-resource` | `SAMPLE_RESOURCE_VERSION` |
@@ -35,7 +36,7 @@ Compose reads `--env-file docker/.env.example` by default in CI; use `docker/.en
 
 | Compose file | Database | Use case |
 |--------------|----------|----------|
-| `docker-compose.yml` | PostgreSQL for visa-registry and service-registry | Full stack (CI, e2e, dev) |
+| `docker-compose.yml` | PostgreSQL for visa-registry, service-registry, and ADS | Full stack (CI, e2e, dev) |
 | `docker-compose.sqlite.yml` | SQLite volume for visa-registry; PostgreSQL for service-registry only | Lighter local deployment |
 | `docker-compose.prod.example.yml` | PostgreSQL; no mock-idp | Production reference (see [docs/production-deployment.md](../docs/production-deployment.md)) |
 
@@ -78,6 +79,8 @@ Pushing a git tag triggers `.github/workflows/docker-release.yml`:
 |---------|----------------|
 | `aai-broker-v0.3.0` | `ghcr.io/<org>/aai-broker:0.3.0` (+ `:latest`) |
 | `visa-registry-v0.1.5` | `ghcr.io/<org>/visa-registry:0.1.5` (+ `:latest`) |
+| `service-registry-v0.1.0` | `ghcr.io/<org>/service-registry:0.1.0` (+ `:latest`) |
+| `access-decision-service-v0.1.0` | `ghcr.io/<org>/access-decision-service:0.1.0` (+ `:latest`) |
 | `ga4gh-infra-v0.4.0` | `ghcr.io/<org>/ga4gh-infra:0.4.0` (+ `:latest`) |
 
 Replace `<org>` with your GitHub organization or username (lowercase).

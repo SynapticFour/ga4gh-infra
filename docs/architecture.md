@@ -25,6 +25,7 @@ flowchart LR
   subgraph ga4gh [GA4GH Infra]
     Broker[aai-broker]
     Visas[visa-registry]
+    ADS[access-decision-service]
     DUO[duo-service]
     SvcReg[service-registry]
     AgrReg[agreement-registry optional]
@@ -38,6 +39,8 @@ flowchart LR
   Researcher -->|login| IdP
   IdP -->|code + tokens| Broker
   Broker -->|GET /visas| Visas
+  Broker -->|sync + signed-visas| ADS
+  ADS -->|POST /visas| Visas
   Broker -->|Passport JWT| Researcher
   Researcher -->|Bearer Passport| API
   API --> CH
@@ -57,6 +60,7 @@ flowchart LR
 |---------|------|------|
 | `aai-broker` | 8080 | OIDC Relying Party; mints GA4GH Passports after upstream IdP login |
 | `visa-registry` | 8081 | Stores unsigned visa assertions; signs and serves visa JWTs |
+| `access-decision-service` | 8090 | Access requests, DUO evaluation, DAC workflows, grants, visa export |
 | `duo-service` | 8082 | DUO term catalog and dataset/intended-use matching |
 | `service-registry` | 8083 | GA4GH service discovery registry |
 | `sample-resource` | 8084 | Reference resource API using clearinghouse axum integration |
@@ -65,7 +69,7 @@ flowchart LR
 | `ga4gh-types` | library | Shared GA4GH data structures (Passport, Visa, DUO, agreement profiles) |
 | `agreement-registry` | optional service | Policy profiles, agreement templates, compatibility checks (Phase 8) |
 
-PostgreSQL backs `visa-registry` and `service-registry` in production stacks; visa-registry also supports SQLite for demo/edge (see [configuration.md](configuration.md)).
+PostgreSQL backs `visa-registry`, `service-registry`, and `access-decision-service` in production stacks; visa-registry and ADS also support SQLite for demo/edge (see [configuration.md](configuration.md)).
 
 ## Authentication and Passport flow
 

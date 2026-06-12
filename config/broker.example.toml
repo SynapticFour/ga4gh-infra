@@ -32,3 +32,8 @@ affiliation = "eduperson_scoped_affiliation"
 [[visa_sources]]
 name = "local-registry"
 url = "http://visa-registry:8081"
+
+# Optional ADS integration (researcher sync + signed visa export).
+# [ads]
+# url = "http://access-decision-service:8090"
+# sync_api_key_env = "ADS_DAC_API_KEY"

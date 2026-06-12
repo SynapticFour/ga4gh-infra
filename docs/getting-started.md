@@ -15,8 +15,8 @@ just up
 What happens:
 
 1. Dev RSA keys are created under `docker/secrets/` if missing (`ga4gh-infra keygen`).
-2. Compose builds per-service images and starts PostgreSQL, mock IdP, broker, visa-registry, duo-service, service-registry, and sample-resource.
-3. Health checks wait until all services respond on ports 8080–8084 and 9000.
+2. Compose builds per-service images and starts PostgreSQL, mock IdP, broker, visa-registry, access-decision-service, duo-service, service-registry, and sample-resource.
+3. Health checks wait until all services respond on ports 8080–8084, 8090, and 9000.
 
 Lighter stack (SQLite visa-registry, no Postgres for visas):
 
@@ -46,6 +46,7 @@ just e2e
 | Visa registry | http://localhost:8081 |
 | DUO service | http://localhost:8082 |
 | Service registry | http://localhost:8083 |
+| Access Decision Service | http://localhost:8090 |
 | Sample resource | http://localhost:8084 |
 | Mock IdP | http://localhost:9000 |
 

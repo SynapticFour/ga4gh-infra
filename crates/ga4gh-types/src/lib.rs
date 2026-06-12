@@ -9,6 +9,7 @@
 
 #![deny(missing_docs)]
 
+pub mod ads;
 pub mod agreement;
 pub mod compatibility;
 pub mod duo;
@@ -16,6 +17,15 @@ pub mod passport;
 pub mod service_info;
 pub mod visa;
 
+pub use ads::{
+    AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestStatus, AdsEvent,
+    AdsEventType, CreateAccessRequestBody, CreateDatasetRequest, CreatePermissionMappingRequest,
+    CreatePermissionSourceRequest, CreateProjectRequest, CreateVisaSourceRequest, DacActionRequest,
+    DacQueueResponse, Dataset, DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse,
+    GrantSource, IntrospectRequest, IntrospectResponse, PermissionMapping, PermissionSource,
+    Researcher, ResearcherAffiliation, ResearcherSyncRequest, ResearcherVisasResponse,
+    ResearchProject, SignedVisasResponse, VisaSource,
+};
 pub use agreement::{
     AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, DecisionRecord,
     DuoCodeAssertion, PolicyProfile,

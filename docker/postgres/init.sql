@@ -2,3 +2,4 @@
 
 CREATE DATABASE visa_registry;
 CREATE DATABASE service_registry;
+CREATE DATABASE ads_registry;

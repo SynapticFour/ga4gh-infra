@@ -1,6 +1,6 @@
 [package]
 name = "ga4gh-infra-cli"
-description = "Combined GA4GH infrastructure CLI (broker, visa registry, DUO, service registry)"
+description = "Combined GA4GH infrastructure CLI (broker, visa registry, DUO, service registry, ADS)"
 version = "0.1.0"
 publish = false
 edition.workspace = true
@@ -21,6 +21,7 @@ aai-broker = { path = "../aai-broker", version = "0.1.0" }
 visa-registry = { path = "../visa-registry", version = "0.1.0" }
 duo-service = { path = "../duo-service", version = "0.1.0" }
 service-registry = { path = "../service-registry", version = "0.1.0" }
+access-decision-service = { path = "../access-decision-service", version = "0.1.0" }
 anyhow = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }

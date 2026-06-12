@@ -2,6 +2,7 @@
 
 //! GA4GH AAI OIDC broker library: upstream RP login and Passport issuance.
 
+pub mod ads;
 pub mod app;
 pub mod config;
 pub mod error;

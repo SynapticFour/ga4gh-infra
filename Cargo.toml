@@ -7,6 +7,7 @@ members = [
     "crates/visa-registry",
     "crates/duo-service",
     "crates/service-registry",
+    "crates/access-decision-service",
     "crates/mock-idp",
     "crates/sample-resource",
     "crates/ga4gh-infra-cli",

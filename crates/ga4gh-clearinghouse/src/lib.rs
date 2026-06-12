@@ -20,4 +20,5 @@ pub mod axum;
 pub use clearinghouse::Clearinghouse;
 pub use config::{ClearinghouseConfig, TrustedBroker};
 pub use error::ClearinghouseError;
+pub use jwks::JwksCache;
 pub use policy::{PolicyCheck, PolicyResult};

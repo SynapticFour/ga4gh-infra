@@ -1,0 +1,51 @@
+[package]
+name = "access-decision-service"
+description = "GA4GH Access Decision Service (ADS) — grants, DAC workflows, DUO evaluation, visa export"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[package.metadata.release]
+publish = false
+tag-name = "access-decision-service-v{{version}}"
+
+[lib]
+name = "access_decision_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "access-decision-service"
+path = "src/main.rs"
+
+[features]
+default = ["postgres", "sqlite"]
+postgres = ["sqlx/postgres"]
+sqlite = ["sqlx/sqlite"]
+
+[dependencies]
+ga4gh-types = { workspace = true }
+ga4gh-clearinghouse = { workspace = true }
+anyhow = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+jsonwebtoken = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+tower-http = { workspace = true }
+sha2 = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+reqwest = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+wiremock = "0.6"

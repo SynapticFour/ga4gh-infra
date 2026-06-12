@@ -108,6 +108,32 @@ services:
       timeout: 5s
       retries: 10
 
+  access-decision-service:
+    image: ${GA4GH_IMAGE_PREFIX}/access-decision-service:${ACCESS_DECISION_SERVICE_VERSION}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.access-decision-service
+    command: ["/config/access-decision-service.toml"]
+    environment:
+      ADS_DATABASE_URL: postgres://ga4gh:ga4gh@postgres:5432/ads_registry
+      ADS_DAC_API_KEY: dev-ads-api-key
+      REGISTRY_BOOTSTRAP_API_KEY: dev-visa-api-key
+      RUST_LOG: info
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./config/access-decision-service.toml:/config/access-decision-service.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      visa-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8090/service-info"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   aai-broker:
     image: ${GA4GH_IMAGE_PREFIX}/aai-broker:${AAI_BROKER_VERSION}
     build:
@@ -117,6 +143,7 @@ services:
     environment:
       BROKER_COOKIE_SECRET: dev-broker-cookie-secret
       MOCK_IDP_CLIENT_SECRET: mock-client-secret
+      ADS_DAC_API_KEY: dev-ads-api-key
       RUST_LOG: info
     ports:
       - "8080:8080"
@@ -127,6 +154,8 @@ services:
       mock-idp:
         condition: service_healthy
       visa-registry:
+        condition: service_healthy
+      access-decision-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/service-info"]

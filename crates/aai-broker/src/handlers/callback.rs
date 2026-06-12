@@ -2,7 +2,7 @@
 
 //! Upstream OIDC callback handler and passport issuance.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use axum::extract::{Query, State};
@@ -64,10 +64,18 @@ pub async fn callback(
         )
         .await?;
 
-    let identity =
+    let (identity, claims) =
         identity_from_token_response(&idp, &state.http_client, &token_response, nonce).await?;
 
-    let visas = collect_visas(&state.visa_sources, &identity.sub).await?;
+    if let Some(ads) = &state.ads {
+        ads.sync_researcher(&identity, &claims).await?;
+    }
+
+    let mut visas = collect_visas(&state.visa_sources, &identity.sub).await?;
+    if let Some(ads) = &state.ads {
+        let mut signed = ads.fetch_signed_visas(&identity.sub).await?;
+        visas.append(&mut signed);
+    }
     let passport_jwt = mint_passport_jwt(
         &state.keys,
         state.config.issuer_url(),
@@ -132,7 +140,7 @@ async fn identity_from_token_response(
     http_client: &reqwest::Client,
     token_response: &CoreTokenResponse,
     nonce: &str,
-) -> Result<ResearcherIdentity, BrokerError> {
+) -> Result<(ResearcherIdentity, BTreeMap<String, Value>), BrokerError> {
     let id_token = token_response
         .id_token()
         .ok_or(BrokerError::AuthenticationFailed)?;
@@ -178,6 +186,7 @@ async fn identity_from_token_response(
 
     ResearcherIdentity::from_upstream(&idp.config, &claim_map)
         .ok_or(BrokerError::AuthenticationFailed)
+        .map(|identity| (identity, BTreeMap::from_iter(claim_map)))
 }
 
 #[cfg(test)]

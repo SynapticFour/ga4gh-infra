@@ -45,8 +45,10 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Postgres integration test (testcontainers)
-        run: cargo test -p ga4gh-integration --test visa_registry_postgres -- --ignored --test-threads=1
+      - name: Postgres integration tests (testcontainers)
+        run: |
+          cargo test -p ga4gh-integration --test visa_registry_postgres -- --ignored --test-threads=1
+          cargo test -p ga4gh-integration --test ads_postgres -- --ignored --test-threads=1
 
   coverage:
     name: Coverage

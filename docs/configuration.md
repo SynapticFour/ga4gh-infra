@@ -55,6 +55,15 @@ Maps upstream JWT claim names to GA4GH identity fields (`sub`, `email`, `affilia
 | `name` | string | Label for logs |
 | `url` | URL | Visa registry base URL (`GET /visas?sub=`) |
 
+### `[ads]` (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | URL | Access Decision Service base URL |
+| `sync_api_key_env` | string | Env var for DAC API key (default: `ADS_DAC_API_KEY`) |
+
+When configured, the broker calls `POST /ads/v1/researchers/sync` after upstream login and merges signed visas from `GET /ads/v1/researchers/:id/signed-visas` into the Passport.
+
 ---
 
 ## visa-registry
@@ -143,6 +152,56 @@ File: `service-registry.toml` — see [`config/service-registry.example.toml`](.
 
 ---
 
+## access-decision-service (ADS)
+
+File: `ads.toml` — see [`config/ads.example.toml`](../config/ads.example.toml). Full design docs: [`docs/ads/`](ads/README.md).
+
+### `[server]`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `host`, `port`, `external_url`, `environment` | | Standard server block (default port `8090`) |
+
+### `[database]`
+
+Same shape as visa-registry (`driver`, `url`, `url_env`, `auto_migrate`). Default env: `ADS_DATABASE_URL`.
+
+### `[oidc]`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `jwks_cache_ttl_seconds` | u64 | JWKS cache TTL |
+| `trusted_brokers` | array | Broker issuers trusted for researcher Bearer JWTs |
+
+### `[auth]`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `bootstrap_api_key_env` | string | DAC/admin API key env (default: `ADS_DAC_API_KEY`) |
+
+### `[visas]`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `default_source_url` | URL | `source` claim on ADS-issued visa exports |
+
+### `[visa_registry]` (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | URL | Visa registry used to sign exported claims |
+| `api_key_env` | string | DAC API key for `POST /visas` (default: `REGISTRY_BOOTSTRAP_API_KEY`) |
+
+### `[webhooks]` (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `urls` | string[] | HTTP endpoints that receive POSTed audit events |
+
+Researcher routes use Bearer JWT; DAC/admin routes use `X-API-Key`. OpenAPI: [`docs/ads/openapi.yaml`](ads/openapi.yaml).
+
+---
+
 ## sample-resource
 
 File: `sample-resource.toml` — see [`config/sample-resource.example.toml`](../config/sample-resource.example.toml)
@@ -191,6 +250,7 @@ Nested sections mirror standalone configs:
 - `[visa_registry]`
 - `[duo_service]`
 - `[service_registry]`
+- `[access_decision_service]`
 
 Native install template: [`config/all-in-one.native.toml.example`](../config/all-in-one.native.toml.example) (SQLite visas, `{{CONFIG_DIR}}` placeholders).
 
@@ -208,6 +268,8 @@ Environment template: [`config/env.native.example`](../config/env.native.example
 | `REGISTRY_BOOTSTRAP_API_KEY` | visa-registry | `dev-visa-api-key` |
 | `SERVICE_REGISTRY_DATABASE_URL` | service-registry | Postgres in Docker stack |
 | `SERVICE_REGISTRY_REGISTRATION_KEY` | service-registry | `dev-service-registry-key` |
+| `ADS_DATABASE_URL` | access-decision-service | Postgres in Docker stack |
+| `ADS_DAC_API_KEY` | access-decision-service, broker `[ads]` | `dev-ads-api-key` |
 
 Override via `REGISTRY__` prefix for visa-registry config (double underscore nesting).
 

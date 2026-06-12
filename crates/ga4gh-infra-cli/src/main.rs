@@ -4,6 +4,7 @@
 
 use std::path::PathBuf;
 
+use access_decision_service::AdsConfig;
 use aai_broker::BrokerConfig;
 use anyhow::Context;
 use clap::{Parser, Subcommand};
@@ -13,7 +14,7 @@ use service_registry::RegistryConfig as ServiceRegistryConfig;
 use tracing_subscriber::EnvFilter;
 use visa_registry::RegistryConfig as VisaRegistryConfig;
 
-/// GA4GH infrastructure services (broker, visa registry, DUO, service registry).
+/// GA4GH infrastructure services (broker, visa registry, DUO, service registry, ADS).
 #[derive(Parser)]
 #[command(name = "ga4gh-infra", version, about)]
 struct Cli {
@@ -50,7 +51,14 @@ enum Commands {
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
     },
-    /// Run broker, visa-registry, duo-service, and service-registry in one process.
+    /// Run the GA4GH Access Decision Service (ADS).
+    #[command(name = "access-decision-service")]
+    AccessDecisionService {
+        /// Path to ADS TOML configuration.
+        #[arg(long, value_name = "FILE")]
+        config: PathBuf,
+    },
+    /// Run broker, visa-registry, duo-service, service-registry, and access-decision-service in one process.
     #[command(name = "all-in-one")]
     AllInOne {
         /// Path to combined all-in-one TOML configuration.
@@ -101,6 +109,12 @@ async fn main() -> anyhow::Result<()> {
             })?;
             service_registry::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
             service_registry::run(cfg).await
+        }
+        Commands::AccessDecisionService { config } => {
+            let cfg = AdsConfig::load_from_file(&config)
+                .with_context(|| format!("loading ADS config from {}", config.display()))?;
+            access_decision_service::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
+            access_decision_service::run(cfg).await
         }
         Commands::AllInOne { config } => {
             let cfg = AllInOneConfig::load_from_file(&config)

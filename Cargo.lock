@@ -33,6 +33,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "access-decision-service"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "chrono",
+ "config",
+ "ga4gh-clearinghouse",
+ "ga4gh-types",
+ "jsonwebtoken",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "wiremock",
+]
+
+[[package]]
 name = "agreement-registry"
 version = "0.1.0"
 dependencies = [
@@ -1091,6 +1118,7 @@ name = "ga4gh-infra-cli"
 version = "0.1.0"
 dependencies = [
  "aai-broker",
+ "access-decision-service",
  "anyhow",
  "clap",
  "config",
@@ -1111,6 +1139,7 @@ dependencies = [
 name = "ga4gh-integration"
 version = "0.1.0"
 dependencies = [
+ "access-decision-service",
  "ga4gh-types",
  "serde_json",
  "testcontainers",

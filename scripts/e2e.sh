@@ -29,6 +29,7 @@ export SERVICE_REGISTRY_REGISTRATION_KEY=dev-service-registry-key
 register_service "org.localhost.aai-broker" "GA4GH AAI Broker" "passport" "http://localhost:8080" "1.2"
 register_service "org.localhost.visa-registry" "GA4GH Visa Registry" "visa" "http://localhost:8081" "1.0"
 register_service "org.localhost.duo-service" "GA4GH DUO Service" "duo" "http://localhost:8082" "1.0"
+register_service "org.localhost.access-decision-service" "GA4GH Access Decision Service" "ads" "http://localhost:8090" "1.0"
 register_service "org.localhost.sample-resource" "GA4GH Sample Resource" "resource" "http://localhost:8084" "1.0"
 
 echo "Running end-to-end tests..."

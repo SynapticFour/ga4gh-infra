@@ -21,6 +21,9 @@ pub struct BrokerConfig {
     /// Visa assertion sources queried during passport assembly.
     #[serde(default)]
     pub visa_sources: Vec<VisaSourceConfig>,
+    /// Optional Access Decision Service integration.
+    #[serde(default)]
+    pub ads: Option<AdsIntegrationConfig>,
 }
 
 /// HTTP server configuration.
@@ -86,6 +89,20 @@ pub struct VisaSourceConfig {
     pub name: String,
     /// Base URL of the visa source service.
     pub url: String,
+}
+
+/// ADS integration for researcher sync and signed visa export.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AdsIntegrationConfig {
+    /// Base URL of the Access Decision Service (no trailing slash).
+    pub url: String,
+    /// Environment variable holding the DAC API key for sync and signed-visas.
+    #[serde(default = "default_ads_api_key_env")]
+    pub sync_api_key_env: String,
+}
+
+fn default_ads_api_key_env() -> String {
+    "ADS_DAC_API_KEY".to_string()
 }
 
 impl BrokerConfig {

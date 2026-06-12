@@ -64,6 +64,7 @@ mod tests {
             },
             upstream_idps: vec![],
             visa_sources: vec![],
+            ads: None,
         };
 
         assert!(validate_log_level(&config).is_err());

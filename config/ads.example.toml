@@ -1,0 +1,36 @@
+# Example configuration for the GA4GH Access Decision Service (ADS).
+# Copy to config/ads.toml and adjust for your deployment.
+
+[server]
+host = "0.0.0.0"
+port = 8090
+external_url = "https://ads.example.org"
+environment = "dev"
+
+[database]
+# driver = "postgres"   # default; use "sqlite" for desktop/demo
+# url = "sqlite:///var/lib/ga4gh/ads.sqlite"
+url_env = "ADS_DATABASE_URL"
+auto_migrate = true
+
+[oidc]
+jwks_cache_ttl_seconds = 300
+
+[[oidc.trusted_brokers]]
+issuer = "https://broker.example.org"
+jwks_uri = "https://broker.example.org/jwks.json"
+
+[auth]
+bootstrap_api_key_env = "ADS_DAC_API_KEY"
+
+[visas]
+default_source_url = "https://ads.example.org"
+
+# Optional visa-registry signing integration (required for GET /researchers/:id/signed-visas).
+# [visa_registry]
+# url = "https://visa-registry.example.org"
+# api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+
+# Optional audit event webhooks (POST JSON AdsEvent payloads).
+# [webhooks]
+# urls = ["https://audit.example.org/ads-events"]

@@ -1,7 +1,7 @@
 # Combined configuration for `ga4gh-infra all-in-one --config all-in-one.toml`.
 #
-# Runs broker (:8080), visa-registry (:8081), duo-service (:8082), and
-# service-registry (:8083) in a single process. Each section uses the same
+# Runs broker (:8080), visa-registry (:8081), duo-service (:8082),
+# service-registry (:8083), and access-decision-service (:8090) in a single process.
 # shape as the standalone service config files.
 #
 # Desktop / no-Docker: use SQLite for visa-registry (and service-registry in
@@ -42,6 +42,10 @@ email = "email"
 name = "local-registry"
 url = "http://127.0.0.1:8081"
 
+[broker.ads]
+url = "http://127.0.0.1:8090"
+sync_api_key_env = "ADS_DAC_API_KEY"
+
 [visa_registry.server]
 host = "127.0.0.1"
 port = 8081
@@ -78,3 +82,29 @@ url_env = "SERVICE_REGISTRY_DATABASE_URL"
 
 [service_registry.auth]
 registration_api_key_env = "SERVICE_REGISTRY_REGISTRATION_KEY"
+
+[access_decision_service.server]
+host = "127.0.0.1"
+port = 8090
+external_url = "http://localhost:8090"
+environment = "development"
+
+[access_decision_service.database]
+# driver = "sqlite"
+# url = "sqlite:///home/user/.config/ga4gh-infra/ads.sqlite"
+url_env = "ADS_DATABASE_URL"
+auto_migrate = true
+
+[access_decision_service.oidc]
+jwks_cache_ttl_seconds = 300
+
+[[access_decision_service.oidc.trusted_brokers]]
+issuer = "http://localhost:8080"
+jwks_uri = "http://localhost:8080/jwks.json"
+
+[access_decision_service.auth]
+bootstrap_api_key_env = "ADS_DAC_API_KEY"
+
+[access_decision_service.visa_registry]
+url = "http://127.0.0.1:8081"
+api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"

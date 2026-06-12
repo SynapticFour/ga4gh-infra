@@ -13,4 +13,5 @@
 | [versioning.md](versioning.md) | Releases, semver, Docker tags, ARM binaries |
 | [roadmap.md](roadmap.md) | Project status and suggested phases |
 | [agreement-registry/](agreement-registry/README.md) | Optional policy/DUO compatibility layer (Phase 8) |
+| [ads/](ads/README.md) | Access Decision Service (ADS) |
 | [SECURITY.md](../SECURITY.md) | Vulnerability reporting |
