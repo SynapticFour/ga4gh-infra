@@ -238,6 +238,15 @@ Standard server block.
 | `duo` | string[] | Required DUO codes for the dataset |
 | `default_intended_use` | string[] | Default intended-use codes when header absent |
 
+### `[ads]` (optional)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | URL | ADS base URL for `POST /ads/v1/introspect` |
+| `api_key_env` | string | Env var for service API key (default: `ADS_DAC_API_KEY`) |
+
+When configured, dataset handlers call ADS introspection before falling back to clearinghouse visa policy checks.
+
 ---
 
 ## ga4gh-infra all-in-one

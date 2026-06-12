@@ -170,6 +170,7 @@ services:
       dockerfile: docker/Dockerfile.sample-resource
     command: ["/config/sample-resource.toml"]
     environment:
+      ADS_DAC_API_KEY: dev-ads-api-key
       RUST_LOG: info
     ports:
       - "8084:8084"
@@ -177,6 +178,8 @@ services:
       - ./config/sample-resource.toml:/config/sample-resource.toml:ro
     depends_on:
       aai-broker:
+        condition: service_healthy
+      access-decision-service:
         condition: service_healthy
       visa-registry:
         condition: service_healthy

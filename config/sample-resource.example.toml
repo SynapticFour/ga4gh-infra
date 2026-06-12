@@ -21,6 +21,11 @@ jwks_uri = "http://visa-registry:8081/jwks.json"
 [duo_service]
 url = "http://duo-service:8082"
 
+# Optional ADS grant introspection (used in docker stack and ADS e2e test).
+# [ads]
+# url = "http://access-decision-service:8090"
+# api_key_env = "ADS_DAC_API_KEY"
+
 [[datasets]]
 id = "dataset-registered-access-demo"
 name = "Registered Access Demo Cohort"

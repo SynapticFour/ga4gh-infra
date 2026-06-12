@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use axum::extract::{Path, State};
-use axum::http::HeaderMap;
+use axum::http::{header, HeaderMap};
 use axum::Json;
 use ga4gh_clearinghouse::axum::ExtractedPassport;
 use ga4gh_clearinghouse::PolicyCheck;
@@ -52,6 +52,7 @@ pub struct DatasetSummaryResponse {
 #[instrument(skip(state, passport))]
 pub async fn get_dataset(
     Path(dataset_id): Path<String>,
+    headers: HeaderMap,
     ExtractedPassport(passport): ExtractedPassport,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<DatasetResponse>, SampleResourceError> {
@@ -60,7 +61,7 @@ pub async fn get_dataset(
         .get(&dataset_id)
         .ok_or(SampleResourceError::NotFound)?;
 
-    ensure_controlled_access(&state, &passport, &dataset_id).await?;
+    ensure_controlled_access(&state, &headers, &passport, &dataset_id).await?;
 
     Ok(Json(DatasetResponse {
         id: dataset.id.clone(),
@@ -84,7 +85,7 @@ pub async fn get_dataset_summary(
         .get(&dataset_id)
         .ok_or(SampleResourceError::NotFound)?;
 
-    ensure_controlled_access(&state, &passport, &dataset_id).await?;
+    ensure_controlled_access(&state, &headers, &passport, &dataset_id).await?;
 
     let intended_use = resolve_intended_use(&headers, dataset)?;
     let duo_result = evaluate_duo_match(
@@ -115,9 +116,17 @@ pub async fn get_dataset_summary(
 
 async fn ensure_controlled_access(
     state: &AppState,
+    headers: &HeaderMap,
     passport: &Passport,
     dataset_id: &str,
 ) -> Result<(), SampleResourceError> {
+    if let Some(ads) = &state.ads {
+        let token = bearer_token(headers)?;
+        if ads.is_access_active(token, dataset_id).await? {
+            return Ok(());
+        }
+    }
+
     let visas = state.clearinghouse.extract_visas(passport).await?;
     let result = state.clearinghouse.check_policy(
         &visas,
@@ -129,4 +138,12 @@ async fn ensure_controlled_access(
         return Err(SampleResourceError::Forbidden(result.reason));
     }
     Ok(())
+}
+
+fn bearer_token(headers: &HeaderMap) -> Result<&str, SampleResourceError> {
+    headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .ok_or_else(|| SampleResourceError::BadRequest("missing Bearer token".to_string()))
 }

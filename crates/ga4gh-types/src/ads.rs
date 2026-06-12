@@ -388,7 +388,7 @@ pub struct DuoEvaluationResult {
 }
 
 /// Token introspection request from resource services.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntrospectRequest {
     /// Bearer token (Passport JWT or opaque reference).
     pub token: String,

@@ -17,6 +17,9 @@ pub struct SampleResourceConfig {
     pub clearinghouse: ClearinghouseSection,
     /// Optional DUO service used for summary endpoints.
     pub duo_service: DuoServiceSection,
+    /// Optional ADS introspection for grant-based access checks.
+    #[serde(default)]
+    pub ads: Option<AdsSection>,
     /// Protected datasets exposed by this service.
     pub datasets: Vec<DatasetConfig>,
 }
@@ -62,6 +65,20 @@ pub struct TrustedIssuerConfig {
 pub struct DuoServiceSection {
     /// Base URL of the DUO matching service.
     pub url: String,
+}
+
+/// ADS introspection integration settings.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AdsSection {
+    /// Base URL of the Access Decision Service (no trailing slash).
+    pub url: String,
+    /// Environment variable holding the DAC/service API key for introspection.
+    #[serde(default = "default_ads_api_key_env")]
+    pub api_key_env: String,
+}
+
+fn default_ads_api_key_env() -> String {
+    "ADS_DAC_API_KEY".to_string()
 }
 
 /// Dataset metadata and access policy inputs.

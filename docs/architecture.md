@@ -102,7 +102,7 @@ Researcher          Browser/Client       aai-broker        mock-idp         visa
 The `sample-resource` binary demonstrates how a GA4GH resource service (DRS, Beacon, etc.) can protect endpoints:
 
 1. **`ExtractedPassport`** — axum extractor validates the `Authorization: Bearer` Passport JWT via `ga4gh-clearinghouse`.
-2. **`GET /datasets/{id}`** — extracts visas from the Passport and checks `PolicyCheck::HasControlledAccess`.
+2. **`GET /datasets/{id}`** — when `[ads]` is configured, calls `POST /ads/v1/introspect`; otherwise (or if introspection is inactive) checks embedded visas via `PolicyCheck::HasControlledAccess`.
 3. **`GET /datasets/{id}/summary`** — same access check, then calls `duo-service` `/match` using `X-GA4GH-Intended-Use` (or dataset defaults).
 
 Unauthenticated or under-privileged requests receive GA4GH-shaped JSON errors (`401`, `403`) without custom auth logic in each handler.

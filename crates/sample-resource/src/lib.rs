@@ -2,6 +2,7 @@
 
 //! Reference GA4GH resource service using [`ga4gh-clearinghouse`] at the HTTP boundary.
 
+pub mod ads;
 pub mod app;
 pub mod config;
 pub mod datasets;

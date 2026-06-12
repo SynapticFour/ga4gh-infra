@@ -33,6 +33,9 @@ pub enum SampleResourceError {
     /// Upstream DUO service request failed.
     #[error("duo service error: {0}")]
     DuoService(String),
+    /// Upstream DUO service request failed.
+    #[error("ads service error: {0}")]
+    AdsService(String),
     /// Internal server error.
     #[error("internal error: {0}")]
     Internal(String),
@@ -45,7 +48,7 @@ impl SampleResourceError {
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
             Self::Passport(err) => passport_status(err),
             Self::Forbidden(_) | Self::DuoDenied(_) => StatusCode::FORBIDDEN,
-            Self::DuoService(_) => StatusCode::BAD_GATEWAY,
+            Self::DuoService(_) | Self::AdsService(_) => StatusCode::BAD_GATEWAY,
             Self::Config(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -57,6 +60,7 @@ impl SampleResourceError {
             Self::Passport(err) => passport_message(err),
             Self::Forbidden(message) | Self::DuoDenied(message) => message.clone(),
             Self::DuoService(_) => "Unable to evaluate DUO policy".to_string(),
+            Self::AdsService(_) => "Unable to evaluate access grant".to_string(),
             Self::Config(_) | Self::Internal(_) => "An internal error occurred".to_string(),
         }
     }

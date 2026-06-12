@@ -11,6 +11,7 @@ use ga4gh_clearinghouse::{Clearinghouse, ClearinghouseConfig, TrustedBroker};
 use reqwest::Client;
 use tower_http::trace::TraceLayer;
 
+use crate::ads::AdsClient;
 use crate::config::{DatasetConfig, SampleResourceConfig};
 use crate::error::SampleResourceError;
 use crate::handlers;
@@ -23,6 +24,8 @@ pub struct AppState {
     pub clearinghouse: Arc<Clearinghouse>,
     /// HTTP client for upstream DUO requests.
     pub http_client: Client,
+    /// Optional ADS introspection client.
+    pub ads: Option<AdsClient>,
     /// Dataset catalog indexed by id.
     pub datasets: HashMap<String, DatasetConfig>,
 }
@@ -49,11 +52,18 @@ impl AppState {
             .build()
             .map_err(|err| SampleResourceError::Internal(format!("HTTP client: {err}")))?;
 
+        let ads = config
+            .ads
+            .as_ref()
+            .map(|ads_config| AdsClient::new(ads_config, http_client.clone()))
+            .transpose()?;
+
         Ok(Arc::new(Self {
             datasets: config.datasets_by_id(),
             config,
             clearinghouse: Arc::new(clearinghouse),
             http_client,
+            ads,
         }))
     }
 }

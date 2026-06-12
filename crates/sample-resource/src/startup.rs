@@ -65,6 +65,7 @@ mod tests {
             duo_service: DuoServiceSection {
                 url: "http://localhost:8082".to_string(),
             },
+            ads: None,
             datasets: Vec::new(),
         };
 
