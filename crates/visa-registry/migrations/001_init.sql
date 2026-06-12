@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS visa_assertions (
     source TEXT NOT NULL,
     by_authority TEXT,
     conditions TEXT,
-    asserted INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    revoked_at INTEGER,
-    expires_at INTEGER
+    asserted BIGINT NOT NULL,
+    created_at BIGINT NOT NULL,
+    revoked_at BIGINT,
+    expires_at BIGINT
 );
 
 CREATE INDEX IF NOT EXISTS idx_visa_assertions_sub_active
@@ -23,6 +23,6 @@ CREATE TABLE IF NOT EXISTS api_keys (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     key_hash TEXT NOT NULL UNIQUE,
-    created_at INTEGER NOT NULL,
-    revoked_at INTEGER
+    created_at BIGINT NOT NULL,
+    revoked_at BIGINT
 );
