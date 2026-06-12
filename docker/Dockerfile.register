@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1
+# One-shot service registration helper (curl + shell).
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/bin/sh"]

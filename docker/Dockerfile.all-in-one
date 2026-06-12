@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+# Combined ga4gh-infra CLI (all-in-one) image. Build from repo root:
+#   docker build -f docker/Dockerfile.all-in-one -t ghcr.io/<org>/ga4gh-infra:0.1.0 .
+
+FROM rust:1-bookworm AS builder
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+
+RUN cargo build --release -p ga4gh-infra-cli
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh \
+    && mkdir -p /data && chown ga4gh:ga4gh /data
+
+COPY --from=builder /app/target/release/ga4gh-infra /usr/local/bin/ga4gh-infra
+
+USER ga4gh
+WORKDIR /app
+VOLUME ["/data"]
+ENTRYPOINT ["/usr/local/bin/ga4gh-infra"]

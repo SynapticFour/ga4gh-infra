@@ -1,0 +1,7 @@
+{
+  "sub": "researcher@example.org",
+  "type": "ControlledAccessGrants",
+  "value": "dataset-fixture-001",
+  "source": "https://dac.example.org",
+  "asserted": 1700000000
+}

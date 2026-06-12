@@ -1,0 +1,13 @@
+/target/
+**/*.rs.bk
+Cargo.lock.bak
+*.pem
+!docker/secrets/*.pem
+.env
+.env.*
+!.env.example
+!docker/.env.example
+*.log
+.DS_Store
+.idea/
+.vscode/

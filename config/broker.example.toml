@@ -1,0 +1,34 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+external_url = "https://aai.example.org"
+# Deployment environment: prod, test, dev, staging, or development
+environment = "dev"
+
+[signing]
+private_key_pem = "/secrets/broker_rs256.pem"
+passport_lifetime_seconds = 3600
+token_lifetime_seconds = 3600
+
+[session]
+# Session store for the RP login flow (server-side, signed cookies)
+cookie_secret_env = "BROKER_COOKIE_SECRET"
+session_lifetime_seconds = 600
+
+# One or more upstream IdPs the broker delegates authentication to.
+# Each institute deploying this broker configures their own IdP here.
+[[upstream_idps]]
+name = "my-institute"
+issuer = "https://idp.my-institute.org/realms/main"
+client_id = "ga4gh-broker"
+client_secret_env = "MY_INSTITUTE_CLIENT_SECRET"
+scopes = ["openid", "profile", "email", "eduperson_entitlement"]
+# Optional: map upstream claims to GA4GH identity claims
+[upstream_idps.claim_mapping]
+sub = "sub"
+email = "email"
+affiliation = "eduperson_scoped_affiliation"
+
+[[visa_sources]]
+name = "local-registry"
+url = "http://visa-registry:8081"

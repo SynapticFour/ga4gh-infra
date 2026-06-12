@@ -1,0 +1,12 @@
+[server]
+host = "0.0.0.0"
+port = 8083
+external_url = "https://registry.example.org"
+environment = "prod"
+read_only = true
+
+[database]
+url_env = "SERVICE_REGISTRY_DATABASE_URL"
+
+[auth]
+registration_api_key_env = "SERVICE_REGISTRY_REGISTRATION_KEY"

@@ -1,0 +1,44 @@
+ga4gh-infra
+Copyright 2026 SynapticFour
+
+This product includes software developed as part of the ga4gh-infra project
+and is licensed under the Apache License, Version 2.0.
+
+Third-party dependencies
+========================
+
+The following third-party open-source components are used by this project.
+Each component is licensed under its own terms; see the respective project
+repositories for full license texts.
+
+Rust crates (crates.io)
+------------------------
+- axum — MIT
+- tokio — MIT
+- serde / serde_json — MIT OR Apache-2.0
+- jsonwebtoken — MIT
+- reqwest — MIT OR Apache-2.0
+- tracing / tracing-subscriber — MIT
+- config — MIT OR Apache-2.0
+- sqlx — MIT OR Apache-2.0
+- thiserror — MIT OR Apache-2.0
+- anyhow — MIT OR Apache-2.0
+- openidconnect — MIT OR Apache-2.0
+- cookie — MIT OR Apache-2.0
+- hmac — MIT OR Apache-2.0
+- uuid — MIT OR Apache-2.0
+- tower-http — MIT
+- axum-extra — MIT
+- base64 — MIT OR Apache-2.0
+- time — MIT OR Apache-2.0
+- wiremock — MIT OR Apache-2.0 (development/testing only)
+
+Standards and specifications referenced
+---------------------------------------
+- GA4GH AAI OIDC Profile
+- GA4GH Passport & Visa specification
+- GA4GH Service Info
+- GA4GH Service Registry
+- Data Use Ontology (DUO)
+
+This NOTICE file will be updated as additional dependencies are introduced.

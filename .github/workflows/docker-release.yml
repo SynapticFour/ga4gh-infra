@@ -1,0 +1,75 @@
+name: Docker Release
+
+on:
+  push:
+    tags:
+      - "aai-broker-v*"
+      - "visa-registry-v*"
+      - "duo-service-v*"
+      - "service-registry-v*"
+      - "ga4gh-infra-v*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse release tag
+        id: meta
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          case "${tag}" in
+            aai-broker-v*)
+              image=aai-broker
+              dockerfile=docker/Dockerfile.broker
+              ;;
+            visa-registry-v*)
+              image=visa-registry
+              dockerfile=docker/Dockerfile.visa-registry
+              ;;
+            duo-service-v*)
+              image=duo-service
+              dockerfile=docker/Dockerfile.duo-service
+              ;;
+            service-registry-v*)
+              image=service-registry
+              dockerfile=docker/Dockerfile.service-registry
+              ;;
+            ga4gh-infra-v*)
+              image=ga4gh-infra
+              dockerfile=docker/Dockerfile.all-in-one
+              ;;
+            *)
+              echo "Unsupported tag: ${tag}" >&2
+              exit 1
+              ;;
+          esac
+          version="${tag##*-v}"
+          owner="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=${image}" >> "${GITHUB_OUTPUT}"
+          echo "dockerfile=${dockerfile}" >> "${GITHUB_OUTPUT}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "owner=${owner}" >> "${GITHUB_OUTPUT}"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.meta.outputs.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.owner }}/${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/${{ steps.meta.outputs.image }}:latest

@@ -1,0 +1,37 @@
+[package]
+name = "ga4gh-types"
+description = "Shared GA4GH data structures for Passport, Visa, DUO, and Service Info"
+readme = "README.md"
+keywords = ["ga4gh", "passport", "visa", "duo", "genomics"]
+categories = ["encoding", "parser-implementations"]
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[package.metadata.release]
+publish = true
+tag-name = "ga4gh-types-v{{version}}"
+
+[[package.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "## \\[Unreleased\\]"
+replace = "## [Unreleased]\n\n## [{{version}}] - {{date}}"
+exactly = 1
+prerelease = false
+
+[[package.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "\\[Unreleased\\]:"
+replace = "[{{version}}]:"
+exactly = 1
+prerelease = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

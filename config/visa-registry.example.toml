@@ -1,0 +1,23 @@
+# Example configuration for the GA4GH Visa Registry service.
+# Copy to config/visa-registry.toml and adjust for your deployment.
+
+[server]
+host = "0.0.0.0"
+port = 8081
+external_url = "https://visas.example.org"
+environment = "dev"
+
+[signing]
+private_key_pem = "/secrets/registry_rs256.pem"
+visa_lifetime_seconds = 86400
+
+[database]
+# driver = "postgres"   # default; use "sqlite" for desktop/demo without PostgreSQL
+# url = "sqlite:///var/lib/ga4gh/visa_registry.sqlite"
+url_env = "REGISTRY_DATABASE_URL"
+# auto_migrate = false  # PostgreSQL only; set true to run embedded migrations on startup.
+# SQLite always runs migrations and creates the database file (and parent directories) on startup.
+
+[auth]
+# When no API keys exist in the database, register this bootstrap key on startup.
+bootstrap_api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"

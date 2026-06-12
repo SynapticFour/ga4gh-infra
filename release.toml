@@ -1,0 +1,19 @@
+# cargo-release configuration for the ga4gh-infra workspace.
+# See docs/versioning.md for semver rules and release workflow.
+#
+# Release one component:
+#   cargo release -p ga4gh-types --execute
+#   cargo release -p aai-broker --execute
+#
+# Dry run (default):
+#   cargo release -p ga4gh-clearinghouse
+
+allow-branch = ["main", "master"]
+consolidate-commits = false
+shared-version = false
+dependent-version = "upgrade"
+publish = false
+push-remote = "origin"
+
+pre-release-commit-message = "chore(release): {{crate_name}} v{{version}}"
+tag-message = "Release {{crate_name}} v{{version}}"

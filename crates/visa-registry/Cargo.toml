@@ -1,0 +1,53 @@
+[package]
+name = "visa-registry"
+description = "GA4GH Visa assertion store and DAC-facing API"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[package.metadata.release]
+publish = false
+tag-name = "visa-registry-v{{version}}"
+
+[lib]
+name = "visa_registry"
+path = "src/lib.rs"
+
+[[bin]]
+name = "visa-registry"
+path = "src/main.rs"
+
+[features]
+default = ["postgres", "sqlite"]
+postgres = ["sqlx/postgres"]
+sqlite = ["sqlx/sqlite"]
+
+[dependencies]
+ga4gh-types = { workspace = true }
+anyhow = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+jsonwebtoken = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+tower-http = { workspace = true }
+base64 = { workspace = true }
+sha2 = { workspace = true }
+rsa = { version = "0.9", features = ["pem", "sha2"] }
+
+[dev-dependencies]
+wiremock = "0.6"
+tokio = { workspace = true }
+serde_json = { workspace = true }
+tempfile = "3"
+rand = "0.8"
+rand_chacha = "0.3"

@@ -1,0 +1,119 @@
+# Example nginx TLS termination for ga4gh-infra.
+# Replace example.org, certificate paths, and upstream addresses.
+#
+# Usage:
+#   nginx -t -c /path/to/nginx.conf.example
+#   nginx -c /path/to/nginx.conf.example
+#
+# For production, split into sites-available snippets and use certbot or your PKI.
+
+events {
+	worker_connections 1024;
+}
+
+http {
+	# TLS settings — adjust cipher suites to your policy
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_prefer_server_ciphers on;
+
+	upstream aai_broker {
+		server 127.0.0.1:8080;
+	}
+
+	upstream visa_registry {
+		server 127.0.0.1:8081;
+	}
+
+	upstream duo_service {
+		server 127.0.0.1:8082;
+	}
+
+	upstream service_registry {
+		server 127.0.0.1:8083;
+	}
+
+	upstream sample_resource {
+		server 127.0.0.1:8084;
+	}
+
+	server {
+		listen 443 ssl http2;
+		server_name aai.example.org;
+
+		ssl_certificate     /etc/ssl/certs/aai.example.org/fullchain.pem;
+		ssl_certificate_key /etc/ssl/certs/aai.example.org/privkey.pem;
+
+		location / {
+			proxy_pass http://aai_broker;
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		}
+	}
+
+	server {
+		listen 443 ssl http2;
+		server_name visas.example.org;
+
+		ssl_certificate     /etc/ssl/certs/visas.example.org/fullchain.pem;
+		ssl_certificate_key /etc/ssl/certs/visas.example.org/privkey.pem;
+
+		# Consider IP allowlisting for DAC API in production
+		location / {
+			proxy_pass http://visa_registry;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		}
+	}
+
+	server {
+		listen 443 ssl http2;
+		server_name registry.example.org;
+
+		ssl_certificate     /etc/ssl/certs/registry.example.org/fullchain.pem;
+		ssl_certificate_key /etc/ssl/certs/registry.example.org/privkey.pem;
+
+		location / {
+			proxy_pass http://service_registry;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+		}
+	}
+
+	server {
+		listen 443 ssl http2;
+		server_name duo.example.org;
+
+		ssl_certificate     /etc/ssl/certs/duo.example.org/fullchain.pem;
+		ssl_certificate_key /etc/ssl/certs/duo.example.org/privkey.pem;
+
+		location / {
+			proxy_pass http://duo_service;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+		}
+	}
+
+	server {
+		listen 443 ssl http2;
+		server_name data.example.org;
+
+		ssl_certificate     /etc/ssl/certs/data.example.org/fullchain.pem;
+		ssl_certificate_key /etc/ssl/certs/data.example.org/privkey.pem;
+
+		location / {
+			proxy_pass http://sample_resource;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+		}
+	}
+
+	# Redirect HTTP → HTTPS
+	server {
+		listen 80;
+		server_name aai.example.org visas.example.org registry.example.org duo.example.org data.example.org;
+		return 301 https://$host$request_uri;
+	}
+}

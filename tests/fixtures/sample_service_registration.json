@@ -1,0 +1,16 @@
+{
+  "id": "org.example.test-service",
+  "name": "Test GA4GH Service",
+  "type": {
+    "group": "org.ga4gh",
+    "artifact": "passport",
+    "version": "1.0.0"
+  },
+  "organization": {
+    "name": "Example Institute",
+    "url": "https://example.org"
+  },
+  "version": "0.1.0",
+  "url": "https://services.example.org",
+  "environment": "test"
+}

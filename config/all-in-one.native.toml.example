@@ -1,0 +1,72 @@
+# Native all-in-one config for `ga4gh-infra all-in-one` (desktop / no Docker).
+# Installed by scripts/install.sh to ~/.config/ga4gh-infra/all-in-one.toml
+# with {{CONFIG_DIR}} replaced by the absolute config directory path.
+#
+# Visa assertions use SQLite. Service registry still expects PostgreSQL at
+# SERVICE_REGISTRY_DATABASE_URL (see env.example in the same directory).
+
+[broker.server]
+host = "127.0.0.1"
+port = 8080
+external_url = "http://localhost:8080"
+environment = "development"
+
+[broker.signing]
+private_key_pem = "{{CONFIG_DIR}}/secrets/broker_rs256.pem"
+passport_lifetime_seconds = 3600
+token_lifetime_seconds = 3600
+
+[broker.session]
+cookie_secret_env = "BROKER_COOKIE_SECRET"
+session_lifetime_seconds = 600
+
+[[broker.upstream_idps]]
+name = "mock-idp"
+issuer = "http://localhost:9000"
+client_id = "ga4gh-broker"
+client_secret_env = "MOCK_IDP_CLIENT_SECRET"
+scopes = ["openid", "profile", "email"]
+
+[broker.upstream_idps.claim_mapping]
+sub = "sub"
+email = "email"
+
+[[broker.visa_sources]]
+name = "local-registry"
+url = "http://127.0.0.1:8081"
+
+[visa_registry.server]
+host = "127.0.0.1"
+port = 8081
+external_url = "http://localhost:8081"
+environment = "development"
+
+[visa_registry.signing]
+private_key_pem = "{{CONFIG_DIR}}/secrets/registry_rs256.pem"
+visa_lifetime_seconds = 86400
+
+[visa_registry.database]
+driver = "sqlite"
+url = "sqlite://{{CONFIG_DIR}}/visa_registry.sqlite"
+
+[visa_registry.auth]
+bootstrap_api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+
+[duo_service.server]
+host = "127.0.0.1"
+port = 8082
+external_url = "http://localhost:8082"
+environment = "development"
+
+[service_registry.server]
+host = "127.0.0.1"
+port = 8083
+external_url = "http://localhost:8083"
+environment = "development"
+read_only = false
+
+[service_registry.database]
+url_env = "SERVICE_REGISTRY_DATABASE_URL"
+
+[service_registry.auth]
+registration_api_key_env = "SERVICE_REGISTRY_REGISTRATION_KEY"

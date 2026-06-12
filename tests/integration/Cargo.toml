@@ -1,0 +1,15 @@
+[package]
+name = "ga4gh-integration"
+description = "Integration tests for ga4gh-infra (testcontainers, ignored by default)"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+visa-registry = { path = "../../crates/visa-registry" }
+ga4gh-types = { workspace = true }
+tokio = { workspace = true }
+uuid = { workspace = true }
+serde_json = { workspace = true }
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }

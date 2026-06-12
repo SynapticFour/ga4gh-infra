@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# GA4GH DUO service image. Build from repo root:
+#   docker build -f docker/Dockerfile.duo-service -t ghcr.io/<org>/duo-service:0.1.0 .
+
+FROM rust:1-bookworm AS builder
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+
+RUN cargo build --release -p duo-service
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh
+
+COPY --from=builder /app/target/release/duo-service /usr/local/bin/duo-service
+
+USER ga4gh
+WORKDIR /app
+ENTRYPOINT ["/usr/local/bin/duo-service"]

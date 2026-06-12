@@ -1,0 +1,51 @@
+[package]
+name = "aai-broker"
+description = "GA4GH AAI OIDC broker (Relying Party) and Passport issuer"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[package.metadata.release]
+publish = false
+tag-name = "aai-broker-v{{version}}"
+
+[lib]
+name = "aai_broker"
+path = "src/lib.rs"
+
+[[bin]]
+name = "aai-broker"
+path = "src/main.rs"
+
+[dependencies]
+ga4gh-types = { workspace = true }
+anyhow = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+jsonwebtoken = { workspace = true }
+reqwest = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+openidconnect = { workspace = true }
+uuid = { workspace = true }
+tower-http = { workspace = true }
+base64 = { workspace = true }
+hmac = { workspace = true }
+rsa = { version = "0.9", features = ["pem", "sha2"] }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+urlencoding = "2"
+
+[dev-dependencies]
+wiremock = "0.6"
+tokio = { workspace = true }
+serde_json = { workspace = true }
+tempfile = "3"
+rand = "0.8"
+rand_chacha = "0.3"

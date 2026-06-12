@@ -1,0 +1,4 @@
+{
+  "dataset_duo": ["GRU", "NPU"],
+  "intended_use": ["HMB", "NPU"]
+}

@@ -1,0 +1,91 @@
+# Production-oriented Compose reference — no mock-idp, pinned secrets via env file.
+# NOT a drop-in replacement for docker-compose.yml; adapt paths, networks, and volumes.
+#
+# Usage (from repo root):
+#   cp config/production.env.example config/production.env   # edit secrets
+#   docker compose -f docker/docker-compose.prod.example.yml --env-file config/production.env up -d
+#   # Terminate TLS with docker/reverse-proxy/ (Caddy/nginx) → localhost:8080-8084
+#
+# See docs/production-deployment.md for full checklist.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # Do not publish 5432 to the host in production unless required for admin VPN
+
+  visa-registry:
+    image: ${GA4GH_IMAGE_PREFIX}/visa-registry:${VISA_REGISTRY_VERSION}
+    command: ["/config/visa-registry.toml"]
+    environment:
+      REGISTRY_DATABASE_URL: ${REGISTRY_DATABASE_URL}
+      REGISTRY_BOOTSTRAP_API_KEY: ${REGISTRY_BOOTSTRAP_API_KEY}
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - ./config/visa-registry.prod.toml:/config/visa-registry.toml:ro
+      - /etc/ga4gh/secrets:/secrets:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  duo-service:
+    image: ${GA4GH_IMAGE_PREFIX}/duo-service:${DUO_SERVICE_VERSION}
+    command: ["/config/duo-service.toml"]
+    environment:
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:8082:8082"
+    volumes:
+      - ./config/duo-service.prod.toml:/config/duo-service.toml:ro
+    restart: unless-stopped
+
+  service-registry:
+    image: ${GA4GH_IMAGE_PREFIX}/service-registry:${SERVICE_REGISTRY_VERSION}
+    command: ["/config/service-registry.toml"]
+    environment:
+      SERVICE_REGISTRY_DATABASE_URL: ${SERVICE_REGISTRY_DATABASE_URL}
+      SERVICE_REGISTRY_REGISTRATION_KEY: ${SERVICE_REGISTRY_REGISTRATION_KEY}
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:8083:8083"
+    volumes:
+      - ./config/service-registry.prod.toml:/config/service-registry.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  aai-broker:
+    image: ${GA4GH_IMAGE_PREFIX}/aai-broker:${AAI_BROKER_VERSION}
+    command: ["/config/broker.toml"]
+    environment:
+      BROKER_COOKIE_SECRET: ${BROKER_COOKIE_SECRET}
+      MY_INSTITUTE_CLIENT_SECRET: ${MY_INSTITUTE_CLIENT_SECRET}
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../config/broker.keycloak.example.toml:/config/broker.toml:ro
+      - /etc/ga4gh/secrets:/secrets:ro
+    depends_on:
+      visa-registry:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

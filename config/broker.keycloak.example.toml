@@ -1,0 +1,42 @@
+# Production-oriented aai-broker config with Keycloak upstream IdP.
+# Copy to your secrets-backed config path and set environment variables from
+# config/production.env.example.
+
+[server]
+host = "0.0.0.0"
+port = 8080
+external_url = "https://aai.example.org"
+environment = "prod"
+
+[signing]
+private_key_pem = "/secrets/broker_rs256.pem"
+passport_lifetime_seconds = 3600
+token_lifetime_seconds = 3600
+
+[session]
+cookie_secret_env = "BROKER_COOKIE_SECRET"
+session_lifetime_seconds = 600
+
+# Keycloak confidential client — Authorization Code + PKCE (broker default).
+[[upstream_idps]]
+name = "keycloak"
+# Realm issuer from Keycloak: https://<host>/realms/<realm>
+issuer = "https://idp.example.org/realms/your-realm"
+client_id = "ga4gh-broker"
+client_secret_env = "MY_INSTITUTE_CLIENT_SECRET"
+scopes = ["openid", "profile", "email"]
+
+# Map upstream OIDC claims → GA4GH researcher identity.
+# Adjust keys to match your IdP's user profile / token claims.
+[upstream_idps.claim_mapping]
+sub = "sub"
+email = "email"
+# eduPerson / VO attributes — names depend on IdP mappers:
+affiliation = "eduperson_scoped_affiliation"
+# name = "name"
+# preferred_username = "preferred_username"
+
+# Visa collection — internal Docker/service URL (not public HTTPS).
+[[visa_sources]]
+name = "local-registry"
+url = "http://visa-registry:8081"

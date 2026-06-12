@@ -1,0 +1,36 @@
+[package]
+name = "ga4gh-infra-cli"
+description = "Combined GA4GH infrastructure CLI (broker, visa registry, DUO, service registry)"
+version = "0.1.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[package.metadata.release]
+publish = false
+tag-name = "ga4gh-infra-v{{version}}"
+
+[[bin]]
+name = "ga4gh-infra"
+path = "src/main.rs"
+
+[dependencies]
+aai-broker = { path = "../aai-broker", version = "0.1.0" }
+visa-registry = { path = "../visa-registry", version = "0.1.0" }
+duo-service = { path = "../duo-service", version = "0.1.0" }
+service-registry = { path = "../service-registry", version = "0.1.0" }
+anyhow = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+config = { workspace = true }
+rsa = { version = "0.9", features = ["pem", "sha2"] }
+rand = "0.8"
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tempfile = "3"

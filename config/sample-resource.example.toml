@@ -1,0 +1,29 @@
+# Example configuration for the GA4GH sample resource service.
+# Copy to config/sample-resource.toml and adjust for your deployment.
+
+[server]
+host = "0.0.0.0"
+port = 8084
+external_url = "http://localhost:8084"
+environment = "development"
+
+[clearinghouse]
+jwks_cache_ttl_seconds = 300
+
+[[clearinghouse.trusted_issuers]]
+issuer = "http://localhost:8080"
+jwks_uri = "http://aai-broker:8080/jwks.json"
+
+[[clearinghouse.trusted_issuers]]
+issuer = "http://localhost:8081"
+jwks_uri = "http://visa-registry:8081/jwks.json"
+
+[duo_service]
+url = "http://duo-service:8082"
+
+[[datasets]]
+id = "dataset-registered-access-demo"
+name = "Registered Access Demo Cohort"
+description = "Synthetic cohort for stack integration tests"
+duo = ["GRU", "NPU"]
+default_intended_use = ["HMB", "NPU"]

@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ga4gh-types",
+    "crates/ga4gh-clearinghouse",
+    "crates/aai-broker",
+    "crates/visa-registry",
+    "crates/duo-service",
+    "crates/service-registry",
+    "crates/mock-idp",
+    "crates/sample-resource",
+    "crates/ga4gh-infra-cli",
+    "crates/ga4gh-e2e",
+    "tests/integration",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/SynapticFour/ga4gh-infra"
+authors = ["SynapticFour"]
+
+[workspace.dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+jsonwebtoken = "9"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+config = "0.14"
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls"] }
+thiserror = "2"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+tower-http = { version = "0.6", features = ["trace"] }
+base64 = "0.22"
+sha2 = "0.10"
+hmac = "0.12"
+
+ga4gh-types = { path = "crates/ga4gh-types", version = "0.1.0" }
+ga4gh-clearinghouse = { path = "crates/ga4gh-clearinghouse", version = "0.1.0" }

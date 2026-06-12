@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# Reference GA4GH resource service. Build from repo root:
+#   docker build -f docker/Dockerfile.sample-resource -t ghcr.io/<org>/sample-resource:0.1.0 .
+
+FROM rust:1-bookworm AS builder
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+
+RUN cargo build --release -p sample-resource
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh
+
+COPY --from=builder /app/target/release/sample-resource /usr/local/bin/sample-resource
+
+USER ga4gh
+WORKDIR /app
+ENTRYPOINT ["/usr/local/bin/sample-resource"]
