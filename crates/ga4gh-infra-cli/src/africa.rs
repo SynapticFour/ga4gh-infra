@@ -10,7 +10,7 @@ use aai_broker::config::UpstreamIdpConfig;
 use access_decision_service::config::{DatabaseDriver as AdsDatabaseDriver, TrustedBrokerConfig};
 use serde::Deserialize;
 use service_registry::config::{DatabaseConfig, DatabaseDriver};
-use visa_registry::config::{DatabaseDriver as VisaDatabaseDriver};
+use visa_registry::config::DatabaseDriver as VisaDatabaseDriver;
 
 use crate::AllInOneConfig;
 
@@ -108,9 +108,7 @@ pub fn apply_africa_profile(config: &mut AllInOneConfig, profile: &AfricaProfile
     }
 
     if profile.offline_first {
-        tracing::info!(
-            "Africa-mode: offline_first enabled; upstream IdP probes are non-fatal"
-        );
+        tracing::info!("Africa-mode: offline_first enabled; upstream IdP probes are non-fatal");
     }
 
     if let Some(max_mb) = profile.max_memory_mb {

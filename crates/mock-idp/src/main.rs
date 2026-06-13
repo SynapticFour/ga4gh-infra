@@ -2,7 +2,7 @@
 
 //! Minimal OIDC provider for docker-compose and end-to-end tests.
 
-use mock_idp::{MockIdpConfig, run};
+use mock_idp::{run, MockIdpConfig};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]

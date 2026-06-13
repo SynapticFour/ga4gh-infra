@@ -174,23 +174,19 @@ impl ServiceStore {
     pub async fn delete(&self, service_id: &str) -> Result<(), RegistryError> {
         let rows_affected = match &self.pool {
             #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query("DELETE FROM registered_services WHERE id = $1")
-                    .bind(service_id)
-                    .execute(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?
-                    .rows_affected()
-            }
+            DbPool::Postgres(pool) => sqlx::query("DELETE FROM registered_services WHERE id = $1")
+                .bind(service_id)
+                .execute(pool)
+                .await
+                .map_err(|err| RegistryError::Database(err.to_string()))?
+                .rows_affected(),
             #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query("DELETE FROM registered_services WHERE id = ?1")
-                    .bind(service_id)
-                    .execute(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?
-                    .rows_affected()
-            }
+            DbPool::Sqlite(pool) => sqlx::query("DELETE FROM registered_services WHERE id = ?1")
+                .bind(service_id)
+                .execute(pool)
+                .await
+                .map_err(|err| RegistryError::Database(err.to_string()))?
+                .rows_affected(),
         };
 
         if rows_affected == 0 {
@@ -377,7 +373,9 @@ mod tests {
             auto_migrate: true,
         };
 
-        let store = ServiceStore::connect(&database, &url).await.expect("connect");
+        let store = ServiceStore::connect(&database, &url)
+            .await
+            .expect("connect");
         let service = sample_service("org.example.sqlite-service");
         store.upsert(&service).await.expect("upsert");
 

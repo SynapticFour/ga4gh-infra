@@ -7,7 +7,7 @@ use std::path::Path;
 use aai_broker::BrokerConfig;
 use access_decision_service::AdsConfig;
 use duo_service::DuoServiceConfig;
-use mock_idp::{MockIdpConfig, run as run_mock_idp};
+use mock_idp::{run as run_mock_idp, MockIdpConfig};
 use serde::Deserialize;
 use service_registry::RegistryConfig as ServiceRegistryConfig;
 use visa_registry::RegistryConfig as VisaRegistryConfig;
@@ -58,14 +58,11 @@ impl AllInOneConfig {
 /// Run all core services concurrently in the current Tokio runtime.
 pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> anyhow::Result<()> {
     if africa_mode {
-        let profile = config
-            .africa
-            .clone()
-            .unwrap_or_else(|| AfricaProfile {
-                embedded_mock_idp: true,
-                offline_first: true,
-                ..AfricaProfile::default()
-            });
+        let profile = config.africa.clone().unwrap_or_else(|| AfricaProfile {
+            embedded_mock_idp: true,
+            offline_first: true,
+            ..AfricaProfile::default()
+        });
         apply_africa_profile(&mut config, &profile);
         tracing::info!("Africa-mode profile applied to all-in-one configuration");
     }

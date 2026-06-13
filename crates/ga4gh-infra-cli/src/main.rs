@@ -124,10 +124,8 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::AllInOne { config, africa } => {
             let africa_mode = africa || africa_mode_from_env();
-            let (cfg, africa_mode) =
-                prepare_all_in_one_config(&config, africa_mode).with_context(|| {
-                    format!("loading all-in-one config from {}", config.display())
-                })?;
+            let (cfg, africa_mode) = prepare_all_in_one_config(&config, africa_mode)
+                .with_context(|| format!("loading all-in-one config from {}", config.display()))?;
             run_all_in_one(cfg, africa_mode).await
         }
         Commands::Keygen {
