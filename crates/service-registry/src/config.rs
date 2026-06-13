@@ -11,7 +11,7 @@ use serde::Deserialize;
 pub struct RegistryConfig {
     /// HTTP server settings.
     pub server: ServerConfig,
-    /// PostgreSQL connection settings.
+    /// Database connection settings.
     pub database: DatabaseConfig,
     /// Internal registration authentication settings.
     pub auth: AuthConfig,
@@ -38,11 +38,36 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// PostgreSQL persistence configuration.
+/// Supported database backends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DatabaseDriver {
+    /// PostgreSQL (production default).
+    #[default]
+    Postgres,
+    /// SQLite file database (desktop / Africa-mode).
+    Sqlite,
+}
+
+/// Database persistence configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
-    /// Environment variable holding the PostgreSQL connection URL.
+    /// Database driver (`postgres` or `sqlite`).
+    #[serde(default)]
+    pub driver: DatabaseDriver,
+    /// Inline connection URL (`postgres://...` or `sqlite:///path/to/db.sqlite`).
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Environment variable holding the connection URL when `url` is not set inline.
+    #[serde(default = "default_url_env")]
     pub url_env: String,
+    /// Run embedded migrations on startup (PostgreSQL only; SQLite always migrates).
+    #[serde(default)]
+    pub auto_migrate: bool,
+}
+
+fn default_url_env() -> String {
+    "SERVICE_REGISTRY_DATABASE_URL".to_string()
 }
 
 /// Internal service registration authentication configuration.
@@ -63,9 +88,31 @@ impl RegistryConfig {
         settings.try_deserialize()
     }
 
-    /// Resolve the PostgreSQL connection URL from the configured environment variable.
-    pub fn database_url(&self) -> Result<String, std::env::VarError> {
-        std::env::var(&self.database.url_env)
+    /// Resolve the database connection URL from inline config or environment.
+    pub fn database_url(&self) -> Result<String, crate::error::RegistryError> {
+        if let Some(url) = &self.database.url {
+            if url.trim().is_empty() {
+                return Err(crate::error::RegistryError::Config(
+                    "database.url must not be empty".to_string(),
+                ));
+            }
+            return Ok(url.clone());
+        }
+
+        std::env::var(&self.database.url_env).map_err(|err| {
+            crate::error::RegistryError::Config(format!(
+                "missing database URL env `{}`: {err}",
+                self.database.url_env
+            ))
+        })
+    }
+
+    /// Whether embedded migrations should run on startup.
+    pub fn should_auto_migrate(&self) -> bool {
+        match self.database.driver {
+            DatabaseDriver::Sqlite => true,
+            DatabaseDriver::Postgres => self.database.auto_migrate,
+        }
     }
 
     /// Resolve the internal registration API key from the configured environment variable.
@@ -102,7 +149,8 @@ mod tests {
             read_only = true
 
             [database]
-            url_env = "SERVICE_REGISTRY_DATABASE_URL"
+            driver = "sqlite"
+            url = "sqlite:///tmp/service_registry.sqlite"
 
             [auth]
             registration_api_key_env = "SERVICE_REGISTRY_REGISTRATION_KEY"
@@ -117,5 +165,10 @@ mod tests {
 
         assert!(config.server.read_only);
         assert_eq!(config.external_url(), "https://registry.example.org");
+        assert_eq!(config.database.driver, DatabaseDriver::Sqlite);
+        assert_eq!(
+            config.database_url().expect("url"),
+            "sqlite:///tmp/service_registry.sqlite"
+        );
     }
 }

@@ -61,6 +61,7 @@ mod tests {
             session: SessionConfig {
                 cookie_secret_env: "BROKER_COOKIE_SECRET".to_string(),
                 session_lifetime_seconds: 600,
+                secure_cookies: None,
             },
             upstream_idps: vec![],
             visa_sources: vec![],

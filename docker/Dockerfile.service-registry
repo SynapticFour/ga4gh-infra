@@ -15,10 +15,12 @@ FROM debian:bookworm-slim AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh
+    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh \
+    && mkdir -p /data && chown ga4gh:ga4gh /data
 
 COPY --from=builder /app/target/release/service-registry /usr/local/bin/service-registry
 
 USER ga4gh
 WORKDIR /app
+VOLUME ["/data"]
 ENTRYPOINT ["/usr/local/bin/service-registry"]

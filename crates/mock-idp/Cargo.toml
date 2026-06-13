@@ -11,6 +11,10 @@ authors.workspace = true
 [package.metadata.release]
 release = false
 
+[lib]
+name = "mock_idp"
+path = "src/lib.rs"
+
 [[bin]]
 name = "mock-idp"
 path = "src/main.rs"

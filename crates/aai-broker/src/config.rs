@@ -62,6 +62,9 @@ pub struct SessionConfig {
     pub cookie_secret_env: String,
     /// RP session cookie lifetime in seconds.
     pub session_lifetime_seconds: u64,
+    /// When unset, derived from `server.external_url` (`https` → true, else false).
+    #[serde(default)]
+    pub secure_cookies: Option<bool>,
 }
 
 /// Upstream OIDC provider the broker authenticates against as a Relying Party.
@@ -119,6 +122,13 @@ impl BrokerConfig {
     /// Resolve the RP session cookie secret from the configured environment variable.
     pub fn cookie_secret(&self) -> Result<String, std::env::VarError> {
         std::env::var(&self.session.cookie_secret_env)
+    }
+
+    /// Whether RP session cookies include the `Secure` attribute.
+    pub fn secure_cookies(&self) -> bool {
+        self.session
+            .secure_cookies
+            .unwrap_or_else(|| self.server.external_url.starts_with("https://"))
     }
 
     /// Resolve an upstream client secret from its configured environment variable.

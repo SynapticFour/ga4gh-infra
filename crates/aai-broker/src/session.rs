@@ -36,14 +36,16 @@ pub struct RpSession {
 pub struct SessionManager {
     key: Vec<u8>,
     lifetime: Duration,
+    secure: bool,
 }
 
 impl SessionManager {
     /// Create a session manager from a secret string and lifetime.
-    pub fn new(secret: &str, lifetime_seconds: u64) -> Self {
+    pub fn new(secret: &str, lifetime_seconds: u64, secure: bool) -> Self {
         Self {
             key: secret.as_bytes().to_vec(),
             lifetime: Duration::from_secs(lifetime_seconds),
+            secure,
         }
     }
 
@@ -53,8 +55,9 @@ impl SessionManager {
             .map_err(|err| BrokerError::Internal(format!("serializing session: {err}")))?;
         let encoded = URL_SAFE_NO_PAD.encode(payload.as_bytes());
         let signature = sign_value(&encoded, &self.key)?;
+        let secure = if self.secure { "; Secure" } else { "" };
         Ok(format!(
-            "{SESSION_COOKIE_NAME}={encoded}.{signature}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age={}",
+            "{SESSION_COOKIE_NAME}={encoded}.{signature}; HttpOnly{secure}; SameSite=Lax; Path=/; Max-Age={}",
             self.lifetime.as_secs()
         ))
     }
@@ -78,7 +81,8 @@ impl SessionManager {
 
     /// Build a `Set-Cookie` header that clears the RP session cookie.
     pub fn clear_set_cookie(&self) -> String {
-        format!("{SESSION_COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0")
+        let secure = if self.secure { "; Secure" } else { "" };
+        format!("{SESSION_COOKIE_NAME}=; HttpOnly{secure}; SameSite=Lax; Path=/; Max-Age=0")
     }
 }
 
@@ -111,7 +115,7 @@ mod tests {
 
     #[test]
     fn rp_session_cookie_round_trip() {
-        let manager = SessionManager::new("test-secret", 600);
+        let manager = SessionManager::new("test-secret", 600, false);
         let session = RpSession {
             idp_name: "my-institute".to_string(),
             csrf_state: "state-123".to_string(),
@@ -132,7 +136,7 @@ mod tests {
 
     #[test]
     fn rejects_expired_session_cookie() {
-        let manager = SessionManager::new("test-secret", 600);
+        let manager = SessionManager::new("test-secret", 600, false);
         let session = RpSession {
             idp_name: "my-institute".to_string(),
             csrf_state: "state-123".to_string(),
@@ -151,7 +155,7 @@ mod tests {
 
     #[test]
     fn rejects_tampered_session_signature() {
-        let manager = SessionManager::new("test-secret", 600);
+        let manager = SessionManager::new("test-secret", 600, false);
         let session = RpSession {
             idp_name: "my-institute".to_string(),
             csrf_state: "state-123".to_string(),
@@ -171,7 +175,7 @@ mod tests {
 
     #[test]
     fn pkce_verifier_survives_cookie_round_trip() {
-        let manager = SessionManager::new("test-secret", 600);
+        let manager = SessionManager::new("test-secret", 600, false);
         let verifier = "pkce-verifier-with-special-chars-_~";
         let session = RpSession {
             idp_name: "mock-idp".to_string(),
