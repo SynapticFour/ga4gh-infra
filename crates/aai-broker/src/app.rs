@@ -55,7 +55,11 @@ impl AppState {
         let ads = config.ads.as_ref().map(AdsClient::new).transpose()?;
 
         Ok(Arc::new(Self {
-            sessions: SessionManager::new(&cookie_secret, config.session.session_lifetime_seconds),
+            sessions: SessionManager::new(
+                &cookie_secret,
+                config.session.session_lifetime_seconds,
+                config.secure_cookies(),
+            ),
             config,
             keys,
             upstream,

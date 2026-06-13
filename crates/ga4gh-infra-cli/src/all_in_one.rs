@@ -7,15 +7,14 @@ use std::path::Path;
 use aai_broker::BrokerConfig;
 use access_decision_service::AdsConfig;
 use duo_service::DuoServiceConfig;
+use mock_idp::{run as run_mock_idp, MockIdpConfig};
 use serde::Deserialize;
 use service_registry::RegistryConfig as ServiceRegistryConfig;
 use visa_registry::RegistryConfig as VisaRegistryConfig;
 
+use crate::africa::{apply_africa_profile, load_africa_profile, AfricaProfile};
+
 /// Combined configuration for running all core services in one process.
-///
-/// Each top-level section maps to the corresponding service's existing config struct.
-/// SQLite defaults for desktop use are documented in Section B; until then use PostgreSQL
-/// URLs via the environment variables referenced in each nested section.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AllInOneConfig {
     /// AAI broker settings (`aai-broker`).
@@ -32,6 +31,9 @@ pub struct AllInOneConfig {
     /// Access Decision Service settings (`access-decision-service`).
     #[serde(rename = "access_decision_service")]
     pub access_decision_service: AdsConfig,
+    /// Optional Africa-mode profile (SQLite, embedded mock IdP, offline-first).
+    #[serde(default)]
+    pub africa: Option<AfricaProfile>,
 }
 
 impl AllInOneConfig {
@@ -43,10 +45,28 @@ impl AllInOneConfig {
             .build()?
             .try_deserialize()
     }
+
+    /// Parse an all-in-one configuration from a TOML string (tests and tooling).
+    pub fn load_from_str(toml: &str) -> Result<Self, config::ConfigError> {
+        config::Config::builder()
+            .add_source(config::File::from_str(toml, config::FileFormat::Toml))
+            .build()?
+            .try_deserialize()
+    }
 }
 
 /// Run all core services concurrently in the current Tokio runtime.
-pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
+pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> anyhow::Result<()> {
+    if africa_mode {
+        let profile = config.africa.clone().unwrap_or_else(|| AfricaProfile {
+            embedded_mock_idp: true,
+            offline_first: true,
+            ..AfricaProfile::default()
+        });
+        apply_africa_profile(&mut config, &profile);
+        tracing::info!("Africa-mode profile applied to all-in-one configuration");
+    }
+
     aai_broker::validate_log_level(&config.broker).map_err(anyhow::Error::msg)?;
     visa_registry::validate_log_level(&config.visa_registry).map_err(anyhow::Error::msg)?;
     duo_service::validate_log_level(&config.duo_service).map_err(anyhow::Error::msg)?;
@@ -57,6 +77,34 @@ pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
     tracing::info!(
         "starting all-in-one ga4gh-infra (broker, visa-registry, duo-service, service-registry, access-decision-service)"
     );
+
+    let embedded_mock = africa_mode
+        && config
+            .africa
+            .as_ref()
+            .is_none_or(|profile| profile.embedded_mock_idp);
+
+    let mock_idp = if embedded_mock {
+        let profile = config.africa.clone().unwrap_or_default();
+        let signing_key = config
+            .broker
+            .signing
+            .private_key_pem
+            .clone()
+            .replace("broker_rs256.pem", "mock_idp_rs256.pem");
+        Some(tokio::spawn(async move {
+            run_mock_idp(MockIdpConfig {
+                issuer: format!("http://{}:{}", profile.mock_idp_host, profile.mock_idp_port),
+                signing_key_pem: signing_key,
+                host: profile.mock_idp_host,
+                port: profile.mock_idp_port,
+                ..MockIdpConfig::default()
+            })
+            .await
+        }))
+    } else {
+        None
+    };
 
     let broker = tokio::spawn(async move { aai_broker::run(config.broker).await });
     let visa_registry = tokio::spawn(async move { visa_registry::run(config.visa_registry).await });
@@ -74,9 +122,30 @@ pub async fn run_all_in_one(config: AllInOneConfig) -> anyhow::Result<()> {
         result = duo_service => result.map_err(|err| anyhow::anyhow!("duo-service task panicked: {err}"))??,
         result = service_registry => result.map_err(|err| anyhow::anyhow!("service-registry task panicked: {err}"))??,
         result = access_decision_service => result.map_err(|err| anyhow::anyhow!("access-decision-service task panicked: {err}"))??,
+        result = async {
+            if let Some(task) = mock_idp {
+                task.await.map_err(|err| anyhow::anyhow!("mock-idp task panicked: {err}"))?
+            } else {
+                std::future::pending::<anyhow::Result<()>>().await
+            }
+        } => result?,
     }
 
     Ok(())
+}
+
+/// Load all-in-one config and optionally apply Africa-mode from file section or CLI flag.
+pub fn prepare_all_in_one_config(
+    path: impl AsRef<Path>,
+    africa_flag: bool,
+) -> Result<(AllInOneConfig, bool), config::ConfigError> {
+    let path = path.as_ref();
+    let mut config = AllInOneConfig::load_from_file(path)?;
+    let africa_mode = africa_flag || crate::africa::africa_mode_from_env();
+    if africa_mode && config.africa.is_none() {
+        config.africa = load_africa_profile(path);
+    }
+    Ok((config, africa_mode))
 }
 
 #[cfg(test)]
@@ -167,12 +236,7 @@ mod tests {
             bootstrap_api_key_env = "ADS_DAC_API_KEY"
         "#;
 
-        let config: AllInOneConfig = config::Config::builder()
-            .add_source(config::File::from_str(toml, config::FileFormat::Toml))
-            .build()
-            .expect("build config")
-            .try_deserialize()
-            .expect("parse config");
+        let config: AllInOneConfig = AllInOneConfig::load_from_str(toml).expect("parse config");
 
         assert_eq!(config.broker.server.port, 8080);
         assert_eq!(config.visa_registry.server.port, 8081);

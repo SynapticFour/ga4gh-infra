@@ -44,7 +44,7 @@ pub async fn service_info(State(state): State<Arc<AppState>>) -> Json<ServiceInf
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{AuthConfig, DatabaseConfig, RegistryConfig, ServerConfig};
+    use crate::config::{AuthConfig, DatabaseConfig, DatabaseDriver, RegistryConfig, ServerConfig};
 
     fn test_state() -> Arc<AppState> {
         Arc::new(AppState {
@@ -57,13 +57,16 @@ mod tests {
                     read_only: false,
                 },
                 database: DatabaseConfig {
+                    driver: DatabaseDriver::Postgres,
+                    url: None,
                     url_env: "SERVICE_REGISTRY_DATABASE_URL".to_string(),
+                    auto_migrate: false,
                 },
                 auth: AuthConfig {
                     registration_api_key_env: "SERVICE_REGISTRY_REGISTRATION_KEY".to_string(),
                 },
             },
-            store: crate::store::ServiceStore::from_pool(
+            store: crate::store::ServiceStore::from_pool_postgres(
                 sqlx::PgPool::connect_lazy("postgres://invalid/local").expect("lazy pool"),
             ),
             registration_key: Some("test-key".to_string()),

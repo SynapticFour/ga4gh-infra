@@ -26,10 +26,8 @@ pub struct AppState {
 impl AppState {
     /// Build application state from configuration.
     pub async fn initialize(config: RegistryConfig) -> Result<Arc<Self>, RegistryError> {
-        let database_url = config
-            .database_url()
-            .map_err(|err| RegistryError::Config(format!("missing database URL: {err}")))?;
-        let store = ServiceStore::connect(&database_url).await?;
+        let database_url = config.database_url()?;
+        let store = ServiceStore::connect(&config.database, &database_url).await?;
         let registration_key = config.registration_api_key().ok();
 
         if !config.server.read_only && registration_key.is_none() {

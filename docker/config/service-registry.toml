@@ -7,6 +7,7 @@ read_only = false
 
 [database]
 url_env = "SERVICE_REGISTRY_DATABASE_URL"
+auto_migrate = true
 
 [auth]
 registration_api_key_env = "SERVICE_REGISTRY_REGISTRATION_KEY"

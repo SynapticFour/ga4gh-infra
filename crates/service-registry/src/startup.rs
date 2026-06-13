@@ -46,7 +46,7 @@ pub async fn run(config: RegistryConfig) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{AuthConfig, DatabaseConfig, ServerConfig};
+    use crate::config::{AuthConfig, DatabaseConfig, DatabaseDriver, RegistryConfig, ServerConfig};
 
     #[test]
     fn rejects_trace_logging_outside_development() {
@@ -60,7 +60,10 @@ mod tests {
                 read_only: true,
             },
             database: DatabaseConfig {
+                driver: DatabaseDriver::Postgres,
+                url: None,
                 url_env: "SERVICE_REGISTRY_DATABASE_URL".to_string(),
+                auto_migrate: false,
             },
             auth: AuthConfig {
                 registration_api_key_env: "SERVICE_REGISTRY_REGISTRATION_KEY".to_string(),

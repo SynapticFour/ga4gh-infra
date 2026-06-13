@@ -8,6 +8,7 @@
 | [deployment-scenarios.md](deployment-scenarios.md) | Desktop, production, Raspberry Pi, federation notes |
 | [production-deployment.md](production-deployment.md) | TLS, Keycloak, secrets, Postgres ops, go-live checklist |
 | [design-decisions.md](design-decisions.md) | ADR-style decision log |
+| [DECISIONS.md](DECISIONS.md) | Architecture decision records (Africa-Mode, Ferrum boundary) |
 | [limitations.md](limitations.md) | Honest list of non-goals and gaps |
 | [contributing.md](contributing.md) | Development, testing, PR expectations |
 | [versioning.md](versioning.md) | Releases, semver, Docker tags, ARM binaries |

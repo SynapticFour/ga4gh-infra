@@ -106,7 +106,7 @@ fn ensure_registration_authorized(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{AuthConfig, DatabaseConfig, RegistryConfig, ServerConfig};
+    use crate::config::{AuthConfig, DatabaseConfig, DatabaseDriver, RegistryConfig, ServerConfig};
     use crate::store::ServiceStore;
     use sqlx::PgPool;
 
@@ -127,13 +127,16 @@ mod tests {
                     read_only,
                 },
                 database: DatabaseConfig {
+                    driver: DatabaseDriver::Postgres,
+                    url: None,
                     url_env: "SERVICE_REGISTRY_DATABASE_URL".to_string(),
+                    auto_migrate: false,
                 },
                 auth: AuthConfig {
                     registration_api_key_env: "SERVICE_REGISTRY_REGISTRATION_KEY".to_string(),
                 },
             },
-            store: ServiceStore::from_pool(
+            store: ServiceStore::from_pool_postgres(
                 PgPool::connect_lazy("postgres://unused").expect("lazy pool"),
             ),
             registration_key: key.map(str::to_string),

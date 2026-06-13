@@ -9,7 +9,10 @@ use access_decision_service::AdsConfig;
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use duo_service::DuoServiceConfig;
-use ga4gh_infra_cli::{generate_default_keys, generate_pem, run_all_in_one, AllInOneConfig};
+use ga4gh_infra_cli::{
+    africa_mode_from_env, generate_default_keys, generate_pem, prepare_all_in_one_config,
+    run_all_in_one,
+};
 use service_registry::RegistryConfig as ServiceRegistryConfig;
 use tracing_subscriber::EnvFilter;
 use visa_registry::RegistryConfig as VisaRegistryConfig;
@@ -64,6 +67,9 @@ enum Commands {
         /// Path to combined all-in-one TOML configuration.
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
+        /// Enable Africa-mode: SQLite backends, embedded mock IdP, offline-first defaults.
+        #[arg(long)]
+        africa: bool,
     },
     /// Generate RS256 PKCS#8 PEM signing keys (broker / visa-registry).
     Keygen {
@@ -116,10 +122,11 @@ async fn main() -> anyhow::Result<()> {
             access_decision_service::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
             access_decision_service::run(cfg).await
         }
-        Commands::AllInOne { config } => {
-            let cfg = AllInOneConfig::load_from_file(&config)
+        Commands::AllInOne { config, africa } => {
+            let africa_mode = africa || africa_mode_from_env();
+            let (cfg, africa_mode) = prepare_all_in_one_config(&config, africa_mode)
                 .with_context(|| format!("loading all-in-one config from {}", config.display()))?;
-            run_all_in_one(cfg).await
+            run_all_in_one(cfg, africa_mode).await
         }
         Commands::Keygen {
             output,
