@@ -8,6 +8,10 @@ Self-hostable Rust implementation of GA4GH infrastructure: OIDC brokering, Passp
 
 > **Legal notice:** This repository documents technical capabilities and operating guidance. It is not legal advice and does not by itself provide regulatory certification or compliance guarantees. Compliance outcomes depend on operator configuration, contracts, and organisational controls. Passport and visa flows may involve identifiable researcher data — assess your legal basis before production use. See [docs/limitations.md](docs/limitations.md).
 
+## SynapticFour GA4GH stack
+
+ga4gh-infra is the **identity plane**. See **[docs/ECOSYSTEM.md](docs/ECOSYSTEM.md)** for Ferrum (data/compute), Lab Kit, Demo, and HelixTest.
+
 ## Quick start
 
 **Docker** (full stack):
@@ -39,6 +43,7 @@ See **[docs/getting-started.md](docs/getting-started.md)** for both paths, Pi/AR
 | Limitations | [docs/limitations.md](docs/limitations.md) |
 | Contributing | [docs/contributing.md](docs/contributing.md) |
 | Full index | [docs/README.md](docs/README.md) |
+| **Stack overview (all five repos)** | [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) |
 
 ## Crates
 
@@ -55,7 +60,7 @@ See **[docs/getting-started.md](docs/getting-started.md)** for both paths, Pi/AR
 
 The broker is an **OIDC Relying Party** — it does not replace your institute IdP. Resource services validate Passports with `ga4gh-clearinghouse`.
 
-Related SynapticFour projects: [Ferrum](https://github.com/SynapticFour/Ferrum) (full GA4GH cloud stack), [Open-Source-GA4GH-Stack](https://github.com/SynapticFour/Open-Source-GA4GH-Stack) (curated upstream OSS kit).
+Related SynapticFour projects: [Ferrum](https://github.com/SynapticFour/Ferrum) (data/compute), [Ferrum-Lab-Kit](https://github.com/SynapticFour/Ferrum-Lab-Kit) (deploy), [Ferrum-GA4GH-Demo](https://github.com/SynapticFour/Ferrum-GA4GH-Demo) (benchmark), [HelixTest](https://github.com/SynapticFour/HelixTest) (conformance) — see [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md).
 
 ## Development
 

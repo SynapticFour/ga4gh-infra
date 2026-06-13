@@ -11,6 +11,7 @@
 | [DECISIONS.md](DECISIONS.md) | Architecture decision records (Africa-Mode, Ferrum boundary) |
 | [limitations.md](limitations.md) | Honest list of non-goals and gaps |
 | [contributing.md](contributing.md) | Development, testing, PR expectations |
+| [ECOSYSTEM.md](ECOSYSTEM.md) | Five-repo SynapticFour GA4GH stack overview |
 | [versioning.md](versioning.md) | Releases, semver, Docker tags, ARM binaries |
 | [roadmap.md](roadmap.md) | Project status and suggested phases |
 | [agreement-registry/](agreement-registry/README.md) | Optional policy/DUO compatibility layer (Phase 8) |
