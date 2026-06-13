@@ -38,6 +38,10 @@ up-sqlite: prepare-secrets
 down:
     {{compose}} down
 
+# Stop stack and remove volumes (database, registry data, etc.).
+destroy:
+    {{compose}} down -v --remove-orphans
+
 logs *args:
     {{compose}} logs -f {{args}}
 
