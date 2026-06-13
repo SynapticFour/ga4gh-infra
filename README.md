@@ -17,7 +17,8 @@ ga4gh-infra is the **identity plane**. See **[docs/ECOSYSTEM.md](docs/ECOSYSTEM.
 **Docker** (full stack):
 
 ```bash
-just up
+make up
+# or: just up
 # or: docker compose -f docker/docker-compose.yml --env-file docker/.env.example up --build --wait
 ```
 
@@ -30,6 +31,15 @@ ga4gh-infra all-in-one --config ~/.config/ga4gh-infra/all-in-one.toml
 ```
 
 See **[docs/getting-started.md](docs/getting-started.md)** for both paths, Pi/ARM notes, and what each command does.
+
+### Stop / tear down
+
+| Goal | Command |
+|------|---------|
+| Stop containers, **keep data** | `make down` or `just down` |
+| Remove volumes (fresh start) | `make destroy` or `just destroy` |
+
+Lighter SQLite stack: `just up-sqlite` — stop with `docker compose -f docker/docker-compose.sqlite.yml down`.
 
 ## Documentation
 
