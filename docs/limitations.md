@@ -22,9 +22,9 @@ DUO terms are compiled into `duo-service` at **build time**. Live OWL updates fr
 
 SQLite mode (visa-registry) suits demo, desktop, and single-node edge use (including Raspberry Pi). It is **not** recommended for multi-writer production clusters. Use PostgreSQL for concurrent DAC/API load.
 
-### Service-registry is PostgreSQL-only
+### Service-registry SQLite mode
 
-Unlike visa-registry, service-registry has no SQLite backend yet. Native all-in-one installs still need PostgreSQL for service registration unless you skip that component.
+`service-registry` supports **PostgreSQL** (recommended for multi-writer production) and **SQLite** (demo, desktop, single-node edge, and `docker-compose.sqlite.yml` / native all-in-one configs). SQLite is single-writer — not for concurrent multi-node clusters.
 
 ## Security and operations
 
