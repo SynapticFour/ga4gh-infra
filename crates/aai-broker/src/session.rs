@@ -30,6 +30,9 @@ pub struct RpSession {
     pub nonce: Option<String>,
     /// Unix timestamp when the session was created.
     pub created_at: i64,
+    /// Optional UI return URL (fragment receives `access_token` after login).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub return_url: Option<String>,
 }
 
 /// Signed session cookie helper for RP login state.
@@ -122,6 +125,7 @@ mod tests {
             pkce_verifier: "verifier-456".to_string(),
             nonce: Some("nonce-789".to_string()),
             created_at: unix_now(),
+            return_url: None,
         };
 
         let header = manager.create_set_cookie(&session).expect("create cookie");
@@ -143,6 +147,7 @@ mod tests {
             pkce_verifier: "verifier-456".to_string(),
             nonce: None,
             created_at: unix_now() - 3600,
+            return_url: None,
         };
         let header = manager.create_set_cookie(&session).expect("create cookie");
         let raw = header
@@ -162,6 +167,7 @@ mod tests {
             pkce_verifier: "verifier-456".to_string(),
             nonce: None,
             created_at: unix_now(),
+            return_url: None,
         };
         let header = manager.create_set_cookie(&session).expect("create cookie");
         let raw = header
@@ -183,6 +189,7 @@ mod tests {
             pkce_verifier: verifier.to_string(),
             nonce: Some("nonce".to_string()),
             created_at: unix_now(),
+            return_url: None,
         };
         let header = manager.create_set_cookie(&session).expect("cookie");
         let raw = header

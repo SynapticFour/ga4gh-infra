@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use axum::extract::{Query, State};
 use axum::http::{header, HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Response};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use openidconnect::core::CoreTokenResponse;
 use openidconnect::TokenResponse;
@@ -88,6 +88,7 @@ pub async fn callback(
     state.profiles.insert(&identity, exp);
 
     let clear_cookie = state.sessions.clear_set_cookie();
+    let return_url = session.return_url.clone();
     let body = serde_json::json!({
         "access_token": passport_jwt,
         "token_type": "Bearer",
@@ -95,7 +96,15 @@ pub async fn callback(
         "scope": "openid ga4gh_passport_v1",
     });
 
-    let mut response = if headers
+    let mut response = if let Some(return_url) = return_url {
+        let fragment = format!(
+            "access_token={}&token_type=Bearer&expires_in={}",
+            urlencoding::encode(&passport_jwt),
+            state.config.signing.token_lifetime_seconds
+        );
+        let location = format!("{return_url}#{fragment}");
+        Redirect::temporary(&location).into_response()
+    } else if headers
         .get(header::ACCEPT)
         .and_then(|value| value.to_str().ok())
         .is_some_and(|value| value.contains("application/json"))
@@ -209,6 +218,7 @@ mod tests {
             pkce_verifier: "verifier".to_string(),
             nonce: None,
             created_at: unix_now(),
+            return_url: None,
         };
 
         assert!(validate_csrf_state(&session, "expected-state").is_ok());

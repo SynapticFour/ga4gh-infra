@@ -42,6 +42,7 @@ tower-http = { version = "0.6", features = ["trace"] }
 base64 = "0.22"
 sha2 = "0.10"
 hmac = "0.12"
+url = "2"
 
 ga4gh-types = { path = "crates/ga4gh-types", version = "0.1.0" }
 ga4gh-clearinghouse = { path = "crates/ga4gh-clearinghouse", version = "0.1.0" }
