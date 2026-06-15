@@ -37,6 +37,7 @@ echo "Running end-to-end tests..."
   cd "${ROOT}"
   GA4GH_VISA_API_KEY=dev-visa-api-key \
   GA4GH_ADS_API_KEY=dev-ads-api-key \
+  GA4GH_ADMIN_UI_URL=http://localhost:8095 \
     cargo test -p ga4gh-e2e -- --ignored --test-threads=1
 )
 

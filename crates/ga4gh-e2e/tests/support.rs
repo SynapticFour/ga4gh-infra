@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use reqwest::header::{ACCEPT, COOKIE, SET_COOKIE};
+use reqwest::header::{ACCEPT, CONTENT_TYPE, COOKIE, SET_COOKIE};
 use reqwest::Client;
 
 pub fn env_or(key: &str, default: &str) -> String {
@@ -31,6 +31,10 @@ pub fn duo_service_url() -> String {
 
 pub fn sample_resource_url() -> String {
     env_or("GA4GH_SAMPLE_RESOURCE_URL", "http://localhost:8084")
+}
+
+pub fn admin_ui_url() -> String {
+    env_or("GA4GH_ADMIN_UI_URL", "http://localhost:8095")
 }
 
 pub fn visa_api_key() -> String {
@@ -114,4 +118,33 @@ pub async fn broker_login(client: &Client) -> (String, String) {
         .to_string();
     let subject = env_or("MOCK_IDP_SUBJECT", "researcher@uni-heidelberg.de");
     (subject, passport_jwt)
+}
+
+/// Establish an admin-ui session from a broker access token (Passport JWT).
+pub async fn admin_ui_session(client: &Client, access_token: &str) -> String {
+    let response = client
+        .post(format!("{}/auth/session", admin_ui_url()))
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .body(format!("access_token={access_token}"))
+        .send()
+        .await
+        .expect("admin-ui session");
+    assert!(
+        response.status().is_success(),
+        "admin-ui session failed: {}",
+        response.status()
+    );
+    response
+        .headers()
+        .get_all(SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .find_map(|value| {
+            value
+                .split(';')
+                .next()
+                .filter(|pair| pair.starts_with("ga4gh_admin_session="))
+                .map(str::to_string)
+        })
+        .expect("ga4gh_admin_session cookie")
 }

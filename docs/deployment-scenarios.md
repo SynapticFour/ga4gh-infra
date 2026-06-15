@@ -16,6 +16,8 @@ How to run `ga4gh-infra` in common environments.
 3. Generate keys: `ga4gh-infra keygen --output-dir ~/.config/ga4gh-infra/secrets`
 4. Run: `ga4gh-infra all-in-one --config ~/.config/ga4gh-infra/all-in-one.toml`
 
+Optionally add an `[admin_ui]` section to the all-in-one TOML to co-start the dashboard on port **8095** — see [admin-ui/configuration.md](admin-ui/configuration.md).
+
 **Raspberry Pi:** Same flow on 64-bit or 32-bit Raspberry Pi OS using prebuilt ARM binaries (see [getting-started.md](getting-started.md)).
 
 **Limitations:** Service-registry still needs PostgreSQL unless you use Docker `just up-sqlite` instead. Not suitable for multi-user production load on SQLite.
@@ -40,8 +42,9 @@ How to run `ga4gh-infra` in common environments.
    VISA_REGISTRY_VERSION=0.1.5
    ```
 5. Start: `just up` or `docker compose -f docker/docker-compose.yml --env-file docker/.env.example up -d`
-6. Put **TLS termination** in front (nginx, Caddy, Traefik) — see [`docker/reverse-proxy/`](../docker/reverse-proxy/) and [production-deployment.md](production-deployment.md).
-7. Set `read_only = true` on public service-registry; register services from an internal network only.
+6. **Admin UI:** available at `http://localhost:8095` when the `admin-ui` compose service is running (included by default).
+7. Put **TLS termination** in front (nginx, Caddy, Traefik) — see [`docker/reverse-proxy/`](../docker/reverse-proxy/) and [production-deployment.md](production-deployment.md).
+8. Set `read_only = true` on public service-registry; register services from an internal network only.
 
 **Database:** Run PostgreSQL with backups; visa-registry and service-registry use separate databases (see `docker/postgres/init.sql`).
 
@@ -57,7 +60,7 @@ How to run `ga4gh-infra` in common environments.
 just up-sqlite
 ```
 
-Visa-registry persists to a Docker volume; service-registry still uses the Compose Postgres service.
+Visa-registry persists to a Docker volume; service-registry still uses the Compose Postgres service. **Admin-ui** is exposed on host port **8195** (maps to container 8095).
 
 ---
 
@@ -82,7 +85,8 @@ Document operational patterns here as they emerge; see [roadmap.md](roadmap.md) 
 | Context | Example |
 |---------|---------|
 | Browser / JWT `iss` | `https://aai.example.org` |
-| Host e2e tests | `http://localhost:8080` |
+| Admin UI (browser) | `https://admin.example.org` → proxies to admin-ui:8095 |
+| Host e2e tests | `http://localhost:8080` (broker), `http://localhost:8095` (admin-ui) |
 | Container-to-container | `http://aai-broker:8080`, `http://visa-registry:8081` |
 | Mock IdP in browser | Rewrite `mock-idp:9000` → `localhost:9000` on host |
 

@@ -16,6 +16,7 @@ See [design-decisions.md](design-decisions.md) for the full rationale.
 flowchart LR
   subgraph upstream [Institute]
     IdP[Upstream OIDC IdP]
+    Operator[Operator / DAC member]
   end
 
   subgraph legal [External legal layer - optional]
@@ -28,6 +29,7 @@ flowchart LR
     ADS[access-decision-service]
     DUO[duo-service]
     SvcReg[service-registry]
+    AdminUI[admin-ui]
     AgrReg[agreement-registry optional]
   end
 
@@ -43,6 +45,12 @@ flowchart LR
   ADS -->|POST /visas| Visas
   Broker -->|Passport JWT| Researcher
   Researcher -->|Bearer Passport| API
+  Operator -->|browser| AdminUI
+  AdminUI -->|OIDC via broker| Broker
+  AdminUI -->|REST client X-API-Key| ADS
+  AdminUI -->|service-info| DUO
+  AdminUI -->|service-info| Visas
+  AdminUI -->|services list| SvcReg
   API --> CH
   CH -->|JWKS| Broker
   CH -->|JWKS| Visas
@@ -64,6 +72,7 @@ flowchart LR
 | `duo-service` | 8082 | DUO term catalog and dataset/intended-use matching |
 | `service-registry` | 8083 | GA4GH service discovery registry |
 | `sample-resource` | 8084 | Reference resource API using clearinghouse axum integration |
+| `admin-ui` | 8095 | Server-rendered ops dashboard (Askama + htmx); REST client of ADS, broker, DUO, registries |
 | `mock-idp` | 9000 | Test upstream OIDC provider (docker/CI only) |
 | `ga4gh-clearinghouse` | library | Validates Passports and Visas at resource boundaries |
 | `ga4gh-types` | library | Shared GA4GH data structures (Passport, Visa, DUO, agreement profiles) |
@@ -117,6 +126,21 @@ Unauthenticated or under-privileged requests receive GA4GH-shaped JSON errors (`
 6. **Policy checks** — The clearinghouse evaluates `PolicyCheck` expressions (controlled access, affiliation, DUO permissions).
 7. **DUO matching** — The duo-service evaluates whether a researcher's intended use satisfies dataset DUO codes using the compiled ontology hierarchy.
 
+## Admin UI (`admin-ui`)
+
+The **admin-ui** crate (Phase 9) is an **aggregator**: it has no database and no domain logic of its own. It authenticates operators via the same **aai-broker** OIDC flow, stores a long-lived UI session cookie, and calls existing service REST APIs server-side (primarily ADS with the configured DAC API key).
+
+```
+Operator browser → admin-ui (8095)
+                    ├─ GET /login → redirect to broker
+                    ├─ POST /auth/session ← broker access_token
+                    ├─ GET /dac/queue, POST approve/reject (htmx → ADS)
+                    ├─ GET /datasets, /grants, /audit (→ ADS)
+                    └─ GET /services (→ service-registry)
+```
+
+See [admin-ui/overview.md](admin-ui/overview.md) for page list, roles, and configuration.
+
 ## Docker stack
 
 Start the full stack:
@@ -137,6 +161,8 @@ Or manually:
 cargo test -p ga4gh-e2e -- --ignored --test-threads=1
 ```
 
+The stack includes **admin-ui** on port **8095**. The `stack_admin_ui_approves_dac_request_via_htmx` test logs in via the broker, establishes an admin-ui session, approves a pending DAC request through the htmx endpoint, and verifies the grant via ADS.
+
 ### Environment defaults (development)
 
 | Variable | Default |
@@ -145,6 +171,7 @@ cargo test -p ga4gh-e2e -- --ignored --test-threads=1
 | `MOCK_IDP_CLIENT_SECRET` | `mock-client-secret` |
 | `REGISTRY_BOOTSTRAP_API_KEY` | `dev-visa-api-key` |
 | `SERVICE_REGISTRY_REGISTRATION_KEY` | `dev-service-registry-key` |
+| `ADS_DAC_API_KEY` | `dev-ads-api-key` (used by admin-ui server-side) |
 
 Test signing keys live in `docker/secrets/` and must not be used in production.
 
