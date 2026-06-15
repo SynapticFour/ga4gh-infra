@@ -113,7 +113,7 @@ pub struct ResearchProject {
     pub updated_at: DateTime<Utc>,
 }
 /// Request body for registering a research project.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateProjectRequest {
     /// Researcher OIDC subject (must match authenticated caller unless admin).
     pub researcher_id: String,
@@ -325,7 +325,7 @@ pub struct PermissionMapping {
 }
 
 /// Request to register a permission source.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreatePermissionSourceRequest {
     /// Human-readable name.
     pub name: String,
@@ -336,7 +336,7 @@ pub struct CreatePermissionSourceRequest {
 }
 
 /// Request to register a permission mapping.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreatePermissionMappingRequest {
     /// Parent permission source identifier.
     pub source_id: Uuid,
@@ -479,6 +479,34 @@ pub struct DacQueueResponse {
 pub struct DatasetListResponse {
     /// Registered datasets.
     pub datasets: Vec<Dataset>,
+}
+
+/// Research project list response.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectListResponse {
+    /// Registered research projects.
+    pub projects: Vec<ResearchProject>,
+}
+
+/// Permission source list response.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PermissionSourceListResponse {
+    /// Configured permission sources.
+    pub sources: Vec<PermissionSource>,
+}
+
+/// Permission mapping list response.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PermissionMappingListResponse {
+    /// Configured permission mappings.
+    pub mappings: Vec<PermissionMapping>,
+}
+
+/// Audit event list response.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuditEventListResponse {
+    /// Recent audit events (newest first).
+    pub events: Vec<AdsEvent>,
 }
 
 /// Broker/service sync of researcher identity and upstream OIDC claims.

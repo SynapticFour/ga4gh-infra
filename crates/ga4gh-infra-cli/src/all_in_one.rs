@@ -34,6 +34,9 @@ pub struct AllInOneConfig {
     /// Optional Africa-mode profile (SQLite, embedded mock IdP, offline-first).
     #[serde(default)]
     pub africa: Option<AfricaProfile>,
+    /// Optional admin-ui dashboard (Phase 9).
+    #[serde(default)]
+    pub admin_ui: Option<admin_ui::AdminUiConfig>,
 }
 
 impl AllInOneConfig {
@@ -116,12 +119,23 @@ pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> an
             async move { access_decision_service::run(config.access_decision_service).await },
         );
 
+    let admin_ui = config.admin_ui.map(|admin_cfg| {
+        tokio::spawn(async move { admin_ui::run(admin_cfg).await })
+    });
+
     tokio::select! {
         result = broker => result.map_err(|err| anyhow::anyhow!("broker task panicked: {err}"))??,
         result = visa_registry => result.map_err(|err| anyhow::anyhow!("visa-registry task panicked: {err}"))??,
         result = duo_service => result.map_err(|err| anyhow::anyhow!("duo-service task panicked: {err}"))??,
         result = service_registry => result.map_err(|err| anyhow::anyhow!("service-registry task panicked: {err}"))??,
         result = access_decision_service => result.map_err(|err| anyhow::anyhow!("access-decision-service task panicked: {err}"))??,
+        result = async {
+            if let Some(task) = admin_ui {
+                task.await.map_err(|err| anyhow::anyhow!("admin-ui task panicked: {err}"))?
+            } else {
+                std::future::pending::<anyhow::Result<()>>().await
+            }
+        } => result?,
         result = async {
             if let Some(task) = mock_idp {
                 task.await.map_err(|err| anyhow::anyhow!("mock-idp task panicked: {err}"))?

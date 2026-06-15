@@ -1,0 +1,23 @@
+{% if degraded %}<div class="degraded">Service registry unavailable.</div>{% endif %}
+<table>
+  <thead><tr><th>ID</th><th>Name</th><th>URL</th><th>Version</th>{% if is_admin %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+    {% for s in services %}
+    <tr>
+      <td><code>{{ s.id }}</code></td>
+      <td>{{ s.name }}</td>
+      <td>{{ s.url }}</td>
+      <td>{{ s.version }}</td>
+      {% if is_admin %}
+      <td>
+        <form hx-post="/services/{{ s.id }}/delete" hx-confirm="Remove service?" hx-swap="none">
+          <button type="submit" class="btn btn-danger">Remove</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="note">No services registered.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

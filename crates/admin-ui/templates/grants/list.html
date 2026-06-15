@@ -1,0 +1,27 @@
+{% if degraded %}<div class="degraded">Could not load grants from ADS.</div>{% endif %}
+<table>
+  <thead>
+    <tr><th>Researcher</th><th>Dataset</th><th>Source</th><th>Status</th><th>Issued</th><th>Expires</th>{% if is_admin %}<th></th>{% endif %}</tr>
+  </thead>
+  <tbody>
+    {% for g in grants %}
+    <tr>
+      <td><code>{{ g.researcher_id }}</code></td>
+      <td><code>{{ g.dataset_id }}</code></td>
+      <td><span class="badge">{{ g.source }}</span></td>
+      <td>{{ g.status }}</td>
+      <td>{{ g.issued }}</td>
+      <td>{{ g.expires }}</td>
+      {% if is_admin %}
+      <td>{% if g.status == "active" %}
+        <form hx-post="/grants/{{ g.id }}/revoke" hx-confirm="Revoke this grant?" hx-swap="none">
+          <button type="submit" class="btn btn-danger">Revoke</button>
+        </form>
+      {% endif %}</td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="note">No grants.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

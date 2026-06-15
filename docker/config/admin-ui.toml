@@ -11,3 +11,5 @@ session_secret = "dev-admin-ui-session-secret-min-32-chars"
 session_ttl_hours = 24
 admin_claim = "groups"
 admin_claim_value = "ga4gh-infra-admins"
+service_registry_registration_key = "dev-service-registry-key"
+broker_config_path = "docker/config/broker.toml"

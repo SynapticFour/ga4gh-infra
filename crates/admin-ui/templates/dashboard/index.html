@@ -7,6 +7,10 @@
     <div class="label">Registered datasets</div>
     <div class="value">{% if let Some(n) = dataset_count %}{{ n }}{% else %}—{% endif %}</div>
   </div>
+  <div class="card">
+    <div class="label">Active grants</div>
+    <div class="value">{% if let Some(n) = grant_count %}{{ n }}{% else %}—{% endif %}</div>
+  </div>
 </div>
 
 <h3>Service health</h3>
@@ -20,4 +24,14 @@
 </ul>
 
 <h3>Recent activity</h3>
-<p class="note">{{ activity_note }}</p>
+{% if events_degraded %}
+<p class="note">Audit feed unavailable — ADS may be down or events not yet recorded.</p>
+{% else %}
+<ul>
+  {% for e in recent_events %}
+  <li><span class="badge">{{ e.label }}</span> {{ e.occurred_at }}</li>
+  {% else %}
+  <li class="note">No recent events.</li>
+  {% endfor %}
+</ul>
+{% endif %}

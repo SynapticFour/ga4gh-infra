@@ -1,0 +1,38 @@
+{% if degraded %}
+<div class="degraded">Could not load projects from ADS.</div>
+{% endif %}
+
+<table>
+  <thead>
+    <tr><th>Name</th><th>Researcher</th><th>DUO</th><th>Created</th></tr>
+  </thead>
+  <tbody>
+    {% for p in projects %}
+    <tr>
+      <td><a href="/projects/{{ p.id }}">{{ p.name }}</a></td>
+      <td><code>{{ p.researcher_id }}</code></td>
+      <td>{{ p.duo_codes }}</td>
+      <td>{{ p.created_at }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="note">No projects registered.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if is_admin %}
+<h3>Register project</h3>
+<form method="post" action="/projects">
+  <label>Researcher ID <input type="text" name="researcher_id" required></label>
+  <label>Name <input type="text" name="name" required></label>
+  <label>Description <textarea name="description"></textarea></label>
+  <label>DUO codes
+    <select name="duo_codes" multiple size="6">
+      {% for term in duo_terms %}{% if !term.obsolete %}
+      <option value="{{ term.code }}">{{ term.code }} — {{ term.label }}</option>
+      {% endif %}{% endfor %}
+    </select>
+  </label>
+  <button type="submit" class="btn btn-primary">Create</button>
+</form>
+{% endif %}

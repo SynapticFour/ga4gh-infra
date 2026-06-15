@@ -1,0 +1,9 @@
+<dl>
+  <dt>ID</dt><dd><code>{{ project.id }}</code></dd>
+  <dt>Researcher</dt><dd><code>{{ project.researcher_id }}</code></dd>
+  <dt>Name</dt><dd>{{ project.name }}</dd>
+  <dt>Description</dt><dd>{{ project.description }}</dd>
+  <dt>DUO</dt><dd>{{ project.duo_codes }}</dd>
+  <dt>Labels</dt><dd><ul>{% for l in duo_labels %}<li>{{ l }}</li>{% endfor %}</ul></dd>
+</dl>
+<p><a href="/projects">← Back</a></p>

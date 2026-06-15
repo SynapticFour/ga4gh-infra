@@ -1,7 +1,14 @@
+pub mod agreements;
+pub mod audit;
 pub mod auth;
 pub mod dashboard;
 pub mod dac;
 pub mod datasets;
+pub mod grants;
+pub mod projects;
+pub mod researchers;
+pub mod services;
+pub mod system;
 
 use std::sync::Arc;
 
@@ -35,6 +42,7 @@ pub struct BaseLayout<'a> {
     pub role: &'a str,
     pub is_admin: bool,
     pub active: &'a str,
+    pub active_admin: &'a str,
     pub content: String,
 }
 
@@ -51,6 +59,7 @@ pub fn render_layout(
         role: role_label(session),
         is_admin: session.is_admin,
         active,
+        active_admin: active,
         content,
     }
     .render()

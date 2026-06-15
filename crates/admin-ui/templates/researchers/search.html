@@ -1,0 +1,24 @@
+<form method="post" action="/researchers">
+  <label>Researcher subject ID
+    <input type="text" name="researcher_id" value="{{ query }}" required>
+  </label>
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+{% if let Some(err) = error %}
+<div class="degraded">{{ err }}</div>
+{% endif %}
+
+{% if let Some(r) = researcher %}
+<h3>Profile</h3>
+<dl>
+  <dt>Subject</dt><dd><code>{{ r.id }}</code></dd>
+  <dt>Name</dt><dd>{{ r.display_name }}</dd>
+  <dt>Email</dt><dd>{{ r.email }}</dd>
+  <dt>Affiliations</dt><dd>{{ r.affiliations }}</dd>
+</dl>
+{% if let Some(json) = visas_json %}
+<h3>Visa preview</h3>
+<pre class="code-block">{{ json }}</pre>
+{% endif %}
+{% endif %}

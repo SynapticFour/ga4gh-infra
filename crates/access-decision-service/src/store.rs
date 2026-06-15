@@ -191,6 +191,23 @@ macro_rules! parse_grant {
     }};
 }
 
+macro_rules! parse_audit_event {
+    ($row:expr) => {{
+        let payload_raw: String = $row.try_get("payload").map_err(map_db_err)?;
+        let payload: BTreeMap<String, serde_json::Value> =
+            serde_json::from_str(&payload_raw).map_err(map_db_err)?;
+        AdsEvent {
+            id: Uuid::parse_str(&$row.try_get::<String, _>("id").map_err(map_db_err)?)
+                .map_err(map_db_err)?,
+            event_type: parse_event_type(
+                &$row.try_get::<String, _>("event_type").map_err(map_db_err)?,
+            )?,
+            occurred_at: dt_from_ts($row.try_get("occurred_at").map_err(map_db_err)?),
+            payload,
+        }
+    }};
+}
+
 impl AdsStore {
     pub async fn connect(
         database: &DatabaseConfig,
@@ -635,6 +652,39 @@ impl AdsStore {
             }
         }
         Ok(project)
+    }
+
+    pub async fn list_projects(&self) -> Result<Vec<ResearchProject>, AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, researcher_id, name, description, duo_codes, created_at, updated_at
+                     FROM research_projects ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<ResearchProject, AdsError> { Ok(parse_project!(&row)) })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, researcher_id, name, description, duo_codes, created_at, updated_at
+                     FROM research_projects ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<ResearchProject, AdsError> { Ok(parse_project!(&row)) })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
     }
 
     pub async fn get_project(&self, id: Uuid) -> Result<ResearchProject, AdsError> {
@@ -1389,6 +1439,194 @@ impl AdsStore {
         Ok(mapping)
     }
 
+    pub async fn list_permission_sources(&self) -> Result<Vec<PermissionSource>, AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, name, oidc_issuer, claim_path, created_at
+                     FROM permission_sources ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<PermissionSource, AdsError> {
+                        Ok(PermissionSource {
+                            id: Uuid::parse_str(
+                                &row.try_get::<String, _>("id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            name: row.try_get("name").map_err(map_db_err)?,
+                            oidc_issuer: row.try_get("oidc_issuer").map_err(map_db_err)?,
+                            claim_path: row.try_get("claim_path").map_err(map_db_err)?,
+                            created_at: chrono::DateTime::from_timestamp(
+                                row.try_get::<i64, _>("created_at").map_err(map_db_err)?,
+                                0,
+                            )
+                            .ok_or_else(|| {
+                                AdsError::Internal("invalid permission source timestamp".into())
+                            })?
+                            .with_timezone(&Utc),
+                        })
+                    })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, name, oidc_issuer, claim_path, created_at
+                     FROM permission_sources ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<PermissionSource, AdsError> {
+                        Ok(PermissionSource {
+                            id: Uuid::parse_str(
+                                &row.try_get::<String, _>("id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            name: row.try_get("name").map_err(map_db_err)?,
+                            oidc_issuer: row.try_get("oidc_issuer").map_err(map_db_err)?,
+                            claim_path: row.try_get("claim_path").map_err(map_db_err)?,
+                            created_at: chrono::DateTime::from_timestamp(
+                                row.try_get::<i64, _>("created_at").map_err(map_db_err)?,
+                                0,
+                            )
+                            .ok_or_else(|| {
+                                AdsError::Internal("invalid permission source timestamp".into())
+                            })?
+                            .with_timezone(&Utc),
+                        })
+                    })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
+    pub async fn list_permission_mappings(&self) -> Result<Vec<PermissionMapping>, AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, source_id, claim_value, dataset_id, grant_lifetime_seconds, created_at
+                     FROM permission_mappings ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<PermissionMapping, AdsError> {
+                        Ok(PermissionMapping {
+                            id: Uuid::parse_str(
+                                &row.try_get::<String, _>("id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            source_id: Uuid::parse_str(
+                                &row.try_get::<String, _>("source_id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            claim_value: row.try_get("claim_value").map_err(map_db_err)?,
+                            dataset_id: Uuid::parse_str(
+                                &row.try_get::<String, _>("dataset_id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            grant_lifetime_seconds: row
+                                .try_get::<Option<i64>, _>("grant_lifetime_seconds")
+                                .map_err(map_db_err)?
+                                .map(|value| value as u64),
+                            created_at: chrono::DateTime::from_timestamp(
+                                row.try_get::<i64, _>("created_at").map_err(map_db_err)?,
+                                0,
+                            )
+                            .ok_or_else(|| {
+                                AdsError::Internal("invalid permission mapping timestamp".into())
+                            })?
+                            .with_timezone(&Utc),
+                        })
+                    })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, source_id, claim_value, dataset_id, grant_lifetime_seconds, created_at
+                     FROM permission_mappings ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<PermissionMapping, AdsError> {
+                        Ok(PermissionMapping {
+                            id: Uuid::parse_str(
+                                &row.try_get::<String, _>("id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            source_id: Uuid::parse_str(
+                                &row.try_get::<String, _>("source_id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            claim_value: row.try_get("claim_value").map_err(map_db_err)?,
+                            dataset_id: Uuid::parse_str(
+                                &row.try_get::<String, _>("dataset_id").map_err(map_db_err)?,
+                            )
+                            .map_err(map_db_err)?,
+                            grant_lifetime_seconds: row
+                                .try_get::<Option<i64>, _>("grant_lifetime_seconds")
+                                .map_err(map_db_err)?
+                                .map(|value| value as u64),
+                            created_at: chrono::DateTime::from_timestamp(
+                                row.try_get::<i64, _>("created_at").map_err(map_db_err)?,
+                                0,
+                            )
+                            .ok_or_else(|| {
+                                AdsError::Internal("invalid permission mapping timestamp".into())
+                            })?
+                            .with_timezone(&Utc),
+                        })
+                    })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
+    pub async fn delete_permission_mapping(&self, id: Uuid) -> Result<(), AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let result = sqlx::query("DELETE FROM permission_mappings WHERE id = $1")
+                    .bind(id.to_string())
+                    .execute(pool)
+                    .await
+                    .map_err(map_db_err)?;
+                if result.rows_affected() == 0 {
+                    return Err(AdsError::NotFound);
+                }
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let result = sqlx::query("DELETE FROM permission_mappings WHERE id = $1")
+                    .bind(id.to_string())
+                    .execute(pool)
+                    .await
+                    .map_err(map_db_err)?;
+                if result.rows_affected() == 0 {
+                    return Err(AdsError::NotFound);
+                }
+            }
+            #[allow(unreachable_patterns)]
+            _ => return Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+        Ok(())
+    }
+
     pub async fn apply_institutional_mappings(
         &self,
         researcher_id: &str,
@@ -1535,6 +1773,41 @@ impl AdsStore {
         Ok(())
     }
 
+    pub async fn list_audit_events(&self, limit: u32) -> Result<Vec<AdsEvent>, AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, event_type, payload, occurred_at
+                     FROM audit_events ORDER BY occurred_at DESC LIMIT $1",
+                )
+                .bind(limit as i64)
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<AdsEvent, AdsError> { Ok(parse_audit_event!(&row)) })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, event_type, payload, occurred_at
+                     FROM audit_events ORDER BY occurred_at DESC LIMIT $1",
+                )
+                .bind(limit as i64)
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<AdsEvent, AdsError> { Ok(parse_audit_event!(&row)) })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
     async fn ensure_researcher_exists(&self, id: &str) -> Result<(), AdsError> {
         let now = Utc::now();
         let researcher = Researcher {
@@ -1600,6 +1873,17 @@ fn event_type_str(event_type: &AdsEventType) -> &'static str {
         AdsEventType::RequestCreated => "request.created",
         AdsEventType::RequestApproved => "request.approved",
         AdsEventType::RequestRejected => "request.rejected",
+    }
+}
+
+fn parse_event_type(raw: &str) -> Result<AdsEventType, AdsError> {
+    match raw {
+        "grant.created" => Ok(AdsEventType::GrantCreated),
+        "grant.revoked" => Ok(AdsEventType::GrantRevoked),
+        "request.created" => Ok(AdsEventType::RequestCreated),
+        "request.approved" => Ok(AdsEventType::RequestApproved),
+        "request.rejected" => Ok(AdsEventType::RequestRejected),
+        other => Err(AdsError::Internal(format!("unknown event type {other}"))),
     }
 }
 

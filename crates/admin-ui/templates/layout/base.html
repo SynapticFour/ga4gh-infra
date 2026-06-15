@@ -15,7 +15,19 @@
         <li><a href="/" class="{% if active == "dashboard" %}active{% endif %}">Dashboard</a></li>
         <li><a href="/dac" class="{% if active == "dac" %}active{% endif %}">DAC Queue</a></li>
         <li><a href="/datasets" class="{% if active == "datasets" %}active{% endif %}">Datasets</a></li>
+        <li><a href="/projects" class="{% if active == "projects" %}active{% endif %}">Projects</a></li>
+        <li><a href="/grants" class="{% if active == "grants" %}active{% endif %}">Grants</a></li>
+        <li><a href="/audit" class="{% if active == "audit" %}active{% endif %}">Audit Log</a></li>
+        <li><a href="/services" class="{% if active == "services" %}active{% endif %}">Service Registry</a></li>
       </ul>
+      {% if is_admin %}
+      <p class="nav-section">Admin</p>
+      <ul>
+        <li><a href="/researchers" class="{% if active_admin == "researchers" %}active{% endif %}">Researchers</a></li>
+        <li><a href="/agreements" class="{% if active_admin == "agreements" %}active{% endif %}">Agreements</a></li>
+        <li><a href="/system" class="{% if active_admin == "system" %}active{% endif %}">System</a></li>
+      </ul>
+      {% endif %}
       <div class="user-bar">
         <div>{{ user_name }}</div>
         <div>{{ role }}</div>

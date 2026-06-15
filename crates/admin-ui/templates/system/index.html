@@ -1,0 +1,70 @@
+{% if degraded %}<div class="degraded">Some ADS configuration data is unavailable.</div>{% endif %}
+
+<h3>Upstream IdPs</h3>
+<p class="note">Read-only in v1. Edit <code>{{ broker_config_path }}</code> and restart the broker to change upstream IdP configuration.</p>
+{% if let Some(cfg) = oidc_config %}
+<pre class="code-block">{{ cfg }}</pre>
+{% else %}
+<p class="note">Could not fetch broker OpenID configuration.</p>
+{% endif %}
+
+<h3>Signing keys (JWKS)</h3>
+<p class="note">Private keys are never shown. Public JWKS below:</p>
+{% if let Some(j) = jwks %}
+<pre class="code-block">{{ j }}</pre>
+{% else %}
+<p class="note">Could not fetch broker JWKS.</p>
+{% endif %}
+
+<h3>Permission sources</h3>
+<table>
+  <thead><tr><th>Name</th><th>Issuer</th><th>Claim path</th></tr></thead>
+  <tbody>
+    {% for s in sources %}
+    <tr><td>{{ s.name }}</td><td>{{ s.issuer }}</td><td><code>{{ s.claim_path }}</code></td></tr>
+    {% else %}
+    <tr><td colspan="3" class="note">No permission sources.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<form method="post" action="/system/sources">
+  <fieldset><legend>Add source</legend>
+    <label>Name <input name="name" required></label>
+    <label>OIDC issuer <input name="oidc_issuer" required></label>
+    <label>Claim path <input name="claim_path" value="groups" required></label>
+    <button type="submit" class="btn btn-primary">Add source</button>
+  </fieldset>
+</form>
+
+<h3>Permission mappings</h3>
+<table>
+  <thead><tr><th>Claim value</th><th>Source</th><th>Dataset</th><th></th></tr></thead>
+  <tbody>
+    {% for m in mappings %}
+    <tr>
+      <td><code>{{ m.claim_value }}</code></td>
+      <td><code>{{ m.source_id }}</code></td>
+      <td><code>{{ m.dataset_id }}</code></td>
+      <td>
+        <form method="post" action="/system/mappings/{{ m.id }}/delete">
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="note">No mappings.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<form method="post" action="/system/mappings">
+  <fieldset><legend>Add mapping</legend>
+    <label>Source ID <input name="source_id" required></label>
+    <label>Claim value <input name="claim_value" required></label>
+    <label>Dataset ID <input name="dataset_id" required></label>
+    <label>Lifetime (seconds, optional) <input name="grant_lifetime_seconds"></label>
+    <button type="submit" class="btn btn-primary">Add mapping</button>
+  </fieldset>
+</form>
+
+<h3>DUO ontology</h3>
+<p class="note">DUO version is compiled into duo-service at build time from the OWL source. Update <code>duo-service/data/duo.owl</code> and rebuild to change terms.</p>

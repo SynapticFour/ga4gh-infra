@@ -1,0 +1,15 @@
+{% if degraded %}<div class="degraded">Could not load audit events from ADS.</div>{% endif %}
+<table>
+  <thead><tr><th>Time</th><th>Type</th><th>Payload</th></tr></thead>
+  <tbody>
+    {% for e in events %}
+    <tr>
+      <td>{{ e.occurred_at }}</td>
+      <td><span class="badge">{{ e.event_type }}</span></td>
+      <td><code>{{ e.summary }}</code></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3" class="note">No audit events recorded yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

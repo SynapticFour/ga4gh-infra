@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::Router;
 use ga4gh_clearinghouse::{JwksCache, TrustedBroker};
 use tower_http::trace::TraceLayer;
@@ -93,7 +93,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         )
         .route("/datasets", post(handlers::create_dataset).get(handlers::list_datasets))
         .route("/datasets/:id", get(handlers::get_dataset))
-        .route("/projects", post(handlers::create_project))
+        .route("/projects", post(handlers::create_project).get(handlers::list_projects))
         .route("/projects/:id", get(handlers::get_project))
         .route("/duo/evaluate", post(handlers::evaluate_duo))
         .route("/access-requests", post(handlers::create_access_request))
@@ -107,14 +107,19 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/grants/:id",
             get(handlers::get_grant).delete(handlers::revoke_grant),
         )
+        .route("/audit/events", get(handlers::list_audit_events))
         .route("/introspect", post(handlers::introspect))
         .route(
             "/permission-sources",
-            post(handlers::create_permission_source),
+            get(handlers::list_permission_sources).post(handlers::create_permission_source),
         )
         .route(
             "/permission-mappings",
-            post(handlers::create_permission_mapping),
+            get(handlers::list_permission_mappings).post(handlers::create_permission_mapping),
+        )
+        .route(
+            "/permission-mappings/:id",
+            delete(handlers::delete_permission_mapping),
         )
         .with_state(state.clone());
 

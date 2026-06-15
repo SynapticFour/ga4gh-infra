@@ -22,6 +22,16 @@ pub struct AdminUiConfig {
     pub admin_claim_value: String,
     #[serde(default)]
     pub static_dir: Option<PathBuf>,
+    /// Service registry registration key (Admin service management).
+    #[serde(default)]
+    pub service_registry_registration_key: Option<String>,
+    /// Hint shown on System page for broker config file location.
+    #[serde(default = "default_broker_config_path")]
+    pub broker_config_path: String,
+}
+
+fn default_broker_config_path() -> String {
+    "docker/config/broker.toml".to_string()
 }
 
 fn default_session_ttl_hours() -> u64 {
