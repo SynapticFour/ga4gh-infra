@@ -4,6 +4,7 @@ use axum::extract::State;
 use axum::response::Html;
 
 use crate::handlers::{render_layout, SharedState};
+use crate::roles::operator_dac_groups;
 use crate::session::RequireAuth;
 
 #[derive(Template)]
@@ -26,14 +27,27 @@ pub struct ActivityRow {
     pub label: String,
 }
 
-pub async fn dashboard(
-    auth: RequireAuth,
-    State(state): State<SharedState>,
-) -> impl IntoResponse {
-    let pending_count = state.clients.ads_dac_queue().await.ok().map(|q| q.len());
-    let dataset_count = state.clients.ads_list_datasets().await.ok().map(|d| d.len());
-    let grant_count = state.clients.ads_list_grants().await.ok().map(|g| g.len());
-    let events_result = state.clients.ads_list_audit(10).await;
+pub async fn dashboard(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let pending_count = state
+        .clients
+        .ads_dac_queue(groups.as_deref())
+        .await
+        .ok()
+        .map(|q| q.len());
+    let dataset_count = state
+        .clients
+        .ads_list_datasets(groups.as_deref())
+        .await
+        .ok()
+        .map(|d| d.len());
+    let grant_count = state
+        .clients
+        .ads_list_grants(groups.as_deref())
+        .await
+        .ok()
+        .map(|g| g.len());
+    let events_result = state.clients.ads_list_audit(10, groups.as_deref()).await;
     let recent_events: Vec<ActivityRow> = events_result
         .as_ref()
         .unwrap_or(&vec![])
@@ -50,8 +64,14 @@ pub async fn dashboard(
         grant_count,
         recent_events,
         events_degraded: events_result.is_err(),
-        ads_ok: state.clients.service_info_ok(&state.config.ads_base_url).await,
-        duo_ok: state.clients.service_info_ok(&state.config.duo_base_url).await,
+        ads_ok: state
+            .clients
+            .service_info_ok(&state.config.ads_base_url)
+            .await,
+        duo_ok: state
+            .clients
+            .service_info_ok(&state.config.duo_base_url)
+            .await,
         broker_ok: state
             .clients
             .service_info_ok(&state.config.broker_base_url)
@@ -68,6 +88,10 @@ pub async fn dashboard(
 
     match render_layout("Dashboard", "dashboard", &auth.0, inner) {
         Ok(html) => Html(html).into_response(),
-        Err(err) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
+        Err(err) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            err.to_string(),
+        )
+            .into_response(),
     }
 }

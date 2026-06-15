@@ -40,6 +40,7 @@ async fn postgres_sync_applies_institutional_mapping() {
             external_id: Some("dataset-integration".to_string()),
             auto_approve_enabled: false,
             auto_approve_threshold: 100,
+            dac_group: Some("ega-dac".to_string()),
         })
         .await
         .expect("create dataset");

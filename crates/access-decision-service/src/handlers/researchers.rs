@@ -39,7 +39,7 @@ pub async fn get_researcher_visas(
         return Err(AdsError::Forbidden);
     }
     let researcher = state.store.get_researcher(&id).await?;
-    let grants = state.store.list_grants(Some(&id)).await?;
+    let grants = state.store.list_grants(Some(&id), None).await?;
     Ok(Json(researcher_visas(
         &researcher,
         &grants,
@@ -54,7 +54,7 @@ pub async fn get_researcher_signed_visas(
     RequireDac(_operator): RequireDac,
 ) -> Result<Json<SignedVisasResponse>, AdsError> {
     let researcher = state.store.get_researcher(&id).await?;
-    let grants = state.store.list_grants(Some(&id)).await?;
+    let grants = state.store.list_grants(Some(&id), None).await?;
     let claims = researcher_visas(&researcher, &grants, &state.config.visas);
 
     let visa_jwts = if let Some(client) = &state.visa_registry {

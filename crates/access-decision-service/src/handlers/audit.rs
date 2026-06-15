@@ -11,11 +11,14 @@ use tracing::instrument;
 use crate::app::AppState;
 use crate::auth::RequireDac;
 use crate::error::AdsError;
+use crate::query::DacGroupQuery;
 
 #[derive(Debug, Deserialize)]
 pub struct AuditListQuery {
     #[serde(default = "default_limit")]
     pub limit: u32,
+    #[serde(flatten)]
+    pub dac_group: DacGroupQuery,
 }
 
 fn default_limit() -> u32 {
@@ -29,6 +32,9 @@ pub async fn list_audit_events(
     Query(query): Query<AuditListQuery>,
 ) -> Result<Json<AuditEventListResponse>, AdsError> {
     let limit = query.limit.clamp(1, 500);
-    let events = state.store.list_audit_events(limit).await?;
+    let events = state
+        .store
+        .list_audit_events(limit, query.dac_group.filter())
+        .await?;
     Ok(Json(AuditEventListResponse { events }))
 }

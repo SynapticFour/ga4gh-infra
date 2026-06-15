@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::Json;
 use ga4gh_types::{CreateDatasetRequest, Dataset};
 use tracing::instrument;
@@ -11,6 +11,8 @@ use uuid::Uuid;
 use crate::app::AppState;
 use crate::auth::RequireDac;
 use crate::error::AdsError;
+
+use crate::query::DacGroupQuery;
 
 #[instrument(skip(state, body))]
 pub async fn create_dataset(
@@ -40,7 +42,8 @@ pub async fn get_dataset(
 pub async fn list_datasets(
     State(state): State<Arc<AppState>>,
     RequireDac(_operator): RequireDac,
+    Query(filter): Query<DacGroupQuery>,
 ) -> Result<Json<ga4gh_types::DatasetListResponse>, AdsError> {
-    let datasets = state.store.list_datasets().await?;
+    let datasets = state.store.list_datasets(filter.filter()).await?;
     Ok(Json(ga4gh_types::DatasetListResponse { datasets }))
 }

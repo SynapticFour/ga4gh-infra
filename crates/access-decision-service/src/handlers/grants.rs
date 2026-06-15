@@ -14,9 +14,13 @@ use crate::app::AppState;
 use crate::auth::{AuthenticatedResearcher, DacOperator};
 use crate::error::AdsError;
 
+use crate::query::DacGroupQuery;
+
 #[derive(Debug, Deserialize)]
 pub struct GrantListQuery {
     pub researcher_id: Option<String>,
+    #[serde(flatten)]
+    pub dac_group: DacGroupQuery,
 }
 
 enum GrantAuth {
@@ -39,11 +43,13 @@ pub async fn list_grants(
     Query(query): Query<GrantListQuery>,
 ) -> Result<Json<GrantListResponse>, AdsError> {
     let grants = match authorize_grants(&state, &headers).await? {
-        GrantAuth::Researcher(researcher) => state.store.list_grants(Some(&researcher.sub)).await?,
+        GrantAuth::Researcher(researcher) => {
+            state.store.list_grants(Some(&researcher.sub), None).await?
+        }
         GrantAuth::Dac => {
             state
                 .store
-                .list_grants(query.researcher_id.as_deref())
+                .list_grants(query.researcher_id.as_deref(), query.dac_group.filter())
                 .await?
         }
     };

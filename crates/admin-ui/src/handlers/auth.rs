@@ -62,19 +62,12 @@ pub async fn establish_session(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mut headers = HeaderMap::new();
-    set_session_cookie(
-        &mut headers,
-        &token,
-        state.config.session_ttl().as_secs(),
-    );
+    set_session_cookie(&mut headers, &token, state.config.session_ttl().as_secs());
     headers.insert("HX-Redirect", "/".parse().unwrap());
     Ok((headers, StatusCode::NO_CONTENT).into_response())
 }
 
-pub async fn logout(
-    _auth: RequireAuth,
-    State(_state): State<SharedState>,
-) -> Response {
+pub async fn logout(_auth: RequireAuth, State(_state): State<SharedState>) -> Response {
     let mut headers = HeaderMap::new();
     clear_session_cookie(&mut headers);
     (headers, Redirect::to("/login")).into_response()

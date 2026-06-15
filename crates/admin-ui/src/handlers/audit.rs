@@ -1,11 +1,13 @@
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::State;
-use axum::http::StatusCode;
-use axum::response::Html;
+use axum::http::{header, StatusCode};
+use axum::response::{Html, Response};
 use ga4gh_types::AdsEvent;
 
+use crate::csv;
 use crate::handlers::{render_layout, SharedState};
+use crate::roles::operator_dac_groups;
 use crate::session::RequireAuth;
 
 #[derive(Template)]
@@ -35,7 +37,8 @@ impl From<&AdsEvent> for EventRow {
 }
 
 pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
-    let result = state.clients.ads_list_audit(100).await;
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let result = state.clients.ads_list_audit(100, groups.as_deref()).await;
     let inner = ListInner {
         events: result
             .as_ref()
@@ -49,4 +52,36 @@ pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> i
         Ok(html) => Html(html).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
+}
+
+pub async fn export_csv(auth: RequireAuth, State(state): State<SharedState>) -> Response {
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let events = match state.clients.ads_list_audit(500, groups.as_deref()).await {
+        Ok(events) => events,
+        Err(err) => return (StatusCode::SERVICE_UNAVAILABLE, err.to_string()).into_response(),
+    };
+
+    let mut body = csv::row(&["id", "event_type", "occurred_at", "payload"]);
+    for event in &events {
+        let payload = serde_json::to_string(&event.payload).unwrap_or_default();
+        body.push_str(&csv::row(&[
+            &event.id.to_string(),
+            &format!("{:?}", event.event_type),
+            &event.occurred_at.to_rfc3339(),
+            &payload,
+        ]));
+    }
+
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "text/csv; charset=utf-8"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=\"audit-events.csv\"",
+            ),
+        ],
+        body,
+    )
+        .into_response()
 }

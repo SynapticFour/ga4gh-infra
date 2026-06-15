@@ -1,12 +1,14 @@
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::{Path, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{Html, Response};
 use ga4gh_types::Grant;
 use uuid::Uuid;
 
+use crate::csv;
 use crate::handlers::{htmx_redirect, is_htmx, render_layout, SharedState};
+use crate::roles::operator_dac_groups;
 use crate::session::RequireAuth;
 
 #[derive(Template)]
@@ -49,7 +51,8 @@ impl From<&Grant> for GrantRow {
 }
 
 pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
-    let result = state.clients.ads_list_grants().await;
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let result = state.clients.ads_list_grants(groups.as_deref()).await;
     let inner = ListInner {
         grants: result
             .as_ref()
@@ -64,6 +67,56 @@ pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> i
         Ok(html) => Html(html).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
+}
+
+pub async fn export_csv(auth: RequireAuth, State(state): State<SharedState>) -> Response {
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let grants = match state.clients.ads_list_grants(groups.as_deref()).await {
+        Ok(grants) => grants,
+        Err(err) => return (StatusCode::SERVICE_UNAVAILABLE, err.to_string()).into_response(),
+    };
+
+    let mut body = csv::row(&[
+        "id",
+        "researcher_id",
+        "dataset_id",
+        "source",
+        "status",
+        "issued",
+        "expires",
+    ]);
+    for grant in &grants {
+        let status = if grant.revoked_at.is_some() {
+            "revoked"
+        } else {
+            "active"
+        };
+        body.push_str(&csv::row(&[
+            &grant.id.to_string(),
+            &grant.researcher_id,
+            &grant.dataset_id.to_string(),
+            &format!("{:?}", grant.source),
+            status,
+            &grant.created_at.to_rfc3339(),
+            &grant
+                .expires_at
+                .map(|t| t.to_rfc3339())
+                .unwrap_or_else(|| "—".into()),
+        ]));
+    }
+
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "text/csv; charset=utf-8"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=\"grants.csv\"",
+            ),
+        ],
+        body,
+    )
+        .into_response()
 }
 
 pub async fn revoke(

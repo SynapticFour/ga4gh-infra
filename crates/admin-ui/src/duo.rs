@@ -16,10 +16,7 @@ mod tests {
 
     #[test]
     fn known_code_returns_label() {
-        assert_eq!(
-            duo_label("DUO:0000006"),
-            "Health or medical research"
-        );
+        assert_eq!(duo_label("DUO:0000006"), "Health or medical research");
     }
 
     #[test]

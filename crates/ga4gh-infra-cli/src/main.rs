@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 use aai_broker::BrokerConfig;
 use access_decision_service::AdsConfig;
+use admin_ui::AdminUiConfig;
+use agreement_registry::AgreementRegistryConfig;
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use duo_service::DuoServiceConfig;
@@ -13,7 +15,6 @@ use ga4gh_infra_cli::{
     africa_mode_from_env, generate_default_keys, generate_pem, prepare_all_in_one_config,
     run_all_in_one,
 };
-use admin_ui::AdminUiConfig;
 use service_registry::RegistryConfig as ServiceRegistryConfig;
 use tracing_subscriber::EnvFilter;
 use visa_registry::RegistryConfig as VisaRegistryConfig;
@@ -66,6 +67,13 @@ enum Commands {
     #[command(name = "admin-ui")]
     AdminUi {
         /// Path to admin-ui TOML configuration.
+        #[arg(long, value_name = "FILE")]
+        config: PathBuf,
+    },
+    /// Run the GA4GH agreement registry (policy profiles and compatibility checks).
+    #[command(name = "agreement-registry")]
+    AgreementRegistry {
+        /// Path to agreement registry TOML configuration.
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
     },
@@ -134,6 +142,16 @@ async fn main() -> anyhow::Result<()> {
             let cfg = AdminUiConfig::from_file(config.to_str().expect("utf-8 config path"))
                 .with_context(|| format!("loading admin-ui config from {}", config.display()))?;
             admin_ui::run(cfg).await
+        }
+        Commands::AgreementRegistry { config } => {
+            let cfg = AgreementRegistryConfig::load_from_file(&config).with_context(|| {
+                format!(
+                    "loading agreement registry config from {}",
+                    config.display()
+                )
+            })?;
+            agreement_registry::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
+            agreement_registry::run(cfg).await
         }
         Commands::AllInOne { config, africa } => {
             let africa_mode = africa || africa_mode_from_env();

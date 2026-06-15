@@ -19,18 +19,19 @@ pub mod visa;
 
 pub use ads::{
     AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestStatus, AdsEvent,
-    AdsEventType, CreateAccessRequestBody, CreateDatasetRequest, CreatePermissionMappingRequest,
-    CreatePermissionSourceRequest, CreateProjectRequest, CreateVisaSourceRequest, DacActionRequest,
-    DacQueueResponse, Dataset, DatasetListResponse, AuditEventListResponse,
-    DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse,
-    GrantSource, IntrospectRequest, IntrospectResponse, PermissionMapping,
-    PermissionMappingListResponse, PermissionSource, PermissionSourceListResponse,
-    ProjectListResponse, ResearchProject, Researcher, ResearcherAffiliation, ResearcherSyncRequest,
-    ResearcherVisasResponse, SignedVisasResponse, VisaSource,
+    AdsEventType, AuditEventListResponse, CreateAccessRequestBody, CreateDatasetRequest,
+    CreatePermissionMappingRequest, CreatePermissionSourceRequest, CreateProjectRequest,
+    CreateVisaSourceRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse,
+    DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse, GrantSource,
+    IntrospectRequest, IntrospectResponse, PermissionMapping, PermissionMappingListResponse,
+    PermissionSource, PermissionSourceListResponse, ProjectListResponse, ResearchProject,
+    Researcher, ResearcherAffiliation, ResearcherSyncRequest, ResearcherVisasResponse,
+    SignedVisasResponse, VisaSource,
 };
 pub use agreement::{
-    AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, DecisionRecord,
-    DuoCodeAssertion, PolicyProfile,
+    AgreementTemplate, AgreementTemplateListResponse, CompatibilityCheckRequest,
+    CompatibilityCheckResult, DecisionRecord, DecisionRecordListResponse, DuoCodeAssertion,
+    PolicyProfile,
 };
 pub use compatibility::{
     check_compatibility, find_matching_template, is_permission, permission_satisfies,

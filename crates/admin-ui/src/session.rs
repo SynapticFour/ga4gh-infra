@@ -33,11 +33,8 @@ impl UserSession {
         let mut validation = Validation::default();
         validation.validate_exp = false;
         validation.insecure_disable_signature_validation();
-        let token_data = decode::<serde_json::Value>(
-            token,
-            &DecodingKey::from_secret(b"unused"),
-            &validation,
-        )?;
+        let token_data =
+            decode::<serde_json::Value>(token, &DecodingKey::from_secret(b"unused"), &validation)?;
         let claims = token_data.claims;
 
         let sub = claims
@@ -90,10 +87,8 @@ fn extract_groups(claims: &serde_json::Value, claim_name: &str) -> Vec<String> {
                         .filter_map(|x| x.as_str().map(str::to_string))
                         .collect(),
                 )
-            } else if let Some(s) = v.as_str() {
-                Some(vec![s.to_string()])
             } else {
-                None
+                v.as_str().map(|s| vec![s.to_string()])
             }
         })
         .unwrap_or_default()
@@ -112,9 +107,8 @@ pub fn decode_session(cookie_value: &str, secret: &str) -> Option<UserSession> {
 }
 
 pub fn set_session_cookie(headers: &mut HeaderMap, token: &str, max_age_secs: u64) {
-    let cookie = format!(
-        "{SESSION_COOKIE}={token}; HttpOnly; Path=/; SameSite=Lax; Max-Age={max_age_secs}"
-    );
+    let cookie =
+        format!("{SESSION_COOKIE}={token}; HttpOnly; Path=/; SameSite=Lax; Max-Age={max_age_secs}");
     headers.insert(
         axum::http::header::SET_COOKIE,
         cookie.parse().expect("valid cookie"),
@@ -132,6 +126,7 @@ pub fn clear_session_cookie(headers: &mut HeaderMap) {
 pub struct RequireAuth(pub UserSession);
 
 impl RequireAuth {
+    #[allow(clippy::result_large_err)]
     pub fn require_admin(&self) -> Result<(), Response> {
         if self.0.is_admin {
             Ok(())

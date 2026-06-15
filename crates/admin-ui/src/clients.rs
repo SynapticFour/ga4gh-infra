@@ -2,11 +2,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ga4gh_types::{
-    AccessRequest, AdsEvent, AuditEventListResponse, CreateDatasetRequest,
-    CreatePermissionMappingRequest, CreatePermissionSourceRequest, CreateProjectRequest,
-    DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse, Grant, GrantListResponse,
-    PermissionMapping, PermissionMappingListResponse, PermissionSource, PermissionSourceListResponse,
-    ProjectListResponse, Researcher, ResearchProject, SignedVisasResponse,
+    AccessRequest, AdsEvent, AgreementTemplate, AgreementTemplateListResponse,
+    AuditEventListResponse, CompatibilityCheckRequest, CompatibilityCheckResult,
+    CreateDatasetRequest, CreatePermissionMappingRequest, CreatePermissionSourceRequest,
+    CreateProjectRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse, Grant,
+    GrantListResponse, PermissionMapping, PermissionMappingListResponse, PermissionSource,
+    PermissionSourceListResponse, ProjectListResponse, ResearchProject, Researcher,
+    SignedVisasResponse,
 };
 use reqwest::Client;
 use serde::Deserialize;
@@ -38,11 +40,21 @@ impl UpstreamClients {
         )
     }
 
-    async fn ads_get<T: for<'de> Deserialize<'de>>(&self, path: &str) -> AdminResult<T> {
-        let resp = self
+    async fn ads_get<T: for<'de> Deserialize<'de>>(
+        &self,
+        path: &str,
+        dac_groups: Option<&[String]>,
+    ) -> AdminResult<T> {
+        let mut req = self
             .http
             .get(self.ads_url(path))
-            .header("X-API-Key", &self.config.ads_dac_api_key)
+            .header("X-API-Key", &self.config.ads_dac_api_key);
+        if let Some(groups) = dac_groups {
+            for group in groups {
+                req = req.query(&[("dac_group", group.as_str())]);
+            }
+        }
+        let resp = req
             .send()
             .await
             .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
@@ -76,7 +88,9 @@ impl UpstreamClients {
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
-            return Err(AdminUiError::BadRequest(format!("ADS POST {path}: {status} {text}")));
+            return Err(AdminUiError::BadRequest(format!(
+                "ADS POST {path}: {status} {text}"
+            )));
         }
         resp.json()
             .await
@@ -100,75 +114,91 @@ impl UpstreamClients {
         Ok(())
     }
 
-    pub async fn ads_dac_queue(&self) -> AdminResult<Vec<AccessRequest>> {
-        let body: DacQueueResponse = self.ads_get("/dac/requests").await?;
+    pub async fn ads_dac_queue(
+        &self,
+        dac_groups: Option<&[String]>,
+    ) -> AdminResult<Vec<AccessRequest>> {
+        let body: DacQueueResponse = self.ads_get("/dac/requests", dac_groups).await?;
         Ok(body.requests)
     }
 
-    pub async fn ads_list_datasets(&self) -> AdminResult<Vec<Dataset>> {
-        let body: DatasetListResponse = self.ads_get("/datasets").await?;
+    pub async fn ads_list_datasets(
+        &self,
+        dac_groups: Option<&[String]>,
+    ) -> AdminResult<Vec<Dataset>> {
+        let body: DatasetListResponse = self.ads_get("/datasets", dac_groups).await?;
         Ok(body.datasets)
     }
 
     pub async fn ads_get_dataset(&self, id: uuid::Uuid) -> AdminResult<Dataset> {
-        self.ads_get(&format!("/datasets/{id}")).await
+        self.ads_get(&format!("/datasets/{id}"), None).await
     }
 
     pub async fn ads_list_projects(&self) -> AdminResult<Vec<ResearchProject>> {
-        let body: ProjectListResponse = self.ads_get("/projects").await?;
+        let body: ProjectListResponse = self.ads_get("/projects", None).await?;
         Ok(body.projects)
     }
 
     pub async fn ads_get_project(&self, id: uuid::Uuid) -> AdminResult<ResearchProject> {
-        self.ads_get(&format!("/projects/{id}")).await
+        self.ads_get(&format!("/projects/{id}"), None).await
     }
 
-    pub async fn ads_list_grants(&self) -> AdminResult<Vec<Grant>> {
-        let body: GrantListResponse = self.ads_get("/grants").await?;
+    pub async fn ads_list_grants(&self, dac_groups: Option<&[String]>) -> AdminResult<Vec<Grant>> {
+        let body: GrantListResponse = self.ads_get("/grants", dac_groups).await?;
         Ok(body.grants)
     }
 
-    pub async fn ads_list_audit(&self, limit: u32) -> AdminResult<Vec<AdsEvent>> {
+    pub async fn ads_list_audit(
+        &self,
+        limit: u32,
+        dac_groups: Option<&[String]>,
+    ) -> AdminResult<Vec<AdsEvent>> {
         let body: AuditEventListResponse = self
-            .ads_get(&format!("/audit/events?limit={limit}"))
+            .ads_get(&format!("/audit/events?limit={limit}"), dac_groups)
             .await?;
         Ok(body.events)
     }
 
     pub async fn ads_get_researcher(&self, id: &str) -> AdminResult<Researcher> {
-        self.ads_get(&format!("/researchers/{id}")).await
+        self.ads_get(&format!("/researchers/{id}"), None).await
     }
 
     pub async fn ads_get_researcher_visas(&self, id: &str) -> AdminResult<SignedVisasResponse> {
-        self.ads_get(&format!("/researchers/{id}/signed-visas"))
+        self.ads_get(&format!("/researchers/{id}/signed-visas"), None)
             .await
     }
 
     pub async fn ads_list_permission_sources(&self) -> AdminResult<Vec<PermissionSource>> {
-        let body: PermissionSourceListResponse = self.ads_get("/permission-sources").await?;
+        let body: PermissionSourceListResponse = self.ads_get("/permission-sources", None).await?;
         Ok(body.sources)
     }
 
     pub async fn ads_list_permission_mappings(&self) -> AdminResult<Vec<PermissionMapping>> {
-        let body: PermissionMappingListResponse = self.ads_get("/permission-mappings").await?;
+        let body: PermissionMappingListResponse =
+            self.ads_get("/permission-mappings", None).await?;
         Ok(body.mappings)
     }
 
-    pub async fn ads_approve(&self, id: uuid::Uuid) -> AdminResult<()> {
-        self.ads_dac_action(id, "approve").await
+    pub async fn ads_approve(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<()> {
+        self.ads_dac_action(id, "approve", reason).await
     }
 
-    pub async fn ads_reject(&self, id: uuid::Uuid) -> AdminResult<()> {
-        self.ads_dac_action(id, "reject").await
+    pub async fn ads_reject(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<()> {
+        self.ads_dac_action(id, "reject", reason).await
     }
 
-    pub async fn ads_escalate(&self, id: uuid::Uuid) -> AdminResult<()> {
-        self.ads_dac_action(id, "escalate").await
+    pub async fn ads_escalate(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<()> {
+        self.ads_dac_action(id, "escalate", reason).await
     }
 
-    async fn ads_dac_action(&self, id: uuid::Uuid, action: &str) -> AdminResult<()> {
+    async fn ads_dac_action(
+        &self,
+        id: uuid::Uuid,
+        action: &str,
+        reason: Option<String>,
+    ) -> AdminResult<()> {
         let body = DacActionRequest {
-            reason: None,
+            reason,
             actor: Some("admin-ui".to_string()),
         };
         let resp = self
@@ -192,7 +222,10 @@ impl UpstreamClients {
         self.ads_post("/datasets", payload).await
     }
 
-    pub async fn ads_create_project(&self, payload: &CreateProjectRequest) -> AdminResult<ResearchProject> {
+    pub async fn ads_create_project(
+        &self,
+        payload: &CreateProjectRequest,
+    ) -> AdminResult<ResearchProject> {
         self.ads_post("/projects", payload).await
     }
 
@@ -244,7 +277,10 @@ impl UpstreamClients {
     }
 
     pub async fn registry_list_services(&self) -> AdminResult<Vec<RegistryService>> {
-        let url = format!("{}/services", self.config.service_registry_base_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/services",
+            self.config.service_registry_base_url.trim_end_matches('/')
+        );
         let resp = self
             .http
             .get(&url)
@@ -267,7 +303,7 @@ impl UpstreamClients {
             .config
             .service_registry_registration_key
             .as_deref()
-            .ok_or_else(|| AdminUiError::Forbidden)?;
+            .ok_or(AdminUiError::Forbidden)?;
         let url = format!(
             "{}/services/{}",
             self.config.service_registry_base_url.trim_end_matches('/'),
@@ -289,6 +325,61 @@ impl UpstreamClients {
         Ok(())
     }
 
+    pub async fn agreement_list_templates(&self) -> AdminResult<Vec<AgreementTemplate>> {
+        let url = format!(
+            "{}/templates",
+            self.config
+                .agreement_registry_base_url
+                .trim_end_matches('/')
+        );
+        let resp = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        if !resp.status().is_success() {
+            return Err(AdminUiError::Upstream(format!(
+                "Agreement registry returned {}",
+                resp.status()
+            )));
+        }
+        let body: AgreementTemplateListResponse = resp
+            .json()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        Ok(body.templates)
+    }
+
+    pub async fn agreement_compatibility_check(
+        &self,
+        payload: &CompatibilityCheckRequest,
+    ) -> AdminResult<CompatibilityCheckResult> {
+        let url = format!(
+            "{}/compatibility-check",
+            self.config
+                .agreement_registry_base_url
+                .trim_end_matches('/')
+        );
+        let resp = self
+            .http
+            .post(&url)
+            .json(payload)
+            .send()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(AdminUiError::BadRequest(format!(
+                "compatibility check failed: {status} {text}"
+            )));
+        }
+        resp.json()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))
+    }
+
     pub async fn broker_openid_config(&self) -> AdminResult<Value> {
         let url = format!(
             "{}/.well-known/openid-configuration",
@@ -305,7 +396,10 @@ impl UpstreamClients {
     }
 
     pub async fn broker_jwks(&self) -> AdminResult<Value> {
-        let url = format!("{}/jwks.json", self.config.broker_base_url.trim_end_matches('/'));
+        let url = format!(
+            "{}/jwks.json",
+            self.config.broker_base_url.trim_end_matches('/')
+        );
         self.http
             .get(&url)
             .send()

@@ -1,6 +1,48 @@
-<div class="degraded">
-  Agreement Registry does not expose an HTTP API in this release. Templates and policy profiles
-  are available via the <code>agreement-registry</code> library (Phase 8). Deploy a dedicated
-  agreement-registry service in a future release to manage templates from this UI.
-</div>
-<p class="note">Compatibility checks (<code>/compatibility-check</code>) will appear here once the HTTP service is available.</p>
+{% if degraded %}
+<div class="degraded">Could not reach the agreement registry service.</div>
+{% endif %}
+
+<h3>Agreement templates</h3>
+<table>
+  <thead>
+    <tr><th>ID</th><th>Name</th><th>Version</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    {% for t in templates %}
+    <tr>
+      <td><code>{{ t.id }}</code></td>
+      <td>{{ t.name }}{% if t.illustrative %} <span class="badge">illustrative</span>{% endif %}</td>
+      <td>{{ t.version }}</td>
+      <td>{{ t.description }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="note">No templates loaded.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h3>Compatibility check</h3>
+<p class="note">Demo profiles <code>demo.requester.gru</code> and <code>demo.dataset.gru</code> are pre-registered in the agreement registry service.</p>
+{% if let Some(err) = error %}
+<div class="degraded">{{ err }}</div>
+{% endif %}
+<form method="post" action="/agreements/compatibility-check">
+  <label>Requester profile ID
+    <input type="text" name="requester_profile_id" value="demo.requester.gru" required>
+  </label>
+  <label>Dataset profile ID
+    <input type="text" name="dataset_profile_id" value="demo.dataset.gru" required>
+  </label>
+  <button type="submit" class="btn btn-primary">Run check</button>
+</form>
+
+{% if let Some(result) = check_result %}
+<h4>Result</h4>
+<table>
+  <tr><th>Compatible</th><td>{% if result.compatible %}yes{% else %}no{% endif %}</td></tr>
+  <tr><th>Matched template</th><td>{{ result.matched_template }}</td></tr>
+  <tr><th>Unsatisfied DUO</th><td>{{ result.unsatisfied }}</td></tr>
+  <tr><th>Conditions</th><td>{{ result.conditions }}</td></tr>
+  <tr><th>Decision record</th><td><code>{{ result.decision_record_id }}</code></td></tr>
+</table>
+{% endif %}

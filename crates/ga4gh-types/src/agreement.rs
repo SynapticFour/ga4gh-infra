@@ -121,6 +121,20 @@ pub struct DecisionRecord {
     pub checked_by: Option<String>,
 }
 
+/// Response body for listing agreement templates.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgreementTemplateListResponse {
+    /// Registered agreement templates.
+    pub templates: Vec<AgreementTemplate>,
+}
+
+/// Response body for listing compatibility decision records.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DecisionRecordListResponse {
+    /// Stored decision records.
+    pub decisions: Vec<DecisionRecord>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

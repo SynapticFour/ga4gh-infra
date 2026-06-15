@@ -10,6 +10,7 @@ pub mod error;
 pub mod events;
 pub mod handlers;
 pub mod permissions;
+pub mod query;
 pub mod startup;
 pub mod store;
 pub mod visa_registry_client;

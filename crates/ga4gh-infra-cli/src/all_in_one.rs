@@ -119,9 +119,9 @@ pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> an
             async move { access_decision_service::run(config.access_decision_service).await },
         );
 
-    let admin_ui = config.admin_ui.map(|admin_cfg| {
-        tokio::spawn(async move { admin_ui::run(admin_cfg).await })
-    });
+    let admin_ui = config
+        .admin_ui
+        .map(|admin_cfg| tokio::spawn(async move { admin_ui::run(admin_cfg).await }));
 
     tokio::select! {
         result = broker => result.map_err(|err| anyhow::anyhow!("broker task panicked: {err}"))??,

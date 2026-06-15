@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::clients::DuoTermOption;
 use crate::duo::duo_label;
 use crate::handlers::{render_layout, SharedState};
+use crate::roles::operator_dac_groups;
 use crate::session::RequireAuth;
 
 #[derive(Template)]
@@ -36,6 +37,7 @@ pub struct DatasetRow {
     pub external_id: String,
     pub duo_codes: String,
     pub auto_approve: String,
+    pub dac_group: String,
     pub created_at: String,
 }
 
@@ -58,6 +60,7 @@ impl From<&Dataset> for DatasetRow {
             } else {
                 "no".to_string()
             },
+            dac_group: d.dac_group.clone().unwrap_or_else(|| "—".into()),
             created_at: d.created_at.to_rfc3339(),
         }
     }
@@ -68,6 +71,7 @@ pub struct CreateDatasetForm {
     pub name: String,
     pub description: Option<String>,
     pub external_id: Option<String>,
+    pub dac_group: Option<String>,
     #[serde(default)]
     pub duo_codes: Vec<String>,
     #[serde(default)]
@@ -80,11 +84,9 @@ fn default_threshold() -> u8 {
     100
 }
 
-pub async fn list_page(
-    auth: RequireAuth,
-    State(state): State<SharedState>,
-) -> impl IntoResponse {
-    let datasets_result = state.clients.ads_list_datasets().await;
+pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let datasets_result = state.clients.ads_list_datasets(groups.as_deref()).await;
     let duo_terms = state.clients.duo_terms().await.unwrap_or_default();
     let degraded = datasets_result.is_err();
     let datasets: Vec<DatasetRow> = datasets_result
@@ -156,6 +158,7 @@ pub async fn create(
         external_id: form.external_id.filter(|s| !s.is_empty()),
         auto_approve_enabled: form.auto_approve_enabled,
         auto_approve_threshold: form.auto_approve_threshold,
+        dac_group: form.dac_group.filter(|s| !s.is_empty()),
     };
 
     match state.clients.ads_create_dataset(&payload).await {

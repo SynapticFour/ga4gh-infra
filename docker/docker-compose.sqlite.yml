@@ -169,6 +169,23 @@ services:
       timeout: 5s
       retries: 10
 
+  agreement-registry:
+    image: ${GA4GH_IMAGE_PREFIX}/agreement-registry:${AGREEMENT_REGISTRY_VERSION:-0.1.0}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.agreement-registry
+    environment:
+      RUST_LOG: info
+    ports:
+      - "8186:8086"
+    volumes:
+      - ./config/agreement-registry.toml:/config/agreement-registry.toml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8086/service-info"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   admin-ui:
     image: ${GA4GH_IMAGE_PREFIX}/admin-ui:${ADMIN_UI_VERSION:-0.1.0}
     build:
@@ -186,6 +203,8 @@ services:
       access-decision-service:
         condition: service_healthy
       duo-service:
+        condition: service_healthy
+      agreement-registry:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8095/login"]

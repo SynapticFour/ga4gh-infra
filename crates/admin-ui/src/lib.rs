@@ -1,6 +1,7 @@
 pub mod app;
 pub mod clients;
 pub mod config;
+pub mod csv;
 pub mod duo;
 pub mod error;
 pub mod handlers;

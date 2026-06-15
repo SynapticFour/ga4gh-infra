@@ -27,24 +27,42 @@ pub fn build_router(state: AppState) -> Router {
         .route("/dac/requests/:id/approve", post(handlers::dac::approve))
         .route("/dac/requests/:id/reject", post(handlers::dac::reject))
         .route("/dac/requests/:id/escalate", post(handlers::dac::escalate))
-        .route("/datasets", get(handlers::datasets::list_page).post(handlers::datasets::create))
+        .route(
+            "/datasets",
+            get(handlers::datasets::list_page).post(handlers::datasets::create),
+        )
         .route("/datasets/:id", get(handlers::datasets::detail_page))
-        .route("/projects", get(handlers::projects::list_page).post(handlers::projects::create))
+        .route(
+            "/projects",
+            get(handlers::projects::list_page).post(handlers::projects::create),
+        )
         .route("/projects/:id", get(handlers::projects::detail_page))
         .route("/grants", get(handlers::grants::list_page))
+        .route("/grants/export.csv", get(handlers::grants::export_csv))
         .route("/grants/:id/revoke", post(handlers::grants::revoke))
         .route(
             "/researchers",
             get(handlers::researchers::search_page).post(handlers::researchers::search),
         )
         .route("/audit", get(handlers::audit::list_page))
+        .route("/audit/export.csv", get(handlers::audit::export_csv))
         .route("/services", get(handlers::services::list_page))
-        .route("/services/:id/delete", post(handlers::services::delete_service))
+        .route(
+            "/services/:id/delete",
+            post(handlers::services::delete_service),
+        )
         .route("/agreements", get(handlers::agreements::index_page))
+        .route(
+            "/agreements/compatibility-check",
+            post(handlers::agreements::compatibility_check),
+        )
         .route("/system", get(handlers::system::index_page))
         .route("/system/sources", post(handlers::system::create_source))
         .route("/system/mappings", post(handlers::system::create_mapping))
-        .route("/system/mappings/:id/delete", post(handlers::system::delete_mapping))
+        .route(
+            "/system/mappings/:id/delete",
+            post(handlers::system::delete_mapping),
+        )
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(DefaultBodyLimit::max(1024 * 1024))
         .layer(TraceLayer::new_for_http())

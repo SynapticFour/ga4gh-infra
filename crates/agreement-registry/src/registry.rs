@@ -58,6 +58,13 @@ impl InMemoryRegistry {
         out
     }
 
+    /// Look up a template by id.
+    pub fn get_template(&self, id: &str) -> Result<&AgreementTemplate, AgreementRegistryError> {
+        self.templates
+            .get(id)
+            .ok_or_else(|| AgreementRegistryError::NotFound(id.to_string()))
+    }
+
     /// Run compatibility check and persist a decision record.
     pub fn compatibility_check(
         &mut self,

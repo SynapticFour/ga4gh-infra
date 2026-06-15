@@ -32,6 +32,12 @@ pub async fn emit_event(
     Ok(event)
 }
 
+fn insert_dac_group(payload: &mut BTreeMap<String, serde_json::Value>, dac_group: Option<&str>) {
+    if let Some(group) = dac_group {
+        payload.insert("dac_group".to_string(), json!(group));
+    }
+}
+
 async fn notify_webhooks(urls: &[String], event: &AdsEvent) {
     if urls.is_empty() {
         return;
@@ -55,11 +61,13 @@ pub async fn grant_created(
     grant_id: Uuid,
     researcher_id: &str,
     dataset_id: Uuid,
+    dac_group: Option<&str>,
 ) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
     payload.insert("grant_id".to_string(), json!(grant_id));
     payload.insert("researcher_id".to_string(), json!(researcher_id));
     payload.insert("dataset_id".to_string(), json!(dataset_id));
+    insert_dac_group(&mut payload, dac_group);
     emit_event(store, AdsEventType::GrantCreated, payload).await
 }
 
@@ -73,22 +81,36 @@ pub async fn request_created(
     store: &AdsStore,
     request_id: Uuid,
     researcher_id: &str,
+    dataset_id: Uuid,
+    dac_group: Option<&str>,
 ) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
     payload.insert("request_id".to_string(), json!(request_id));
     payload.insert("researcher_id".to_string(), json!(researcher_id));
+    payload.insert("dataset_id".to_string(), json!(dataset_id));
+    insert_dac_group(&mut payload, dac_group);
     emit_event(store, AdsEventType::RequestCreated, payload).await
 }
 
-pub async fn request_approved(store: &AdsStore, request_id: Uuid) -> Result<AdsEvent, AdsError> {
+pub async fn request_approved(
+    store: &AdsStore,
+    request_id: Uuid,
+    dac_group: Option<&str>,
+) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
     payload.insert("request_id".to_string(), json!(request_id));
+    insert_dac_group(&mut payload, dac_group);
     emit_event(store, AdsEventType::RequestApproved, payload).await
 }
 
-pub async fn request_rejected(store: &AdsStore, request_id: Uuid) -> Result<AdsEvent, AdsError> {
+pub async fn request_rejected(
+    store: &AdsStore,
+    request_id: Uuid,
+    dac_group: Option<&str>,
+) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
     payload.insert("request_id".to_string(), json!(request_id));
+    insert_dac_group(&mut payload, dac_group);
     emit_event(store, AdsEventType::RequestRejected, payload).await
 }
 

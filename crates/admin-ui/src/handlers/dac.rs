@@ -3,10 +3,13 @@ use askama_axum::IntoResponse;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{Html, Response};
+use axum::Form;
 use ga4gh_types::AccessRequest;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::handlers::{htmx_redirect, is_htmx, render_layout, SharedState};
+use crate::roles::operator_dac_groups;
 use crate::session::RequireAuth;
 
 #[derive(Template)]
@@ -27,6 +30,7 @@ pub struct QueueRow {
     pub id: String,
     pub requester: String,
     pub dataset_id: String,
+    pub dac_group: String,
     pub status: String,
     pub created_at: String,
 }
@@ -37,17 +41,29 @@ impl From<&AccessRequest> for QueueRow {
             id: r.id.to_string(),
             requester: r.researcher_id.clone(),
             dataset_id: r.dataset_id.to_string(),
+            dac_group: r.dac_group.clone().unwrap_or_else(|| "—".into()),
             status: format!("{:?}", r.status),
             created_at: r.created_at.to_rfc3339(),
         }
     }
 }
 
-pub async fn queue_page(
-    auth: RequireAuth,
-    State(state): State<SharedState>,
-) -> impl IntoResponse {
-    let degraded = state.clients.ads_dac_queue().await.is_err();
+fn dac_groups_for(auth: &RequireAuth, state: &SharedState) -> Option<Vec<String>> {
+    operator_dac_groups(&auth.0, &state.config.admin_claim_value)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DacActionForm {
+    pub reason: Option<String>,
+}
+
+pub async fn queue_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
+    let groups = dac_groups_for(&auth, &state);
+    let degraded = state
+        .clients
+        .ads_dac_queue(groups.as_deref())
+        .await
+        .is_err();
     let inner = QueuePageInner { degraded };
 
     match render_layout("DAC Queue", "dac", &auth.0, inner) {
@@ -57,10 +73,11 @@ pub async fn queue_page(
 }
 
 pub async fn queue_partial(
-    _auth: RequireAuth,
+    auth: RequireAuth,
     State(state): State<SharedState>,
 ) -> impl IntoResponse {
-    match state.clients.ads_dac_queue().await {
+    let groups = dac_groups_for(&auth, &state);
+    match state.clients.ads_dac_queue(groups.as_deref()).await {
         Ok(requests) => {
             let rows: Vec<QueueRow> = requests.iter().map(QueueRow::from).collect();
             QueuePartial {
@@ -93,7 +110,7 @@ async fn dac_action_response(
                 axum::response::Redirect::to("/dac").into_response()
             }
         }
-        Err(err) => (StatusCode::SERVICE_UNAVAILABLE, err.to_string()).into_response(),
+        Err(err) => (StatusCode::BAD_REQUEST, err.to_string()).into_response(),
     }
 }
 
@@ -102,8 +119,10 @@ pub async fn approve(
     State(state): State<SharedState>,
     Path(id): Path<Uuid>,
     headers: HeaderMap,
+    Form(form): Form<DacActionForm>,
 ) -> Response {
-    dac_action_response(state.clients.ads_approve(id).await, &headers).await
+    let reason = form.reason.filter(|s| !s.trim().is_empty());
+    dac_action_response(state.clients.ads_approve(id, reason).await, &headers).await
 }
 
 pub async fn reject(
@@ -111,8 +130,13 @@ pub async fn reject(
     State(state): State<SharedState>,
     Path(id): Path<Uuid>,
     headers: HeaderMap,
+    Form(form): Form<DacActionForm>,
 ) -> Response {
-    dac_action_response(state.clients.ads_reject(id).await, &headers).await
+    let reason = form.reason.filter(|s| !s.trim().is_empty());
+    if reason.is_none() {
+        return (StatusCode::BAD_REQUEST, "reason is required for reject").into_response();
+    }
+    dac_action_response(state.clients.ads_reject(id, reason).await, &headers).await
 }
 
 pub async fn escalate(
@@ -120,8 +144,13 @@ pub async fn escalate(
     State(state): State<SharedState>,
     Path(id): Path<Uuid>,
     headers: HeaderMap,
+    Form(form): Form<DacActionForm>,
 ) -> Response {
-    dac_action_response(state.clients.ads_escalate(id).await, &headers).await
+    let reason = form.reason.filter(|s| !s.trim().is_empty());
+    if reason.is_none() {
+        return (StatusCode::BAD_REQUEST, "reason is required for escalate").into_response();
+    }
+    dac_action_response(state.clients.ads_escalate(id, reason).await, &headers).await
 }
 
 #[cfg(test)]

@@ -13,6 +13,8 @@ pub struct AdminUiConfig {
     pub duo_base_url: String,
     pub visa_registry_base_url: String,
     pub service_registry_base_url: String,
+    #[serde(default = "default_agreement_registry_base_url")]
+    pub agreement_registry_base_url: String,
     pub session_secret: String,
     #[serde(default = "default_session_ttl_hours")]
     pub session_ttl_hours: u64,
@@ -44,6 +46,10 @@ fn default_admin_claim() -> String {
 
 fn default_admin_claim_value() -> String {
     "ga4gh-infra-admins".to_string()
+}
+
+fn default_agreement_registry_base_url() -> String {
+    "http://localhost:8086".to_string()
 }
 
 impl AdminUiConfig {

@@ -6,6 +6,7 @@ ads_dac_api_key = "dev-ads-api-key"
 duo_base_url = "http://localhost:8082"
 visa_registry_base_url = "http://localhost:8081"
 service_registry_base_url = "http://localhost:8083"
+agreement_registry_base_url = "http://localhost:8086"
 session_secret = "dev-admin-ui-session-secret-min-32-chars"
 session_ttl_hours = 24
 admin_claim = "groups"

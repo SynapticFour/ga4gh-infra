@@ -104,6 +104,7 @@ macro_rules! parse_dataset {
             auto_approve_threshold: row
                 .try_get::<i32, _>("auto_approve_threshold")
                 .map_err(map_db_err)? as u8,
+            dac_group: row.try_get("dac_group").map_err(map_db_err)?,
             created_at: dt_from_ts(row.try_get("created_at").map_err(map_db_err)?),
             updated_at: dt_from_ts(row.try_get("updated_at").map_err(map_db_err)?),
         }
@@ -151,6 +152,7 @@ macro_rules! parse_access_request {
             status: parse_status(&row.try_get::<String, _>("status").map_err(map_db_err)?)?,
             justification: row.try_get("justification").map_err(map_db_err)?,
             duo_evaluation,
+            dac_group: row.try_get("dac_group").map_err(map_db_err)?,
             created_at: dt_from_ts(row.try_get("created_at").map_err(map_db_err)?),
             updated_at: dt_from_ts(row.try_get("updated_at").map_err(map_db_err)?),
         }
@@ -200,7 +202,9 @@ macro_rules! parse_audit_event {
             id: Uuid::parse_str(&$row.try_get::<String, _>("id").map_err(map_db_err)?)
                 .map_err(map_db_err)?,
             event_type: parse_event_type(
-                &$row.try_get::<String, _>("event_type").map_err(map_db_err)?,
+                &$row
+                    .try_get::<String, _>("event_type")
+                    .map_err(map_db_err)?,
             )?,
             occurred_at: dt_from_ts($row.try_get("occurred_at").map_err(map_db_err)?),
             payload,
@@ -478,6 +482,7 @@ impl AdsStore {
             external_id: req.external_id.clone(),
             auto_approve_enabled: req.auto_approve_enabled,
             auto_approve_threshold: req.auto_approve_threshold,
+            dac_group: req.dac_group.clone(),
             created_at: now,
             updated_at: now,
         };
@@ -486,8 +491,8 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 sqlx::query(
                     "INSERT INTO datasets (id, name, description, duo_codes, external_id,
-                     auto_approve_enabled, auto_approve_threshold, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                     auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 )
                 .bind(dataset.id.to_string())
                 .bind(&dataset.name)
@@ -496,6 +501,7 @@ impl AdsStore {
                 .bind(&dataset.external_id)
                 .bind(i64::from(dataset.auto_approve_enabled))
                 .bind(i64::from(dataset.auto_approve_threshold))
+                .bind(&dataset.dac_group)
                 .bind(dataset.created_at.timestamp())
                 .bind(dataset.updated_at.timestamp())
                 .execute(pool)
@@ -506,8 +512,8 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 sqlx::query(
                     "INSERT INTO datasets (id, name, description, duo_codes, external_id,
-                     auto_approve_enabled, auto_approve_threshold, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                     auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 )
                 .bind(dataset.id.to_string())
                 .bind(&dataset.name)
@@ -516,6 +522,7 @@ impl AdsStore {
                 .bind(&dataset.external_id)
                 .bind(i64::from(dataset.auto_approve_enabled))
                 .bind(i64::from(dataset.auto_approve_threshold))
+                .bind(&dataset.dac_group)
                 .bind(dataset.created_at.timestamp())
                 .bind(dataset.updated_at.timestamp())
                 .execute(pool)
@@ -526,32 +533,58 @@ impl AdsStore {
         Ok(dataset)
     }
 
-    pub async fn list_datasets(&self) -> Result<Vec<Dataset>, AdsError> {
+    pub async fn list_datasets(
+        &self,
+        dac_groups: Option<&[String]>,
+    ) -> Result<Vec<Dataset>, AdsError> {
+        let select = "SELECT id, name, description, duo_codes, external_id,
+                            auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at
+                     FROM datasets";
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                let rows = sqlx::query(
-                    "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, created_at, updated_at
-                     FROM datasets ORDER BY created_at DESC",
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(map_db_err)?;
+                let rows = if let Some(groups) = dac_groups.filter(|g| !g.is_empty()) {
+                    let placeholders: Vec<String> =
+                        (1..=groups.len()).map(|i| format!("${i}")).collect();
+                    let sql = format!(
+                        "{select} WHERE dac_group IN ({}) ORDER BY created_at DESC",
+                        placeholders.join(", ")
+                    );
+                    let mut query = sqlx::query(&sql);
+                    for group in groups {
+                        query = query.bind(group);
+                    }
+                    query.fetch_all(pool).await.map_err(map_db_err)?
+                } else {
+                    sqlx::query(&format!("{select} ORDER BY created_at DESC"))
+                        .fetch_all(pool)
+                        .await
+                        .map_err(map_db_err)?
+                };
                 rows.into_iter()
                     .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
                     .collect()
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                let rows = sqlx::query(
-                    "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, created_at, updated_at
-                     FROM datasets ORDER BY created_at DESC",
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(map_db_err)?;
+                let rows = if let Some(groups) = dac_groups.filter(|g| !g.is_empty()) {
+                    let placeholders = std::iter::repeat_n("?", groups.len())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let sql = format!(
+                        "{select} WHERE dac_group IN ({placeholders}) ORDER BY created_at DESC"
+                    );
+                    let mut query = sqlx::query(&sql);
+                    for group in groups {
+                        query = query.bind(group);
+                    }
+                    query.fetch_all(pool).await.map_err(map_db_err)?
+                } else {
+                    sqlx::query(&format!("{select} ORDER BY created_at DESC"))
+                        .fetch_all(pool)
+                        .await
+                        .map_err(map_db_err)?
+                };
                 rows.into_iter()
                     .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
                     .collect()
@@ -567,7 +600,7 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 let row = sqlx::query(
                     "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at
                      FROM datasets WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -582,7 +615,7 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 let row = sqlx::query(
                     "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at
                      FROM datasets WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -758,6 +791,7 @@ impl AdsStore {
             status,
             justification: body.justification.clone(),
             duo_evaluation: evaluation,
+            dac_group: dataset.dac_group.clone(),
             created_at: now,
             updated_at: now,
         };
@@ -767,8 +801,8 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 sqlx::query(
                     "INSERT INTO access_requests (id, researcher_id, dataset_id, project_id, status,
-                     justification, duo_evaluation, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                     justification, duo_evaluation, dac_group, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 )
                 .bind(request.id.to_string())
                 .bind(&request.researcher_id)
@@ -777,6 +811,7 @@ impl AdsStore {
                 .bind(status_str(request.status))
                 .bind(&request.justification)
                 .bind(eval_json)
+                .bind(&request.dac_group)
                 .bind(request.created_at.timestamp())
                 .bind(request.updated_at.timestamp())
                 .execute(pool)
@@ -787,8 +822,8 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 sqlx::query(
                     "INSERT INTO access_requests (id, researcher_id, dataset_id, project_id, status,
-                     justification, duo_evaluation, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                     justification, duo_evaluation, dac_group, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 )
                 .bind(request.id.to_string())
                 .bind(&request.researcher_id)
@@ -797,6 +832,7 @@ impl AdsStore {
                 .bind(status_str(request.status))
                 .bind(&request.justification)
                 .bind(eval_json)
+                .bind(&request.dac_group)
                 .bind(request.created_at.timestamp())
                 .bind(request.updated_at.timestamp())
                 .execute(pool)
@@ -805,7 +841,14 @@ impl AdsStore {
             }
         }
 
-        request_created(self, request.id, &request.researcher_id).await?;
+        request_created(
+            self,
+            request.id,
+            &request.researcher_id,
+            request.dataset_id,
+            request.dac_group.as_deref(),
+        )
+        .await?;
 
         if request.status == AccessRequestStatus::Approved {
             self.record_decision(
@@ -817,7 +860,7 @@ impl AdsStore {
             .await?;
             self.create_grant_from_request(&request, GrantSource::DuoAutoApproval)
                 .await?;
-            request_approved(self, request.id).await?;
+            request_approved(self, request.id, request.dac_group.as_deref()).await?;
         }
 
         Ok(request)
@@ -829,7 +872,7 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 let row = sqlx::query(
                     "SELECT id, researcher_id, dataset_id, project_id, status, justification,
-                            duo_evaluation, created_at, updated_at
+                            duo_evaluation, dac_group, created_at, updated_at
                      FROM access_requests WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -846,7 +889,7 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 let row = sqlx::query(
                     "SELECT id, researcher_id, dataset_id, project_id, status, justification,
-                            duo_evaluation, created_at, updated_at
+                            duo_evaluation, dac_group, created_at, updated_at
                      FROM access_requests WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -864,20 +907,35 @@ impl AdsStore {
         }
     }
 
-    pub async fn list_dac_requests(&self) -> Result<Vec<AccessRequest>, AdsError> {
+    pub async fn list_dac_requests(
+        &self,
+        dac_groups: Option<&[String]>,
+    ) -> Result<Vec<AccessRequest>, AdsError> {
+        let select = "SELECT id, researcher_id, dataset_id, project_id, status, justification,
+                            duo_evaluation, dac_group, created_at, updated_at
+                     FROM access_requests
+                     WHERE status IN ('pending', 'escalated')";
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                let rows = sqlx::query(
-                    "SELECT id, researcher_id, dataset_id, project_id, status, justification,
-                            duo_evaluation, created_at, updated_at
-                     FROM access_requests
-                     WHERE status IN ('pending', 'escalated')
-                     ORDER BY created_at ASC",
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(map_db_err)?;
+                let rows = if let Some(groups) = dac_groups.filter(|g| !g.is_empty()) {
+                    let placeholders: Vec<String> =
+                        (1..=groups.len()).map(|i| format!("${i}")).collect();
+                    let sql = format!(
+                        "{select} AND dac_group IN ({}) ORDER BY created_at ASC",
+                        placeholders.join(", ")
+                    );
+                    let mut query = sqlx::query(&sql);
+                    for group in groups {
+                        query = query.bind(group);
+                    }
+                    query.fetch_all(pool).await.map_err(map_db_err)?
+                } else {
+                    sqlx::query(&format!("{select} ORDER BY created_at ASC"))
+                        .fetch_all(pool)
+                        .await
+                        .map_err(map_db_err)?
+                };
                 rows.into_iter()
                     .map(|row| -> Result<AccessRequest, AdsError> {
                         Ok(parse_access_request!(&row))
@@ -886,16 +944,24 @@ impl AdsStore {
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                let rows = sqlx::query(
-                    "SELECT id, researcher_id, dataset_id, project_id, status, justification,
-                            duo_evaluation, created_at, updated_at
-                     FROM access_requests
-                     WHERE status IN ('pending', 'escalated')
-                     ORDER BY created_at ASC",
-                )
-                .fetch_all(pool)
-                .await
-                .map_err(map_db_err)?;
+                let rows = if let Some(groups) = dac_groups.filter(|g| !g.is_empty()) {
+                    let placeholders = std::iter::repeat_n("?", groups.len())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let sql = format!(
+                        "{select} AND dac_group IN ({placeholders}) ORDER BY created_at ASC"
+                    );
+                    let mut query = sqlx::query(&sql);
+                    for group in groups {
+                        query = query.bind(group);
+                    }
+                    query.fetch_all(pool).await.map_err(map_db_err)?
+                } else {
+                    sqlx::query(&format!("{select} ORDER BY created_at ASC"))
+                        .fetch_all(pool)
+                        .await
+                        .map_err(map_db_err)?
+                };
                 rows.into_iter()
                     .map(|row| -> Result<AccessRequest, AdsError> {
                         Ok(parse_access_request!(&row))
@@ -930,7 +996,7 @@ impl AdsStore {
         self.update_request_status(&request).await?;
         self.create_grant_from_request(&request, GrantSource::DacApproval)
             .await?;
-        request_approved(self, id).await?;
+        request_approved(self, id, request.dac_group.as_deref()).await?;
         Ok(request)
     }
 
@@ -955,7 +1021,7 @@ impl AdsStore {
         request.status = AccessRequestStatus::Rejected;
         request.updated_at = Utc::now();
         self.update_request_status(&request).await?;
-        request_rejected(self, id).await?;
+        request_rejected(self, id, request.dac_group.as_deref()).await?;
         Ok(request)
     }
 
@@ -1081,7 +1147,14 @@ impl AdsStore {
             created_at: Utc::now(),
         };
         self.insert_grant(&grant).await?;
-        grant_created(self, grant.id, &grant.researcher_id, grant.dataset_id).await?;
+        grant_created(
+            self,
+            grant.id,
+            &grant.researcher_id,
+            grant.dataset_id,
+            dataset.dac_group.as_deref(),
+        )
+        .await?;
         Ok(grant)
     }
 
@@ -1134,29 +1207,62 @@ impl AdsStore {
         Ok(())
     }
 
-    pub async fn list_grants(&self, researcher_id: Option<&str>) -> Result<Vec<Grant>, AdsError> {
+    pub async fn list_grants(
+        &self,
+        researcher_id: Option<&str>,
+        dac_groups: Option<&[String]>,
+    ) -> Result<Vec<Grant>, AdsError> {
+        let grant_cols = "g.id, g.researcher_id, g.dataset_id, g.request_id, g.source, g.duo_codes,
+                                g.resource_scope, g.expires_at, g.revoked_at, g.created_at";
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                let rows = if let Some(sub) = researcher_id {
-                    sqlx::query(
-                        "SELECT id, researcher_id, dataset_id, request_id, source, duo_codes,
-                                resource_scope, expires_at, revoked_at, created_at
-                         FROM grants WHERE researcher_id = $1 AND revoked_at IS NULL",
-                    )
+                let rows = match (researcher_id, dac_groups.filter(|g| !g.is_empty())) {
+                    (Some(sub), Some(groups)) => {
+                        let placeholders: Vec<String> =
+                            (2..=groups.len() + 1).map(|i| format!("${i}")).collect();
+                        let sql = format!(
+                            "SELECT {grant_cols} FROM grants g
+                             INNER JOIN datasets d ON g.dataset_id = d.id
+                             WHERE g.researcher_id = $1 AND g.revoked_at IS NULL
+                             AND d.dac_group IN ({})",
+                            placeholders.join(", ")
+                        );
+                        let mut query = sqlx::query(&sql).bind(sub);
+                        for group in groups {
+                            query = query.bind(group);
+                        }
+                        query.fetch_all(pool).await.map_err(map_db_err)?
+                    }
+                    (Some(sub), None) => sqlx::query(&format!(
+                        "SELECT {grant_cols} FROM grants g
+                             WHERE g.researcher_id = $1 AND g.revoked_at IS NULL"
+                    ))
                     .bind(sub)
                     .fetch_all(pool)
                     .await
-                    .map_err(map_db_err)?
-                } else {
-                    sqlx::query(
-                        "SELECT id, researcher_id, dataset_id, request_id, source, duo_codes,
-                                resource_scope, expires_at, revoked_at, created_at
-                         FROM grants WHERE revoked_at IS NULL",
-                    )
+                    .map_err(map_db_err)?,
+                    (None, Some(groups)) => {
+                        let placeholders: Vec<String> =
+                            (1..=groups.len()).map(|i| format!("${i}")).collect();
+                        let sql = format!(
+                            "SELECT {grant_cols} FROM grants g
+                             INNER JOIN datasets d ON g.dataset_id = d.id
+                             WHERE g.revoked_at IS NULL AND d.dac_group IN ({})",
+                            placeholders.join(", ")
+                        );
+                        let mut query = sqlx::query(&sql);
+                        for group in groups {
+                            query = query.bind(group);
+                        }
+                        query.fetch_all(pool).await.map_err(map_db_err)?
+                    }
+                    (None, None) => sqlx::query(&format!(
+                        "SELECT {grant_cols} FROM grants g WHERE g.revoked_at IS NULL"
+                    ))
                     .fetch_all(pool)
                     .await
-                    .map_err(map_db_err)?
+                    .map_err(map_db_err)?,
                 };
                 rows.into_iter()
                     .map(|row| -> Result<Grant, AdsError> { Ok(parse_grant!(&row)) })
@@ -1164,25 +1270,52 @@ impl AdsStore {
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                let rows = if let Some(sub) = researcher_id {
-                    sqlx::query(
-                        "SELECT id, researcher_id, dataset_id, request_id, source, duo_codes,
-                                resource_scope, expires_at, revoked_at, created_at
-                         FROM grants WHERE researcher_id = $1 AND revoked_at IS NULL",
-                    )
+                let rows = match (researcher_id, dac_groups.filter(|g| !g.is_empty())) {
+                    (Some(sub), Some(groups)) => {
+                        let placeholders = std::iter::repeat_n("?", groups.len())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        let sql = format!(
+                            "SELECT {grant_cols} FROM grants g
+                             INNER JOIN datasets d ON g.dataset_id = d.id
+                             WHERE g.researcher_id = ? AND g.revoked_at IS NULL
+                             AND d.dac_group IN ({placeholders})"
+                        );
+                        let mut query = sqlx::query(&sql).bind(sub);
+                        for group in groups {
+                            query = query.bind(group);
+                        }
+                        query.fetch_all(pool).await.map_err(map_db_err)?
+                    }
+                    (Some(sub), None) => sqlx::query(&format!(
+                        "SELECT {grant_cols} FROM grants g
+                             WHERE g.researcher_id = ? AND g.revoked_at IS NULL"
+                    ))
                     .bind(sub)
                     .fetch_all(pool)
                     .await
-                    .map_err(map_db_err)?
-                } else {
-                    sqlx::query(
-                        "SELECT id, researcher_id, dataset_id, request_id, source, duo_codes,
-                                resource_scope, expires_at, revoked_at, created_at
-                         FROM grants WHERE revoked_at IS NULL",
-                    )
+                    .map_err(map_db_err)?,
+                    (None, Some(groups)) => {
+                        let placeholders = std::iter::repeat_n("?", groups.len())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        let sql = format!(
+                            "SELECT {grant_cols} FROM grants g
+                             INNER JOIN datasets d ON g.dataset_id = d.id
+                             WHERE g.revoked_at IS NULL AND d.dac_group IN ({placeholders})"
+                        );
+                        let mut query = sqlx::query(&sql);
+                        for group in groups {
+                            query = query.bind(group);
+                        }
+                        query.fetch_all(pool).await.map_err(map_db_err)?
+                    }
+                    (None, None) => sqlx::query(&format!(
+                        "SELECT {grant_cols} FROM grants g WHERE g.revoked_at IS NULL"
+                    ))
                     .fetch_all(pool)
                     .await
-                    .map_err(map_db_err)?
+                    .map_err(map_db_err)?,
                 };
                 rows.into_iter()
                     .map(|row| -> Result<Grant, AdsError> { Ok(parse_grant!(&row)) })
@@ -1267,7 +1400,7 @@ impl AdsStore {
         dataset_id: Option<Uuid>,
         resource: &str,
     ) -> Result<Vec<Grant>, AdsError> {
-        let grants = self.list_grants(Some(researcher_id)).await?;
+        let grants = self.list_grants(Some(researcher_id), None).await?;
         Ok(grants
             .into_iter()
             .filter(|g| {
@@ -1656,7 +1789,14 @@ impl AdsStore {
                 mapping.grant_lifetime_seconds,
             );
             self.insert_grant(&grant).await?;
-            grant_created(self, grant.id, researcher_id, grant.dataset_id).await?;
+            grant_created(
+                self,
+                grant.id,
+                researcher_id,
+                grant.dataset_id,
+                dataset.dac_group.as_deref(),
+            )
+            .await?;
             created.push(grant);
         }
         Ok(created)
@@ -1730,7 +1870,7 @@ impl AdsStore {
         researcher_id: &str,
         dataset_id: Uuid,
     ) -> Result<bool, AdsError> {
-        let grants = self.list_grants(Some(researcher_id)).await?;
+        let grants = self.list_grants(Some(researcher_id), None).await?;
         Ok(grants.iter().any(|grant| grant.dataset_id == dataset_id))
     }
 
@@ -1773,8 +1913,12 @@ impl AdsStore {
         Ok(())
     }
 
-    pub async fn list_audit_events(&self, limit: u32) -> Result<Vec<AdsEvent>, AdsError> {
-        match &self.pool {
+    pub async fn list_audit_events(
+        &self,
+        limit: u32,
+        dac_groups: Option<&[String]>,
+    ) -> Result<Vec<AdsEvent>, AdsError> {
+        let mut events: Vec<AdsEvent> = match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
                 let rows = sqlx::query(
@@ -1805,7 +1949,17 @@ impl AdsStore {
             }
             #[allow(unreachable_patterns)]
             _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }?;
+        if let Some(groups) = dac_groups.filter(|g| !g.is_empty()) {
+            events.retain(|event| {
+                event
+                    .payload
+                    .get("dac_group")
+                    .and_then(|v| v.as_str())
+                    .is_some_and(|g| groups.iter().any(|allowed| allowed == g))
+            });
         }
+        Ok(events)
     }
 
     async fn ensure_researcher_exists(&self, id: &str) -> Result<(), AdsError> {
@@ -1918,6 +2072,7 @@ mod tests {
                 external_id: Some("drs:abc".to_string()),
                 auto_approve_enabled: true,
                 auto_approve_threshold: 100,
+                dac_group: None,
             })
             .await
             .expect("create dataset");
@@ -1952,7 +2107,7 @@ mod tests {
 
         assert_eq!(request.status, AccessRequestStatus::Approved);
         let grants = store
-            .list_grants(Some("researcher@example.org"))
+            .list_grants(Some("researcher@example.org"), None)
             .await
             .expect("list grants");
         assert_eq!(grants.len(), 1);

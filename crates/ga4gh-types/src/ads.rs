@@ -64,6 +64,9 @@ pub struct Dataset {
     /// Minimum compatibility score (0–100) required for auto-approval.
     #[serde(default = "default_auto_approve_threshold")]
     pub auto_approve_threshold: u8,
+    /// DAC group owning review responsibility for this dataset (e.g. `ega-dac`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dac_group: Option<String>,
     /// When the dataset was registered.
     pub created_at: DateTime<Utc>,
     /// When the dataset was last updated.
@@ -91,6 +94,9 @@ pub struct CreateDatasetRequest {
     /// Minimum compatibility score for auto-approval (0–100).
     #[serde(default = "default_auto_approve_threshold")]
     pub auto_approve_threshold: u8,
+    /// DAC group owning review responsibility for this dataset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dac_group: Option<String>,
 }
 
 /// A research project with intended-use DUO annotations.
@@ -158,6 +164,9 @@ pub struct AccessRequest {
     /// DUO evaluation snapshot at submission time.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duo_evaluation: Option<DuoEvaluationResult>,
+    /// DAC group copied from the dataset at submission time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dac_group: Option<String>,
     /// When the request was submitted.
     pub created_at: DateTime<Utc>,
     /// When the request was last updated.

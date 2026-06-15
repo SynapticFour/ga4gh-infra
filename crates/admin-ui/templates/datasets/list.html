@@ -7,6 +7,7 @@
     <tr>
       <th>Name</th>
       <th>External ID</th>
+      <th>DAC group</th>
       <th>DUO</th>
       <th>Auto-approve</th>
       <th>Created</th>
@@ -17,12 +18,13 @@
     <tr>
       <td><a href="/datasets/{{ ds.id }}">{{ ds.name }}</a></td>
       <td>{{ ds.external_id }}</td>
+      <td>{{ ds.dac_group }}</td>
       <td>{{ ds.duo_codes }}</td>
       <td>{{ ds.auto_approve }}</td>
       <td>{{ ds.created_at }}</td>
     </tr>
     {% else %}
-    <tr><td colspan="5" class="note">No datasets registered.</td></tr>
+    <tr><td colspan="6" class="note">No datasets registered.</td></tr>
     {% endfor %}
   </tbody>
 </table>
@@ -40,6 +42,9 @@
     </label>
     <label>External ID
       <input type="text" name="external_id">
+    </label>
+    <label>DAC group
+      <input type="text" name="dac_group" placeholder="e.g. ega-dac">
     </label>
     <label>DUO codes
       <select name="duo_codes" multiple size="8">

@@ -14,14 +14,26 @@ tag-name = "agreement-registry-v{{version}}"
 
 [lib]
 name = "agreement_registry"
+path = "src/lib.rs"
+
+[[bin]]
+name = "agreement-registry"
+path = "src/main.rs"
 
 [dependencies]
 ga4gh-types = { workspace = true }
+anyhow = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+tower-http = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

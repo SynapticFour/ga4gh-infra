@@ -1,8 +1,8 @@
 pub mod agreements;
 pub mod audit;
 pub mod auth;
-pub mod dashboard;
 pub mod dac;
+pub mod dashboard;
 pub mod datasets;
 pub mod grants;
 pub mod projects;
