@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · GA4GH Admin</title>
+  <link rel="stylesheet" href="/static/admin.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <h1>GA4GH Admin</h1>
+      <ul>
+        <li><a href="/" class="{% if active == "dashboard" %}active{% endif %}">Dashboard</a></li>
+        <li><a href="/dac" class="{% if active == "dac" %}active{% endif %}">DAC Queue</a></li>
+        <li><a href="/datasets" class="{% if active == "datasets" %}active{% endif %}">Datasets</a></li>
+      </ul>
+      <div class="user-bar">
+        <div>{{ user_name }}</div>
+        <div>{{ role }}</div>
+        <form action="/logout" method="post" style="margin-top:0.5rem">
+          <button type="submit" class="btn">Sign out</button>
+        </form>
+      </div>
+    </nav>
+    <main class="content">
+      <h2>{{ title }}</h2>
+      {{ content|safe }}
+    </main>
+  </div>
+</body>
+</html>

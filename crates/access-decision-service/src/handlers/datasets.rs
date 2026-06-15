@@ -35,3 +35,12 @@ pub async fn get_dataset(
     let dataset = state.store.get_dataset(id).await?;
     Ok(Json(dataset))
 }
+
+#[instrument(skip(state))]
+pub async fn list_datasets(
+    State(state): State<Arc<AppState>>,
+    RequireDac(_operator): RequireDac,
+) -> Result<Json<ga4gh_types::DatasetListResponse>, AdsError> {
+    let datasets = state.store.list_datasets().await?;
+    Ok(Json(ga4gh_types::DatasetListResponse { datasets }))
+}

@@ -1,0 +1,23 @@
+<div class="card-grid">
+  <div class="card">
+    <div class="label">Pending DAC requests</div>
+    <div class="value">{% if let Some(n) = pending_count %}{{ n }}{% else %}—{% endif %}</div>
+  </div>
+  <div class="card">
+    <div class="label">Registered datasets</div>
+    <div class="value">{% if let Some(n) = dataset_count %}{{ n }}{% else %}—{% endif %}</div>
+  </div>
+</div>
+
+<h3>Service health</h3>
+<ul class="status-list">
+  <li class="{% if ads_ok %}status-ok{% else %}status-err{% endif %}">Access Decision Service</li>
+  <li class="{% if duo_ok %}status-ok{% else %}status-err{% endif %}">DUO Service</li>
+  <li class="{% if broker_ok %}status-ok{% else %}status-err{% endif %}">AAI Broker</li>
+  <li class="{% if visa_ok %}status-ok{% else %}status-err{% endif %}">Visa Registry</li>
+  <li class="{% if registry_ok %}status-ok{% else %}status-err{% endif %}">Service Registry</li>
+  <li class="status-err">Agreement Registry (no HTTP endpoint yet)</li>
+</ul>
+
+<h3>Recent activity</h3>
+<p class="note">{{ activity_note }}</p>

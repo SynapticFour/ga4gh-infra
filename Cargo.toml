@@ -13,6 +13,7 @@ members = [
     "crates/ga4gh-infra-cli",
     "crates/agreement-registry",
     "crates/ga4gh-e2e",
+    "crates/admin-ui",
     "tests/integration",
 ]
 
@@ -35,14 +36,18 @@ config = "0.14"
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls"] }
 thiserror = "2"
 anyhow = "1"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-tower-http = { version = "0.6", features = ["trace"] }
+tower-http = { version = "0.6", features = ["trace", "fs"] }
+askama = "0.12"
+askama_axum = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 base64 = "0.22"
 sha2 = "0.10"
 hmac = "0.12"
 url = "2"
+toml = "0.8"
 
 ga4gh-types = { path = "crates/ga4gh-types", version = "0.1.0" }
 ga4gh-clearinghouse = { path = "crates/ga4gh-clearinghouse", version = "0.1.0" }

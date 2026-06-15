@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Completing sign-in…</title>
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-box">
+      <h1>Completing sign-in…</h1>
+      <p class="note" id="status">Reading access token from broker redirect.</p>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var hash = window.location.hash.replace(/^#/, '');
+      var params = new URLSearchParams(hash);
+      var token = params.get('access_token');
+      var status = document.getElementById('status');
+      if (!token) {
+        status.textContent = 'No access_token in URL fragment. Return to login and try again.';
+        return;
+      }
+      var body = new URLSearchParams({ access_token: token });
+      fetch('{{ public_base_url }}/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString()
+      }).then(function (resp) {
+        if (resp.ok || resp.status === 204) {
+          window.location.href = '/';
+        } else {
+          status.textContent = 'Failed to establish session (HTTP ' + resp.status + ').';
+        }
+      }).catch(function (err) {
+        status.textContent = 'Network error: ' + err;
+      });
+    })();
+  </script>
+</body>
+</html>

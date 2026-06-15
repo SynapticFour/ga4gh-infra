@@ -1,0 +1,12 @@
+listen_addr = "0.0.0.0:8095"
+public_base_url = "http://localhost:8095"
+broker_base_url = "http://localhost:8080"
+ads_base_url = "http://localhost:8090"
+ads_dac_api_key = "dev-ads-api-key"
+duo_base_url = "http://localhost:8082"
+visa_registry_base_url = "http://localhost:8081"
+service_registry_base_url = "http://localhost:8083"
+session_secret = "dev-admin-ui-session-secret-min-32-chars"
+session_ttl_hours = 24
+admin_claim = "groups"
+admin_claim_value = "ga4gh-infra-admins"

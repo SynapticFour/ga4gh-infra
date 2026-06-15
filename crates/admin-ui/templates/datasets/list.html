@@ -1,0 +1,65 @@
+{% if degraded %}
+<div class="degraded">Could not load datasets from ADS.</div>
+{% endif %}
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>External ID</th>
+      <th>DUO</th>
+      <th>Auto-approve</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ds in datasets %}
+    <tr>
+      <td><a href="/datasets/{{ ds.id }}">{{ ds.name }}</a></td>
+      <td>{{ ds.external_id }}</td>
+      <td>{{ ds.duo_codes }}</td>
+      <td>{{ ds.auto_approve }}</td>
+      <td>{{ ds.created_at }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="note">No datasets registered.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if is_admin %}
+<h3>Register dataset</h3>
+<form method="post" action="/datasets">
+  <fieldset>
+    <legend>New dataset</legend>
+    <label>Name
+      <input type="text" name="name" required>
+    </label>
+    <label>Description
+      <textarea name="description" rows="3"></textarea>
+    </label>
+    <label>External ID
+      <input type="text" name="external_id">
+    </label>
+    <label>DUO codes
+      <select name="duo_codes" multiple size="8">
+        {% for term in duo_terms %}
+        {% if !term.obsolete %}
+        <option value="{{ term.code }}">{{ term.code }} — {{ term.label }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      <input type="checkbox" name="auto_approve_enabled" value="true">
+      Enable DUO auto-approval
+    </label>
+    <label>Auto-approve threshold (0–100)
+      <input type="text" name="auto_approve_threshold" value="100">
+    </label>
+    <button type="submit" class="btn btn-primary">Create dataset</button>
+  </fieldset>
+</form>
+{% else %}
+<p class="note">Dataset registration requires Admin role.</p>
+{% endif %}

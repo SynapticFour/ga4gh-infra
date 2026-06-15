@@ -75,7 +75,7 @@ fn default_auto_approve_threshold() -> u8 {
 }
 
 /// Request body for registering a dataset.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateDatasetRequest {
     /// Human-readable dataset name.
     pub name: String,
@@ -207,7 +207,7 @@ pub enum AccessDecisionOutcome {
 }
 
 /// Body for DAC approve/reject/escalate actions.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DacActionRequest {
     /// Optional rationale recorded in the audit trail.
     pub reason: Option<String>,
@@ -472,6 +472,13 @@ pub struct GrantListResponse {
 pub struct DacQueueResponse {
     /// Access requests awaiting DAC review.
     pub requests: Vec<AccessRequest>,
+}
+
+/// Dataset list response for ADS and admin-ui.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DatasetListResponse {
+    /// Registered datasets.
+    pub datasets: Vec<Dataset>,
 }
 
 /// Broker/service sync of researcher identity and upstream OIDC claims.

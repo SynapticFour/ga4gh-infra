@@ -21,7 +21,7 @@ pub use ads::{
     AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestStatus, AdsEvent,
     AdsEventType, CreateAccessRequestBody, CreateDatasetRequest, CreatePermissionMappingRequest,
     CreatePermissionSourceRequest, CreateProjectRequest, CreateVisaSourceRequest, DacActionRequest,
-    DacQueueResponse, Dataset, DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse,
+    DacQueueResponse, Dataset, DatasetListResponse, DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse,
     GrantSource, IntrospectRequest, IntrospectResponse, PermissionMapping, PermissionSource,
     ResearchProject, Researcher, ResearcherAffiliation, ResearcherSyncRequest,
     ResearcherVisasResponse, SignedVisasResponse, VisaSource,

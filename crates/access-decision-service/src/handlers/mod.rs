@@ -16,7 +16,7 @@ mod sync;
 
 pub use access_requests::{create_access_request, get_access_request};
 pub use dac::{dac_approve, dac_escalate, dac_reject, list_dac_requests};
-pub use datasets::{create_dataset, get_dataset};
+pub use datasets::{create_dataset, get_dataset, list_datasets};
 pub use duo::evaluate_duo;
 pub use grants::{get_grant, list_grants, revoke_grant};
 pub use introspect::introspect;

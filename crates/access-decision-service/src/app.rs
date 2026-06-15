@@ -91,7 +91,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/researchers/:id/visas",
             get(handlers::get_researcher_visas),
         )
-        .route("/datasets", post(handlers::create_dataset))
+        .route("/datasets", post(handlers::create_dataset).get(handlers::list_datasets))
         .route("/datasets/:id", get(handlers::get_dataset))
         .route("/projects", post(handlers::create_project))
         .route("/projects/:id", get(handlers::get_project))

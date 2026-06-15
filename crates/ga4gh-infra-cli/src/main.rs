@@ -13,6 +13,7 @@ use ga4gh_infra_cli::{
     africa_mode_from_env, generate_default_keys, generate_pem, prepare_all_in_one_config,
     run_all_in_one,
 };
+use admin_ui::AdminUiConfig;
 use service_registry::RegistryConfig as ServiceRegistryConfig;
 use tracing_subscriber::EnvFilter;
 use visa_registry::RegistryConfig as VisaRegistryConfig;
@@ -58,6 +59,13 @@ enum Commands {
     #[command(name = "access-decision-service")]
     AccessDecisionService {
         /// Path to ADS TOML configuration.
+        #[arg(long, value_name = "FILE")]
+        config: PathBuf,
+    },
+    /// Run the GA4GH admin dashboard (server-rendered ops UI).
+    #[command(name = "admin-ui")]
+    AdminUi {
+        /// Path to admin-ui TOML configuration.
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
     },
@@ -121,6 +129,11 @@ async fn main() -> anyhow::Result<()> {
                 .with_context(|| format!("loading ADS config from {}", config.display()))?;
             access_decision_service::validate_log_level(&cfg).map_err(anyhow::Error::msg)?;
             access_decision_service::run(cfg).await
+        }
+        Commands::AdminUi { config } => {
+            let cfg = AdminUiConfig::from_file(config.to_str().expect("utf-8 config path"))
+                .with_context(|| format!("loading admin-ui config from {}", config.display()))?;
+            admin_ui::run(cfg).await
         }
         Commands::AllInOne { config, africa } => {
             let africa_mode = africa || africa_mode_from_env();

@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+# GA4GH admin-ui image. Build from repo root:
+#   docker build -f docker/Dockerfile.admin-ui -t ghcr.io/<org>/admin-ui:0.1.0 .
+
+FROM rust:1-bookworm AS builder
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY tests/integration ./tests/integration
+
+RUN cargo build --release -p admin-ui
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh
+
+COPY --from=builder /app/target/release/admin-ui /usr/local/bin/admin-ui
+COPY crates/admin-ui/static /app/static
+COPY crates/admin-ui/templates /app/templates
+
+USER ga4gh
+WORKDIR /app
+EXPOSE 8095
+ENTRYPOINT ["/usr/local/bin/admin-ui"]
+CMD ["--config", "/config/admin-ui.toml"]

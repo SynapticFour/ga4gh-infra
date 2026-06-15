@@ -509,6 +509,41 @@ impl AdsStore {
         Ok(dataset)
     }
 
+    pub async fn list_datasets(&self) -> Result<Vec<Dataset>, AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, name, description, duo_codes, external_id,
+                            auto_approve_enabled, auto_approve_threshold, created_at, updated_at
+                     FROM datasets ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, name, description, duo_codes, external_id,
+                            auto_approve_enabled, auto_approve_threshold, created_at, updated_at
+                     FROM datasets ORDER BY created_at DESC",
+                )
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
     pub async fn get_dataset(&self, id: Uuid) -> Result<Dataset, AdsError> {
         match &self.pool {
             #[cfg(feature = "postgres")]

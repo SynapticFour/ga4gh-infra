@@ -192,6 +192,30 @@ services:
       timeout: 5s
       retries: 10
 
+  admin-ui:
+    image: ${GA4GH_IMAGE_PREFIX}/admin-ui:${ADMIN_UI_VERSION:-0.1.0}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.admin-ui
+    environment:
+      RUST_LOG: info
+    ports:
+      - "8095:8095"
+    volumes:
+      - ./config/admin-ui.toml:/config/admin-ui.toml:ro
+    depends_on:
+      aai-broker:
+        condition: service_healthy
+      access-decision-service:
+        condition: service_healthy
+      duo-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8095/login"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   register-services:
     image: ${GA4GH_IMAGE_PREFIX}/register-tools:${SERVICE_REGISTRY_VERSION}
     build:

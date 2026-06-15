@@ -1,0 +1,10 @@
+{% if degraded %}
+<div class="degraded">ADS is unavailable — queue may be stale. Refresh when service recovers.</div>
+{% endif %}
+
+<div id="dac-queue"
+     hx-get="/dac/queue"
+     hx-trigger="load, every 30s"
+     hx-swap="innerHTML">
+  <p class="note">Loading queue…</p>
+</div>

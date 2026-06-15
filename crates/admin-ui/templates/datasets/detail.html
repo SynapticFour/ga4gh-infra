@@ -1,0 +1,18 @@
+<dl>
+  <dt>ID</dt><dd><code>{{ dataset.id }}</code></dd>
+  <dt>Name</dt><dd>{{ dataset.name }}</dd>
+  <dt>Description</dt><dd>{{ dataset.description }}</dd>
+  <dt>External ID</dt><dd>{{ dataset.external_id }}</dd>
+  <dt>DUO codes</dt><dd>{{ dataset.duo_codes }}</dd>
+  <dt>DUO labels</dt>
+  <dd>
+    <ul>
+      {% for label in duo_labels %}
+      <li>{{ label }}</li>
+      {% endfor %}
+    </ul>
+  </dd>
+  <dt>Auto-approve</dt><dd>{{ dataset.auto_approve }}</dd>
+  <dt>Created</dt><dd>{{ dataset.created_at }}</dd>
+</dl>
+<p><a href="/datasets">← Back to datasets</a></p>
