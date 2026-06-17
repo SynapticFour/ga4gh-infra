@@ -7,6 +7,7 @@ pub mod datasets;
 pub mod grants;
 pub mod projects;
 pub mod researchers;
+pub mod service_info;
 pub mod services;
 pub mod system;
 

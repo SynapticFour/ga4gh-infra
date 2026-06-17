@@ -33,6 +33,7 @@ pub fn build_router(state: AppState) -> Router {
     let static_dir = resolve_static_dir(&state.config);
 
     Router::new()
+        .route("/service-info", get(handlers::service_info::service_info))
         .route("/", get(handlers::dashboard::dashboard))
         .route("/login", get(handlers::auth::login_page))
         .route("/auth/callback", get(handlers::auth::callback_page))
