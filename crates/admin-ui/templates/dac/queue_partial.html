@@ -7,41 +7,21 @@
 <table>
   <thead>
     <tr>
-      <th>Request</th>
       <th>Researcher</th>
       <th>Dataset</th>
+      <th>Project</th>
       <th>DAC group</th>
+      <th>DUO evaluation</th>
       <th>Status</th>
-      <th>Submitted</th>
+      <th>Submitted (UTC)</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     {% for row in requests %}
-    <tr>
-      <td><code>{{ row.id }}</code></td>
-      <td>{{ row.requester }}</td>
-      <td><code>{{ row.dataset_id }}</code></td>
-      <td>{{ row.dac_group }}</td>
-      <td>{{ row.status }}</td>
-      <td>{{ row.created_at }}</td>
-      <td>
-        <form style="display:inline" hx-post="/dac/requests/{{ row.id }}/approve" hx-swap="none">
-          <input type="text" name="reason" placeholder="Optional comment" size="16">
-          <button type="submit" class="btn btn-primary">Approve</button>
-        </form>
-        <form style="display:inline" hx-post="/dac/requests/{{ row.id }}/reject" hx-swap="none">
-          <input type="text" name="reason" placeholder="Required reason" size="16" required>
-          <button type="submit" class="btn btn-danger">Reject</button>
-        </form>
-        <form style="display:inline" hx-post="/dac/requests/{{ row.id }}/escalate" hx-swap="none">
-          <input type="text" name="reason" placeholder="Required reason" size="16" required>
-          <button type="submit" class="btn">Escalate</button>
-        </form>
-      </td>
-    </tr>
+    {% include "dac/queue_row.html" %}
     {% else %}
-    <tr><td colspan="7" class="note">No pending requests.</td></tr>
+    <tr><td colspan="8" class="note">Queue is clear — no pending requests need your review.</td></tr>
     {% endfor %}
   </tbody>
 </table>

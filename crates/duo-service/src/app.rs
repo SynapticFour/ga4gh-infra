@@ -38,6 +38,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/terms/:code", get(handlers::get_term))
         .route("/match", post(handlers::match_duo))
         .route("/service-info", get(handlers::service_info))
+        .route("/health", get(handlers::health))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

@@ -28,6 +28,7 @@ services:
       dockerfile: docker/Dockerfile.mock-idp
     environment:
       MOCK_IDP_ISSUER: http://mock-idp:9000
+      MOCK_IDP_PUBLIC_URL: http://localhost:9000
       MOCK_IDP_HOST: 0.0.0.0
       MOCK_IDP_SIGNING_KEY_PEM: /secrets/mock_idp_rs256.pem
       MOCK_IDP_SUBJECT: researcher@uni-heidelberg.de

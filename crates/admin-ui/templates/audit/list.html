@@ -1,16 +1,31 @@
 {% if degraded %}<div class="degraded">Could not load audit events from ADS.</div>{% endif %}
-<p><a href="/audit/export.csv">Download CSV export</a></p>
+
+<form method="get" action="/audit" class="filter-form">
+  <label>From (RFC 3339)
+    <input type="text" name="from" value="{{ from }}" placeholder="2026-01-01T00:00:00Z">
+  </label>
+  <label>To (RFC 3339)
+    <input type="text" name="to" value="{{ to }}" placeholder="2026-12-31T23:59:59Z">
+  </label>
+  <label>Entity ID contains
+    <input type="text" name="entity_id" value="{{ entity_id }}" placeholder="researcher or dataset id">
+  </label>
+  <button type="submit" class="btn">Filter</button>
+  <a href="/audit">Clear</a>
+</form>
+
+<p><a href="/audit/export.csv?from={{ from }}&amp;to={{ to }}&amp;entity_id={{ entity_id }}">Download CSV export</a></p>
 <table>
-  <thead><tr><th>Time</th><th>Type</th><th>Payload</th></tr></thead>
+  <thead><tr><th>Time (UTC)</th><th>Type</th><th>Summary</th></tr></thead>
   <tbody>
     {% for e in events %}
     <tr>
-      <td>{{ e.occurred_at }}</td>
+      <td>{{ e.occurred_at.html()|safe }}</td>
       <td><span class="badge">{{ e.event_type }}</span></td>
-      <td><code>{{ e.summary }}</code></td>
+      <td>{{ e.summary }}</td>
     </tr>
     {% else %}
-    <tr><td colspan="3" class="note">No audit events recorded yet.</td></tr>
+    <tr><td colspan="3" class="note">No audit events match the current filters.</td></tr>
     {% endfor %}
   </tbody>
 </table>

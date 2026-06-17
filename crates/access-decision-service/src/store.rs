@@ -533,6 +533,78 @@ impl AdsStore {
         Ok(dataset)
     }
 
+    pub async fn update_dataset(
+        &self,
+        id: Uuid,
+        req: &CreateDatasetRequest,
+    ) -> Result<Dataset, AdsError> {
+        let existing = self.get_dataset(id).await?;
+        if req.duo_codes.is_empty() {
+            return Err(AdsError::BadRequest(
+                "duo_codes must not be empty".to_string(),
+            ));
+        }
+        let now = Utc::now();
+        let duo_json = serde_json::to_string(&req.duo_codes).map_err(map_db_err)?;
+        let dataset = Dataset {
+            id,
+            name: req.name.clone(),
+            description: req.description.clone(),
+            duo_codes: req.duo_codes.clone(),
+            external_id: req.external_id.clone(),
+            auto_approve_enabled: req.auto_approve_enabled,
+            auto_approve_threshold: req.auto_approve_threshold,
+            dac_group: req.dac_group.clone(),
+            created_at: existing.created_at,
+            updated_at: now,
+        };
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                sqlx::query(
+                    "UPDATE datasets SET name = $1, description = $2, duo_codes = $3, external_id = $4,
+                     auto_approve_enabled = $5, auto_approve_threshold = $6, dac_group = $7, updated_at = $8
+                     WHERE id = $9",
+                )
+                .bind(&dataset.name)
+                .bind(&dataset.description)
+                .bind(&duo_json)
+                .bind(&dataset.external_id)
+                .bind(i64::from(dataset.auto_approve_enabled))
+                .bind(i64::from(dataset.auto_approve_threshold))
+                .bind(&dataset.dac_group)
+                .bind(dataset.updated_at.timestamp())
+                .bind(dataset.id.to_string())
+                .execute(pool)
+                .await
+                .map_err(map_db_err)?;
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                sqlx::query(
+                    "UPDATE datasets SET name = ?1, description = ?2, duo_codes = ?3, external_id = ?4,
+                     auto_approve_enabled = ?5, auto_approve_threshold = ?6, dac_group = ?7, updated_at = ?8
+                     WHERE id = ?9",
+                )
+                .bind(&dataset.name)
+                .bind(&dataset.description)
+                .bind(&duo_json)
+                .bind(&dataset.external_id)
+                .bind(i64::from(dataset.auto_approve_enabled))
+                .bind(i64::from(dataset.auto_approve_threshold))
+                .bind(&dataset.dac_group)
+                .bind(dataset.updated_at.timestamp())
+                .bind(dataset.id.to_string())
+                .execute(pool)
+                .await
+                .map_err(map_db_err)?;
+            }
+            #[allow(unreachable_patterns)]
+            _ => return Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+        Ok(dataset)
+    }
+
     pub async fn list_datasets(
         &self,
         dac_groups: Option<&[String]>,
@@ -755,6 +827,65 @@ impl AdsStore {
         }
     }
 
+    pub async fn update_project(
+        &self,
+        id: Uuid,
+        req: &CreateProjectRequest,
+    ) -> Result<ResearchProject, AdsError> {
+        let existing = self.get_project(id).await?;
+        if req.duo_codes.is_empty() {
+            return Err(AdsError::BadRequest(
+                "duo_codes must not be empty".to_string(),
+            ));
+        }
+        let now = Utc::now();
+        let duo_json = serde_json::to_string(&req.duo_codes).map_err(map_db_err)?;
+        let project = ResearchProject {
+            id,
+            researcher_id: existing.researcher_id,
+            name: req.name.clone(),
+            description: req.description.clone(),
+            duo_codes: req.duo_codes.clone(),
+            created_at: existing.created_at,
+            updated_at: now,
+        };
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                sqlx::query(
+                    "UPDATE research_projects SET name = $1, description = $2, duo_codes = $3, updated_at = $4
+                     WHERE id = $5",
+                )
+                .bind(&project.name)
+                .bind(&project.description)
+                .bind(&duo_json)
+                .bind(project.updated_at.timestamp())
+                .bind(project.id.to_string())
+                .execute(pool)
+                .await
+                .map_err(map_db_err)?;
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                sqlx::query(
+                    "UPDATE research_projects SET name = ?1, description = ?2, duo_codes = ?3, updated_at = ?4
+                     WHERE id = ?5",
+                )
+                .bind(&project.name)
+                .bind(&project.description)
+                .bind(&duo_json)
+                .bind(project.updated_at.timestamp())
+                .bind(project.id.to_string())
+                .execute(pool)
+                .await
+                .map_err(map_db_err)?;
+            }
+            #[allow(unreachable_patterns)]
+            _ => return Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+        Ok(project)
+    }
+
     #[instrument(skip(self, body, evaluation))]
     pub async fn create_access_request(
         &self,
@@ -860,7 +991,7 @@ impl AdsStore {
             .await?;
             self.create_grant_from_request(&request, GrantSource::DuoAutoApproval)
                 .await?;
-            request_approved(self, request.id, request.dac_group.as_deref()).await?;
+            request_approved(self, &request, "system:duo-auto").await?;
         }
 
         Ok(request)
@@ -996,7 +1127,7 @@ impl AdsStore {
         self.update_request_status(&request).await?;
         self.create_grant_from_request(&request, GrantSource::DacApproval)
             .await?;
-        request_approved(self, id, request.dac_group.as_deref()).await?;
+        request_approved(self, &request, actor).await?;
         Ok(request)
     }
 
@@ -1021,7 +1152,7 @@ impl AdsStore {
         request.status = AccessRequestStatus::Rejected;
         request.updated_at = Utc::now();
         self.update_request_status(&request).await?;
-        request_rejected(self, id, request.dac_group.as_deref()).await?;
+        request_rejected(self, &request, actor).await?;
         Ok(request)
     }
 
@@ -1390,7 +1521,7 @@ impl AdsStore {
                     .map_err(map_db_err)?;
             }
         }
-        grant_revoked(self, id).await?;
+        grant_revoked(self, &grant).await?;
         Ok(grant)
     }
 

@@ -59,3 +59,19 @@ pub async fn get_project(
     }
     Ok(Json(project))
 }
+
+#[instrument(skip(state, body))]
+pub async fn update_project(
+    State(state): State<Arc<AppState>>,
+    RequireDac(_operator): RequireDac,
+    Path(id): Path<Uuid>,
+    Json(body): Json<CreateProjectRequest>,
+) -> Result<Json<ResearchProject>, AdsError> {
+    if body.duo_codes.is_empty() {
+        return Err(AdsError::BadRequest(
+            "duo_codes must not be empty".to_string(),
+        ));
+    }
+    let project = state.store.update_project(id, &body).await?;
+    Ok(Json(project))
+}

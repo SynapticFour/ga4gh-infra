@@ -12,6 +12,7 @@ services:
       dockerfile: docker/Dockerfile.mock-idp
     environment:
       MOCK_IDP_ISSUER: http://mock-idp:9100
+      MOCK_IDP_PUBLIC_URL: http://localhost:9100
       MOCK_IDP_HOST: 0.0.0.0
       MOCK_IDP_SIGNING_KEY_PEM: /secrets/mock_idp_rs256.pem
       MOCK_IDP_PORT: "9100"
@@ -89,7 +90,7 @@ services:
       retries: 10
 
   access-decision-service:
-    image: ${GA4GH_IMAGE_PREFIX}/access-decision-service:${ADS_VERSION}
+    image: ${GA4GH_IMAGE_PREFIX}/access-decision-service:${ACCESS_DECISION_SERVICE_VERSION}
     build:
       context: ..
       dockerfile: docker/Dockerfile.access-decision-service

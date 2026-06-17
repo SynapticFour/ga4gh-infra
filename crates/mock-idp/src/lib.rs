@@ -13,8 +13,10 @@ use axum::Router;
 /// Runtime configuration for the mock OIDC IdP.
 #[derive(Debug, Clone)]
 pub struct MockIdpConfig {
-    /// Issuer URL advertised in discovery (no trailing slash).
+    /// Issuer URL advertised in discovery and ID tokens (no trailing slash).
     pub issuer: String,
+    /// Browser-facing base URL for the authorization endpoint (defaults to `issuer`).
+    pub public_base_url: Option<String>,
     /// Path to PEM-encoded RS256 private key.
     pub signing_key_pem: String,
     /// Bind host.
@@ -33,6 +35,7 @@ impl Default for MockIdpConfig {
     fn default() -> Self {
         Self {
             issuer: "http://127.0.0.1:9000".to_string(),
+            public_base_url: None,
             signing_key_pem: "/secrets/mock_idp_rs256.pem".to_string(),
             host: "127.0.0.1".to_string(),
             port: 9000,
@@ -49,6 +52,7 @@ impl MockIdpConfig {
         Self {
             issuer: std::env::var("MOCK_IDP_ISSUER")
                 .unwrap_or_else(|_| "http://127.0.0.1:9000".to_string()),
+            public_base_url: std::env::var("MOCK_IDP_PUBLIC_URL").ok(),
             signing_key_pem: std::env::var("MOCK_IDP_SIGNING_KEY_PEM")
                 .unwrap_or_else(|_| "/secrets/mock_idp_rs256.pem".to_string()),
             host: std::env::var("MOCK_IDP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
@@ -71,8 +75,15 @@ pub fn build_router(config: &MockIdpConfig) -> anyhow::Result<Router> {
     std::env::set_var("MOCK_IDP_CLIENT_ID", &config.client_id);
     std::env::set_var("MOCK_IDP_CLIENT_SECRET", &config.client_secret);
 
+    let issuer = config.issuer.trim_end_matches('/');
+    let public_base_url = config
+        .public_base_url
+        .as_deref()
+        .unwrap_or(issuer)
+        .trim_end_matches('/');
     let state = Arc::new(idp::MockIdpState::new(
-        config.issuer.trim_end_matches('/'),
+        issuer,
+        public_base_url,
         &config.signing_key_pem,
         config.subject.clone(),
     )?);

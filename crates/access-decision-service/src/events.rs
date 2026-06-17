@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use chrono::Utc;
-use ga4gh_types::{AdsEvent, AdsEventType};
+use ga4gh_types::{AccessRequest, AdsEvent, AdsEventType, Grant};
 use reqwest::Client;
 use serde_json::json;
 use tracing::warn;
@@ -71,9 +71,11 @@ pub async fn grant_created(
     emit_event(store, AdsEventType::GrantCreated, payload).await
 }
 
-pub async fn grant_revoked(store: &AdsStore, grant_id: Uuid) -> Result<AdsEvent, AdsError> {
+pub async fn grant_revoked(store: &AdsStore, grant: &Grant) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
-    payload.insert("grant_id".to_string(), json!(grant_id));
+    payload.insert("grant_id".to_string(), json!(grant.id));
+    payload.insert("researcher_id".to_string(), json!(grant.researcher_id));
+    payload.insert("dataset_id".to_string(), json!(grant.dataset_id));
     emit_event(store, AdsEventType::GrantRevoked, payload).await
 }
 
@@ -94,23 +96,31 @@ pub async fn request_created(
 
 pub async fn request_approved(
     store: &AdsStore,
-    request_id: Uuid,
-    dac_group: Option<&str>,
+    request: &AccessRequest,
+    actor: &str,
 ) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
-    payload.insert("request_id".to_string(), json!(request_id));
-    insert_dac_group(&mut payload, dac_group);
+    payload.insert("request_id".to_string(), json!(request.id));
+    payload.insert("researcher_id".to_string(), json!(request.researcher_id));
+    payload.insert("dataset_id".to_string(), json!(request.dataset_id));
+    payload.insert("project_id".to_string(), json!(request.project_id));
+    payload.insert("actor".to_string(), json!(actor));
+    insert_dac_group(&mut payload, request.dac_group.as_deref());
     emit_event(store, AdsEventType::RequestApproved, payload).await
 }
 
 pub async fn request_rejected(
     store: &AdsStore,
-    request_id: Uuid,
-    dac_group: Option<&str>,
+    request: &AccessRequest,
+    actor: &str,
 ) -> Result<AdsEvent, AdsError> {
     let mut payload = BTreeMap::new();
-    payload.insert("request_id".to_string(), json!(request_id));
-    insert_dac_group(&mut payload, dac_group);
+    payload.insert("request_id".to_string(), json!(request.id));
+    payload.insert("researcher_id".to_string(), json!(request.researcher_id));
+    payload.insert("dataset_id".to_string(), json!(request.dataset_id));
+    payload.insert("project_id".to_string(), json!(request.project_id));
+    payload.insert("actor".to_string(), json!(actor));
+    insert_dac_group(&mut payload, request.dac_group.as_deref());
     emit_event(store, AdsEventType::RequestRejected, payload).await
 }
 

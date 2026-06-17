@@ -163,7 +163,18 @@ where
 
         match cookie.and_then(|c| decode_session(&c, &app.config.session_secret)) {
             Some(session) => Ok(RequireAuth(session)),
-            None => Err(Redirect::to("/login").into_response()),
+            None => {
+                if parts
+                    .headers
+                    .get("HX-Request")
+                    .and_then(|v| v.to_str().ok())
+                    == Some("true")
+                {
+                    Err((StatusCode::UNAUTHORIZED, "session expired — sign in again").into_response())
+                } else {
+                    Err(Redirect::to("/login").into_response())
+                }
+            }
         }
     }
 }

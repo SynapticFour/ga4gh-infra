@@ -87,8 +87,8 @@ main.content h2 { margin-top: 0; }
 
 .status-list { list-style: none; padding: 0; }
 .status-list li { margin-bottom: 0.35rem; }
-.status-ok { color: var(--ok); }
-.status-err { color: var(--err); }
+.status-list .status-ok { color: var(--ok); }
+.status-list .status-err { color: var(--err); }
 
 table {
   width: 100%;
@@ -149,7 +149,17 @@ form input[type=text], form textarea, form select {
   color: var(--text);
 }
 
-.note { color: var(--muted); font-size: 0.9rem; }
+.entity-link { display: inline-block; max-width: 18rem; }
+.entity-subtitle {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+time { font-variant-numeric: tabular-nums; }
 
 .nav-section {
   margin: 1.25rem 0 0.35rem;
@@ -166,6 +176,76 @@ form input[type=text], form textarea, form select {
   background: #243044;
   font-size: 0.8rem;
 }
+
+.badge.status-ok { background: #1a3d2e; color: var(--ok); }
+.badge.status-warn { background: #3a2a14; color: var(--warn); }
+.badge.status-err { background: #3d1a1c; color: var(--err); }
+
+.badge.health-up { background: #1a3d2e; color: var(--ok); }
+.badge.health-degraded { background: #3a2a14; color: var(--warn); }
+.badge.health-down { background: #3d1a1c; color: var(--err); }
+
+.badge-dac { background: #1a2f4d; color: #9ec5ff; }
+.badge-duo { background: #1a3d2e; color: var(--ok); }
+.badge-inst { background: #3a2a14; color: #ffdca8; }
+
+.duo-tag {
+  display: inline-block;
+  margin: 0.1rem 0.25rem 0.1rem 0;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #243044;
+  border-bottom: 1px dotted var(--muted);
+  cursor: help;
+}
+
+.activity-feed { list-style: none; padding: 0; }
+.activity-feed li { margin-bottom: 0.5rem; }
+
+/* DAC queue row updates via htmx */
+tr.queue-row-resolved {
+  background: #152a22;
+}
+tr.queue-row-resolved td {
+  opacity: 0.92;
+}
+tr.htmx-request {
+  opacity: 0.65;
+}
+tr.htmx-request .btn {
+  cursor: wait;
+}
+.dac-actions form {
+  margin-right: 0.35rem;
+}
+.dac-actions label.note {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+.dac-actions input[type="text"] {
+  display: block;
+  margin-bottom: 0.35rem;
+  max-width: 100%;
+}
+.dac-actions .btn {
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+.dac-action-error {
+  color: var(--err);
+  margin-top: 0.35rem;
+}
+
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+.filter-form label { margin-bottom: 0; }
+
+.duo-list { padding-left: 1.25rem; }
 
 .code-block {
   background: var(--bg);

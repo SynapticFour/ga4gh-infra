@@ -5,11 +5,15 @@
 FROM rust:1-bookworm AS builder
 WORKDIR /app
 
+COPY docker/.cargo/config.toml .cargo/config.toml
+COPY docker/vendor ./vendor
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY tests/integration ./tests/integration
 
-RUN cargo build --release -p mock-idp
+RUN --mount=type=cache,target=/app/target,sharing=locked \
+    cargo build --release -p mock-idp \
+    && install -D /app/target/release/mock-idp /app/bin/mock-idp
 
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update \
@@ -17,7 +21,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh
 
-COPY --from=builder /app/target/release/mock-idp /usr/local/bin/mock-idp
+COPY --from=builder /app/bin/mock-idp /usr/local/bin/mock-idp
 
 USER ga4gh
 WORKDIR /app

@@ -1,12 +1,16 @@
+use std::collections::HashMap;
+
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::{Path, State};
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{Html, Response};
-use ga4gh_types::Grant;
+use ga4gh_types::{Dataset, Grant};
 use uuid::Uuid;
 
 use crate::csv;
+use crate::datetime::FormattedDateTime;
+use crate::entity::EntityRef;
 use crate::handlers::{htmx_redirect, is_htmx, render_layout, SharedState};
 use crate::roles::operator_dac_groups;
 use crate::session::RequireAuth;
@@ -22,45 +26,81 @@ struct ListInner {
 pub struct GrantRow {
     pub id: String,
     pub researcher_id: String,
-    pub dataset_id: String,
+    pub dataset: EntityRef,
     pub source: String,
+    pub source_class: String,
     pub status: String,
-    pub issued: String,
-    pub expires: String,
+    pub issued: FormattedDateTime,
+    pub expires: FormattedDateTime,
 }
 
-impl From<&Grant> for GrantRow {
-    fn from(g: &Grant) -> Self {
-        Self {
-            id: g.id.to_string(),
-            researcher_id: g.researcher_id.clone(),
-            dataset_id: g.dataset_id.to_string(),
-            source: format!("{:?}", g.source),
-            status: if g.revoked_at.is_some() {
-                "revoked".into()
-            } else {
-                "active".into()
-            },
-            issued: g.created_at.to_rfc3339(),
-            expires: g
-                .expires_at
-                .map(|t| t.to_rfc3339())
-                .unwrap_or_else(|| "—".into()),
+fn build_grant_row(g: &Grant, datasets: &HashMap<Uuid, &Dataset>) -> GrantRow {
+    let (source, source_class) = match g.source {
+        ga4gh_types::GrantSource::DacApproval => ("DAC approval".into(), "badge-dac".into()),
+        ga4gh_types::GrantSource::DuoAutoApproval => ("DUO auto".into(), "badge-duo".into()),
+        ga4gh_types::GrantSource::InstitutionalMapping => {
+            ("Institutional".into(), "badge-inst".into())
         }
+    };
+    GrantRow {
+        id: g.id.to_string(),
+        researcher_id: g.researcher_id.clone(),
+        dataset: EntityRef::dataset(g.dataset_id, datasets),
+        source,
+        source_class,
+        status: if g.revoked_at.is_some() {
+            "Revoked".into()
+        } else {
+            "Active".into()
+        },
+        issued: FormattedDateTime::from_utc(g.created_at),
+        expires: FormattedDateTime::optional(g.expires_at),
     }
 }
 
-pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
+async fn load_grants(auth: &RequireAuth, state: &SharedState) -> Result<Vec<Grant>, crate::error::AdminUiError> {
     let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
-    let result = state.clients.ads_list_grants(groups.as_deref()).await;
+    if auth.0.is_admin {
+        state.clients.ads_list_grants(None, None).await
+    } else {
+        state
+            .clients
+            .ads_list_grants_for_operator(&auth.0.sub, groups.as_deref())
+            .await
+    }
+}
+
+async fn load_grant_rows(
+    auth: &RequireAuth,
+    state: &SharedState,
+) -> Result<Vec<GrantRow>, crate::error::AdminUiError> {
+    let grants = load_grants(auth, state).await?;
+    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let dataset_groups = if auth.0.is_admin {
+        None
+    } else {
+        groups.as_deref()
+    };
+    let datasets = state
+        .clients
+        .ads_list_datasets(dataset_groups)
+        .await
+        .unwrap_or_default();
+    let dataset_map: HashMap<Uuid, Dataset> = datasets.into_iter().map(|d| (d.id, d)).collect();
+    let dataset_refs: HashMap<Uuid, &Dataset> =
+        dataset_map.iter().map(|(k, v)| (*k, v)).collect();
+    Ok(grants
+        .iter()
+        .map(|g| build_grant_row(g, &dataset_refs))
+        .collect())
+}
+
+pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
+    let result = load_grant_rows(&auth, &state).await;
+    let degraded = result.is_err();
     let inner = ListInner {
-        grants: result
-            .as_ref()
-            .unwrap_or(&vec![])
-            .iter()
-            .map(GrantRow::from)
-            .collect(),
-        degraded: result.is_err(),
+        grants: result.unwrap_or_default(),
+        degraded,
         is_admin: auth.0.is_admin,
     };
     match render_layout("Grants", "grants", &auth.0, inner) {
@@ -70,8 +110,7 @@ pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> i
 }
 
 pub async fn export_csv(auth: RequireAuth, State(state): State<SharedState>) -> Response {
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
-    let grants = match state.clients.ads_list_grants(groups.as_deref()).await {
+    let grants = match load_grant_rows(&auth, &state).await {
         Ok(grants) => grants,
         Err(err) => return (StatusCode::SERVICE_UNAVAILABLE, err.to_string()).into_response(),
     };
@@ -80,28 +119,26 @@ pub async fn export_csv(auth: RequireAuth, State(state): State<SharedState>) -> 
         "id",
         "researcher_id",
         "dataset_id",
+        "dataset_name",
         "source",
         "status",
         "issued",
         "expires",
     ]);
-    for grant in &grants {
-        let status = if grant.revoked_at.is_some() {
-            "revoked"
-        } else {
-            "active"
-        };
+    for row in &grants {
         body.push_str(&csv::row(&[
-            &grant.id.to_string(),
-            &grant.researcher_id,
-            &grant.dataset_id.to_string(),
-            &format!("{:?}", grant.source),
-            status,
-            &grant.created_at.to_rfc3339(),
-            &grant
-                .expires_at
-                .map(|t| t.to_rfc3339())
-                .unwrap_or_else(|| "—".into()),
+            &row.id,
+            &row.researcher_id,
+            &row.dataset.id,
+            &row.dataset.name,
+            &row.source,
+            &row.status,
+            &row.issued.iso,
+            if row.expires.has_iso() {
+                &row.expires.iso
+            } else {
+                ""
+            },
         ]));
     }
 
@@ -122,7 +159,7 @@ pub async fn export_csv(auth: RequireAuth, State(state): State<SharedState>) -> 
 pub async fn revoke(
     auth: RequireAuth,
     State(state): State<SharedState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<uuid::Uuid>,
     headers: HeaderMap,
 ) -> Response {
     if auth.require_admin().is_err() {

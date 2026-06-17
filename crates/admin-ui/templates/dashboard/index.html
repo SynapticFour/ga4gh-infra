@@ -2,6 +2,7 @@
   <div class="card">
     <div class="label">Pending DAC requests</div>
     <div class="value">{% if let Some(n) = pending_count %}{{ n }}{% else %}—{% endif %}</div>
+    {% if show_dac_link %}<a href="/dac">Review queue →</a>{% endif %}
   </div>
   <div class="card">
     <div class="label">Registered datasets</div>
@@ -11,25 +12,48 @@
     <div class="label">Active grants</div>
     <div class="value">{% if let Some(n) = grant_count %}{{ n }}{% else %}—{% endif %}</div>
   </div>
+  <div class="card">
+    <div class="label">Registered services</div>
+    <div class="value">{% if let Some(n) = service_count %}{{ n }}{% else %}—{% endif %}</div>
+  </div>
 </div>
 
 <h3>Service health</h3>
-<ul class="status-list">
-  <li class="{% if ads_ok %}status-ok{% else %}status-err{% endif %}">Access Decision Service</li>
-  <li class="{% if duo_ok %}status-ok{% else %}status-err{% endif %}">DUO Service</li>
-  <li class="{% if broker_ok %}status-ok{% else %}status-err{% endif %}">AAI Broker</li>
-  <li class="{% if visa_ok %}status-ok{% else %}status-err{% endif %}">Visa Registry</li>
-  <li class="{% if registry_ok %}status-ok{% else %}status-err{% endif %}">Service Registry</li>
-  <li class="status-err">Agreement Registry (no HTTP endpoint yet)</li>
-</ul>
+<table>
+  <thead>
+    <tr><th>Component</th><th>Status</th><th>Version</th><th>Spec</th></tr>
+  </thead>
+  <tbody>
+    {% for s in services %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td><span class="badge {{ s.status_class }}">{{ s.status_label }}</span></td>
+      <td>{{ s.version }}</td>
+      <td class="note">{{ s.detail }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if is_admin %}
+<h3>Signing keys</h3>
+{% if signing_rotation_warning %}
+<div class="degraded">Signing key rotation is due soon{% if let Some(due) = signing_rotation_due %} (scheduled {{ due }}){% endif %}.</div>
+{% endif %}
+{% if let Some(kid) = signing_kid %}
+<p class="note">Current key: <code>{{ kid }}</code> ({{ signing_algorithm.as_deref().unwrap_or("RS256") }}). Private keys are never shown. See <a href="/system">System</a> for JWKS.</p>
+{% else %}
+<p class="note">Could not fetch broker JWKS. See <a href="/system">System</a> when the broker is available.</p>
+{% endif %}
+{% endif %}
 
 <h3>Recent activity</h3>
 {% if events_degraded %}
 <p class="note">Audit feed unavailable — ADS may be down or events not yet recorded.</p>
 {% else %}
-<ul>
+<ul class="activity-feed">
   {% for e in recent_events %}
-  <li><span class="badge">{{ e.label }}</span> {{ e.occurred_at }}</li>
+  <li><span class="badge" title="{{ e.occurred_at.iso }}">{{ e.relative }}</span> {{ e.label }} <span class="note">{{ e.occurred_at.html()|safe }}</span></li>
   {% else %}
   <li class="note">No recent events.</li>
   {% endfor %}

@@ -5,7 +5,7 @@
 mod support;
 
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, COOKIE};
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use serde_json::json;
 use support::{
     admin_ui_session, admin_ui_url, ads_api_key, ads_url, broker_login, wait_for_service,
@@ -125,14 +125,15 @@ async fn stack_admin_ui_approves_dac_request_via_htmx() {
         .send()
         .await
         .expect("approve via admin-ui");
-    assert_eq!(approve_response.status(), StatusCode::NO_CONTENT);
+    assert!(approve_response.status().is_success());
+    let approve_html = approve_response.text().await.expect("approve row html");
     assert!(
-        approve_response
-            .headers()
-            .get("HX-Redirect")
-            .and_then(|v| v.to_str().ok())
-            .is_some(),
-        "htmx approve should redirect to /dac"
+        approve_html.contains(&request_id),
+        "htmx approve should return updated queue row for {request_id}"
+    );
+    assert!(
+        approve_html.contains("Approved"),
+        "htmx approve row should show Approved status"
     );
 
     let grants_response = client

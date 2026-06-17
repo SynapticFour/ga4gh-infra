@@ -1,16 +1,22 @@
 # GA4GH agreement-registry image. Build from repo root:
 #   docker build -f docker/Dockerfile.agreement-registry -t ghcr.io/<org>/agreement-registry:0.1.0 .
 
-FROM rust:1.85-bookworm AS builder
+FROM rust:1-bookworm AS builder
 WORKDIR /app
-COPY . .
-RUN cargo build --release -p agreement-registry
+COPY docker/.cargo/config.toml .cargo/config.toml
+COPY docker/vendor ./vendor
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY tests/integration ./tests/integration
+RUN --mount=type=cache,target=/app/target,sharing=locked \
+    cargo build --release -p agreement-registry \
+    && install -D /app/target/release/agreement-registry /app/bin/agreement-registry
 
 FROM debian:bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/agreement-registry /usr/local/bin/agreement-registry
+COPY --from=builder /app/bin/agreement-registry /usr/local/bin/agreement-registry
 EXPOSE 8086
 ENTRYPOINT ["/usr/local/bin/agreement-registry"]
 CMD ["/config/agreement-registry.toml"]

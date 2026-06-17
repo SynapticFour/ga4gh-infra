@@ -92,6 +92,31 @@ For institution-specific agreement templates and richer compatibility (levels 2â
 **agreement-registry** as a future enhancement â€” ADS DAC workflow and `AccessDecision` records
 are compatible with extended policy checks.
 
+## Researcher access requests
+
+Researchers do **not** use the admin UI. The typical flow:
+
+1. Researcher logs in via the **AAI broker** and receives a Passport JWT.
+2. Researcher registers or selects a **project** (`POST /ads/v1/projects` with Bearer token).
+3. Researcher submits an **access request** against a dataset:
+
+```http
+POST /ads/v1/access-requests
+Authorization: Bearer {passport-jwt}
+Content-Type: application/json
+
+{
+  "researcher_id": "{passport-sub}",
+  "dataset_id": "{ads-dataset-uuid}",
+  "project_id": "{ads-project-uuid}",
+  "justification": "Required for cohort analysis under IRB-2024-001"
+}
+```
+
+4. ADS evaluates DUO compatibility and either auto-approves (when configured) or leaves the request **pending**.
+5. DAC operators review pending items in **admin-ui** (`/dac`) or via ADS DAC API (`POST /ads/v1/dac/requests/{id}/approve` with `X-API-Key`).
+6. On approval, ADS creates a **grant** and emits audit events; visas are refreshed on the researcher's next broker login.
+
 ## Deployment checklist
 
 - [ ] PostgreSQL (or SQLite for dev)

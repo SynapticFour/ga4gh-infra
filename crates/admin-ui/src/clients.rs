@@ -5,17 +5,21 @@ use ga4gh_types::{
     AccessRequest, AdsEvent, AgreementTemplate, AgreementTemplateListResponse,
     AuditEventListResponse, CompatibilityCheckRequest, CompatibilityCheckResult,
     CreateDatasetRequest, CreatePermissionMappingRequest, CreatePermissionSourceRequest,
-    CreateProjectRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse, Grant,
-    GrantListResponse, PermissionMapping, PermissionMappingListResponse, PermissionSource,
-    PermissionSourceListResponse, ProjectListResponse, ResearchProject, Researcher,
-    SignedVisasResponse,
+    CreateProjectRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse,
+    Grant, GrantListResponse, PermissionMapping,
+    PermissionMappingListResponse, PermissionSource, PermissionSourceListResponse,
+    PolicyProfile, ProjectListResponse, ResearchProject, Researcher, SignedVisasResponse,
 };
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::config::AdminUiConfig;
 use crate::error::{AdminResult, AdminUiError};
+use crate::events::EventLabelContext;
+use crate::health::{probe_service, ServiceHealth};
+use crate::roles::operator_dac_groups;
+use crate::session::UserSession;
 
 #[derive(Clone)]
 pub struct UpstreamClients {
@@ -143,9 +147,71 @@ impl UpstreamClients {
         self.ads_get(&format!("/projects/{id}"), None).await
     }
 
-    pub async fn ads_list_grants(&self, dac_groups: Option<&[String]>) -> AdminResult<Vec<Grant>> {
-        let body: GrantListResponse = self.ads_get("/grants", dac_groups).await?;
+    pub async fn ads_list_grants(
+        &self,
+        researcher_id: Option<&str>,
+        dac_groups: Option<&[String]>,
+    ) -> AdminResult<Vec<Grant>> {
+        let mut query: Vec<(&str, String)> = Vec::new();
+        if let Some(sub) = researcher_id {
+            query.push(("researcher_id", sub.to_string()));
+        }
+        if let Some(groups) = dac_groups {
+            for group in groups {
+                query.push(("dac_group", group.clone()));
+            }
+        }
+        let body: GrantListResponse = if query.is_empty() {
+            self.ads_get("/grants", None).await?
+        } else {
+            let resp = self
+                .http
+                .get(self.ads_url("/grants"))
+                .header("X-API-Key", &self.config.ads_dac_api_key)
+                .query(&query)
+                .send()
+                .await
+                .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+            if !resp.status().is_success() {
+                return Err(AdminUiError::Upstream(format!(
+                    "ADS GET /grants returned {}",
+                    resp.status()
+                )));
+            }
+            resp.json()
+                .await
+                .map_err(|e| AdminUiError::Upstream(e.to_string()))?
+        };
         Ok(body.grants)
+    }
+
+    /// Operator view: own grants plus grants for datasets in the user's DAC groups.
+    pub async fn ads_list_grants_for_operator(
+        &self,
+        researcher_id: &str,
+        dac_groups: Option<&[String]>,
+    ) -> AdminResult<Vec<Grant>> {
+        use std::collections::HashMap;
+        let mut by_id: HashMap<uuid::Uuid, Grant> = HashMap::new();
+        for grant in self
+            .ads_list_grants(Some(researcher_id), None)
+            .await
+            .unwrap_or_default()
+        {
+            by_id.insert(grant.id, grant);
+        }
+        if let Some(groups) = dac_groups.filter(|g| !g.is_empty()) {
+            for grant in self
+                .ads_list_grants(None, Some(groups))
+                .await
+                .unwrap_or_default()
+            {
+                by_id.insert(grant.id, grant);
+            }
+        }
+        let mut grants: Vec<Grant> = by_id.into_values().collect();
+        grants.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(grants)
     }
 
     pub async fn ads_list_audit(
@@ -157,6 +223,91 @@ impl UpstreamClients {
             .ads_get(&format!("/audit/events?limit={limit}"), dac_groups)
             .await?;
         Ok(body.events)
+    }
+
+    /// Load dataset/project/grant names for human-readable audit event labels.
+    pub async fn event_label_context(
+        &self,
+        session: &UserSession,
+        admin_claim: &str,
+    ) -> EventLabelContext {
+        let groups = operator_dac_groups(session, admin_claim);
+        let dataset_groups = if session.is_admin {
+            None
+        } else {
+            groups.as_deref()
+        };
+        let datasets = self
+            .ads_list_datasets(dataset_groups)
+            .await
+            .unwrap_or_default();
+        let projects = self.ads_list_projects().await.unwrap_or_default();
+        let grants = if session.is_admin {
+            self.ads_list_grants(None, None)
+                .await
+                .unwrap_or_default()
+        } else {
+            self.ads_list_grants_for_operator(&session.sub, groups.as_deref())
+                .await
+                .unwrap_or_default()
+        };
+        EventLabelContext::from_catalog(&datasets, &projects, &grants)
+    }
+
+    pub async fn ads_update_dataset(
+        &self,
+        id: uuid::Uuid,
+        payload: &CreateDatasetRequest,
+    ) -> AdminResult<Dataset> {
+        let resp = self
+            .http
+            .put(self.ads_url(&format!("/datasets/{id}")))
+            .header("X-API-Key", &self.config.ads_dac_api_key)
+            .json(payload)
+            .send()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        if resp.status().as_u16() == 404 {
+            return Err(AdminUiError::NotFound);
+        }
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(AdminUiError::BadRequest(format!(
+                "ADS PUT /datasets/{id}: {status} {text}"
+            )));
+        }
+        resp.json()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))
+    }
+
+    pub async fn ads_update_project(
+        &self,
+        id: uuid::Uuid,
+        payload: &CreateProjectRequest,
+    ) -> AdminResult<ResearchProject> {
+        let resp = self
+            .http
+            .put(self.ads_url(&format!("/projects/{id}")))
+            .header("X-API-Key", &self.config.ads_dac_api_key)
+            .json(payload)
+            .send()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        if resp.status().as_u16() == 404 {
+            return Err(AdminUiError::NotFound);
+        }
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(AdminUiError::BadRequest(format!(
+                "ADS PUT /projects/{id}: {status} {text}"
+            )));
+        }
+        resp.json()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))
     }
 
     pub async fn ads_get_researcher(&self, id: &str) -> AdminResult<Researcher> {
@@ -179,15 +330,15 @@ impl UpstreamClients {
         Ok(body.mappings)
     }
 
-    pub async fn ads_approve(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<()> {
+    pub async fn ads_approve(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<AccessRequest> {
         self.ads_dac_action(id, "approve", reason).await
     }
 
-    pub async fn ads_reject(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<()> {
+    pub async fn ads_reject(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<AccessRequest> {
         self.ads_dac_action(id, "reject", reason).await
     }
 
-    pub async fn ads_escalate(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<()> {
+    pub async fn ads_escalate(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<AccessRequest> {
         self.ads_dac_action(id, "escalate", reason).await
     }
 
@@ -196,7 +347,7 @@ impl UpstreamClients {
         id: uuid::Uuid,
         action: &str,
         reason: Option<String>,
-    ) -> AdminResult<()> {
+    ) -> AdminResult<AccessRequest> {
         let body = DacActionRequest {
             reason,
             actor: Some("admin-ui".to_string()),
@@ -210,12 +361,15 @@ impl UpstreamClients {
             .await
             .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
         if !resp.status().is_success() {
+            let status = resp.status();
+            let detail = resp.text().await.unwrap_or_default();
             return Err(AdminUiError::Upstream(format!(
-                "ADS {action} returned {}",
-                resp.status()
+                "ADS {action} returned {status}: {detail}"
             )));
         }
-        Ok(())
+        resp.json()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))
     }
 
     pub async fn ads_create_dataset(&self, payload: &CreateDatasetRequest) -> AdminResult<Dataset> {
@@ -410,6 +564,79 @@ impl UpstreamClients {
             .map_err(|e| AdminUiError::Upstream(e.to_string()))
     }
 
+    pub async fn registry_register_service(
+        &self,
+        service: &RegistryServicePayload,
+    ) -> AdminResult<()> {
+        let key = self
+            .config
+            .service_registry_registration_key
+            .as_deref()
+            .ok_or(AdminUiError::Forbidden)?;
+        let url = format!(
+            "{}/services",
+            self.config.service_registry_base_url.trim_end_matches('/')
+        );
+        let resp = self
+            .http
+            .post(&url)
+            .header("X-API-Key", key)
+            .json(service)
+            .send()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        if !resp.status().is_success() {
+            return Err(AdminUiError::Upstream(format!(
+                "Service registry register returned {}",
+                resp.status()
+            )));
+        }
+        Ok(())
+    }
+
+    pub async fn agreement_list_profiles(&self) -> AdminResult<Vec<PolicyProfile>> {
+        let url = format!(
+            "{}/profiles",
+            self.config
+                .agreement_registry_base_url
+                .trim_end_matches('/')
+        );
+        let resp = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))?;
+        if !resp.status().is_success() {
+            return Err(AdminUiError::Upstream(format!(
+                "Agreement registry profiles returned {}",
+                resp.status()
+            )));
+        }
+        resp.json()
+            .await
+            .map_err(|e| AdminUiError::Upstream(e.to_string()))
+    }
+
+    pub async fn probe_all_services(&self) -> Vec<ServiceHealth> {
+        let probes = [
+            ("Access Decision Service", self.config.ads_base_url.as_str()),
+            ("DUO Service", self.config.duo_base_url.as_str()),
+            ("AAI Broker", self.config.broker_base_url.as_str()),
+            ("Visa Registry", self.config.visa_registry_base_url.as_str()),
+            ("Service Registry", self.config.service_registry_base_url.as_str()),
+            (
+                "Agreement Registry",
+                self.config.agreement_registry_base_url.as_str(),
+            ),
+        ];
+        let mut out = Vec::with_capacity(probes.len());
+        for (name, base) in probes {
+            out.push(probe_service(&self.http, name, base).await);
+        }
+        out
+    }
+
     pub async fn service_info_ok(&self, base: &str) -> bool {
         let url = format!("{}/service-info", base.trim_end_matches('/'));
         self.http
@@ -451,4 +678,15 @@ impl RegistryService {
             .map(|t| t.version.clone())
             .unwrap_or_else(|| "—".into())
     }
+}
+
+/// Payload for registering a service in the GA4GH service registry.
+#[derive(Debug, Clone, Serialize)]
+pub struct RegistryServicePayload {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub version: String,
+    pub r#type: ga4gh_types::ServiceType,
+    pub organization: ga4gh_types::ServiceOrganization,
 }

@@ -83,6 +83,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(handlers::get_dataset_summary),
         )
         .route("/service-info", get(handlers::service_info))
+        .route("/health", get(handlers::health))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

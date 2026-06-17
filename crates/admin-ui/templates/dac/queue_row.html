@@ -1,0 +1,54 @@
+<tr id="request-{{ row.id }}" class="{% if row.resolved %}queue-row-resolved{% endif %}">
+  <td>{{ row.requester }}</td>
+  <td>{{ row.dataset.html()|safe }}</td>
+  <td>{{ row.project.html()|safe }}</td>
+  <td>{{ row.dac_group }}</td>
+  <td>
+    <span class="badge {% if row.duo_compatible %}status-ok{% else %}status-warn{% endif %}" title="From submission-time DUO evaluation">
+      {{ row.duo_summary }}
+    </span>
+  </td>
+  <td>
+    <span class="badge {% if row.status == "Approved" %}status-ok{% else if row.status == "Rejected" %}status-err{% else if row.status == "Escalated" %}status-warn{% else %}status-warn{% endif %}">
+      {{ row.status }}
+    </span>
+  </td>
+  <td>{{ row.submitted.html()|safe }}</td>
+  <td class="dac-actions">
+    {% if row.resolved %}
+    <span class="note">✓ {{ row.status }} — no further action</span>
+    {% else %}
+    <label class="note" for="reason-{{ row.id }}">Comment</label>
+    <input type="text" id="reason-{{ row.id }}" name="reason" placeholder="Optional for approve; required for reject/escalate" size="22" aria-label="Review comment">
+    <button type="button" class="btn btn-primary"
+      hx-post="/dac/requests/{{ row.id }}/approve"
+      hx-target="#request-{{ row.id }}"
+      hx-swap="outerHTML settle:200ms"
+      hx-include="#reason-{{ row.id }}"
+      hx-indicator="#request-{{ row.id }}"
+      hx-sync="#request-{{ row.id }}:drop">Approve</button>
+    <button type="button" class="btn btn-danger"
+      hx-post="/dac/requests/{{ row.id }}/reject"
+      hx-target="#request-{{ row.id }}"
+      hx-swap="outerHTML settle:200ms"
+      hx-include="#reason-{{ row.id }}"
+      hx-indicator="#request-{{ row.id }}"
+      hx-sync="#request-{{ row.id }}:drop"
+      hx-on::before-request="if(!document.getElementById('reason-{{ row.id }}').value.trim()){event.preventDefault();alert('A reason is required to reject.');}">Reject</button>
+    <button type="button" class="btn"
+      hx-post="/dac/requests/{{ row.id }}/escalate"
+      hx-target="#request-{{ row.id }}"
+      hx-swap="outerHTML settle:200ms"
+      hx-include="#reason-{{ row.id }}"
+      hx-indicator="#request-{{ row.id }}"
+      hx-sync="#request-{{ row.id }}:drop"
+      hx-on::before-request="if(!document.getElementById('reason-{{ row.id }}').value.trim()){event.preventDefault();alert('A reason is required to escalate.');}">Escalate</button>
+    <noscript>
+      <form method="post" action="/dac/requests/{{ row.id }}/approve" class="dac-noscript-form">
+        <input type="hidden" name="reason" value="approved via form">
+        <button type="submit" class="btn btn-primary">Approve (no JS)</button>
+      </form>
+    </noscript>
+    {% endif %}
+  </td>
+</tr>

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::extract::DefaultBodyLimit;
@@ -6,15 +7,30 @@ use axum::Router;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+use crate::config::AdminUiConfig;
 use crate::handlers;
 use crate::state::AppState;
 
+fn resolve_static_dir(config: &AdminUiConfig) -> PathBuf {
+    if let Some(dir) = &config.static_dir {
+        return dir.clone();
+    }
+
+    let manifest_static = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
+    if manifest_static.is_dir() {
+        return manifest_static;
+    }
+
+    let docker_static = PathBuf::from("/app/static");
+    if docker_static.is_dir() {
+        return docker_static;
+    }
+
+    manifest_static
+}
+
 pub fn build_router(state: AppState) -> Router {
-    let static_dir = state
-        .config
-        .static_dir
-        .clone()
-        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static"));
+    let static_dir = resolve_static_dir(&state.config);
 
     Router::new()
         .route("/", get(handlers::dashboard::dashboard))
@@ -32,11 +48,13 @@ pub fn build_router(state: AppState) -> Router {
             get(handlers::datasets::list_page).post(handlers::datasets::create),
         )
         .route("/datasets/:id", get(handlers::datasets::detail_page))
+        .route("/datasets/:id/edit", post(handlers::datasets::update))
         .route(
             "/projects",
             get(handlers::projects::list_page).post(handlers::projects::create),
         )
         .route("/projects/:id", get(handlers::projects::detail_page))
+        .route("/projects/:id/edit", post(handlers::projects::update))
         .route("/grants", get(handlers::grants::list_page))
         .route("/grants/export.csv", get(handlers::grants::export_csv))
         .route("/grants/:id/revoke", post(handlers::grants::revoke))
@@ -47,6 +65,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/audit", get(handlers::audit::list_page))
         .route("/audit/export.csv", get(handlers::audit::export_csv))
         .route("/services", get(handlers::services::list_page))
+        .route("/services/register", post(handlers::services::register_service))
         .route(
             "/services/:id/delete",
             post(handlers::services::delete_service),

@@ -1,4 +1,8 @@
-target/
+# Rust build output (repo root and workspace members only).
+# Do NOT use **/target/ — it excludes docker/vendor/cc/src/target/ (cc crate source).
+/target/
+/crates/*/target/
+/tests/integration/target/
+
 .git/
 .github/
-**/target/

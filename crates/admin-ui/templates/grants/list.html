@@ -1,28 +1,28 @@
 {% if degraded %}<div class="degraded">Could not load grants from ADS.</div>{% endif %}
-<p><a href="/grants/export.csv">Download CSV export</a></p>
+{% if is_admin %}<p><a href="/grants/export.csv">Download CSV export</a> (all grants)</p>{% endif %}
 <table>
   <thead>
-    <tr><th>Researcher</th><th>Dataset</th><th>Source</th><th>Status</th><th>Issued</th><th>Expires</th>{% if is_admin %}<th></th>{% endif %}</tr>
+    <tr><th>Researcher</th><th>Dataset</th><th>Source</th><th>Status</th><th>Issued (UTC)</th><th>Expires (UTC)</th>{% if is_admin %}<th></th>{% endif %}</tr>
   </thead>
   <tbody>
     {% for g in grants %}
     <tr>
       <td><code>{{ g.researcher_id }}</code></td>
-      <td><code>{{ g.dataset_id }}</code></td>
-      <td><span class="badge">{{ g.source }}</span></td>
+      <td>{{ g.dataset.html()|safe }}</td>
+      <td><span class="badge {{ g.source_class }}">{{ g.source }}</span></td>
       <td>{{ g.status }}</td>
-      <td>{{ g.issued }}</td>
-      <td>{{ g.expires }}</td>
+      <td>{{ g.issued.html()|safe }}</td>
+      <td>{{ g.expires.html()|safe }}</td>
       {% if is_admin %}
-      <td>{% if g.status == "active" %}
-        <form hx-post="/grants/{{ g.id }}/revoke" hx-confirm="Revoke this grant?" hx-swap="none">
+      <td>{% if g.status == "Active" %}
+        <form hx-post="/grants/{{ g.id }}/revoke" hx-confirm="Revoke this grant? This cannot be undone." hx-swap="none">
           <button type="submit" class="btn btn-danger">Revoke</button>
         </form>
       {% endif %}</td>
       {% endif %}
     </tr>
     {% else %}
-    <tr><td colspan="7" class="note">No grants.</td></tr>
+    <tr><td colspan="7" class="note">No grants in scope.</td></tr>
     {% endfor %}
   </tbody>
 </table>

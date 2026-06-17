@@ -4,7 +4,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, Response};
 use axum::Form;
-use ga4gh_types::{AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult};
+use ga4gh_types::{AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, PolicyProfile};
 use serde::Deserialize;
 
 use crate::handlers::{render_layout, SharedState};
@@ -14,7 +14,9 @@ use crate::session::RequireAuth;
 #[template(path = "agreements/index.html")]
 struct AgreementsInner {
     pub templates: Vec<TemplateRow>,
+    pub profiles: Vec<ProfileRow>,
     pub degraded: bool,
+    pub profiles_degraded: bool,
     pub check_result: Option<CheckResultRow>,
     pub error: Option<String>,
 }
@@ -35,6 +37,24 @@ impl From<&AgreementTemplate> for TemplateRow {
             version: t.version.clone(),
             description: t.description.clone(),
             illustrative: t.is_illustrative,
+        }
+    }
+}
+
+pub struct ProfileRow {
+    pub id: String,
+    pub owner: String,
+    pub version: String,
+    pub template_ref: String,
+}
+
+impl From<&PolicyProfile> for ProfileRow {
+    fn from(p: &PolicyProfile) -> Self {
+        Self {
+            id: p.id.clone(),
+            owner: p.owner.clone(),
+            version: p.version.clone(),
+            template_ref: p.based_on_template.clone().unwrap_or_else(|| "—".into()),
         }
     }
 }
@@ -77,6 +97,7 @@ async fn agreements_page(
     error: Option<String>,
 ) -> Response {
     let templates_result = state.clients.agreement_list_templates().await;
+    let profiles_result = state.clients.agreement_list_profiles().await;
     let inner = AgreementsInner {
         templates: templates_result
             .as_ref()
@@ -84,7 +105,14 @@ async fn agreements_page(
             .iter()
             .map(TemplateRow::from)
             .collect(),
+        profiles: profiles_result
+            .as_ref()
+            .unwrap_or(&vec![])
+            .iter()
+            .map(ProfileRow::from)
+            .collect(),
         degraded: templates_result.is_err(),
+        profiles_degraded: profiles_result.is_err(),
         check_result,
         error,
     };

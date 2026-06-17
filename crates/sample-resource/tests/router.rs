@@ -81,6 +81,18 @@ async fn registers_dataset_routes() {
         .expect("service-info response");
     assert_eq!(service_info.status(), StatusCode::OK);
 
+    let health = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/health")
+                .body(Body::empty())
+                .expect("request"),
+        )
+        .await
+        .expect("health response");
+    assert_eq!(health.status(), StatusCode::OK);
+
     let probe = app
         .clone()
         .oneshot(

@@ -1,0 +1,8 @@
+# Docker builds copy this to /app/.cargo/config.toml and mount docker/vendor as /app/vendor.
+# Regenerate vendor: make prepare-vendor  (or scripts/prepare-docker-vendor.sh)
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"

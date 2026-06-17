@@ -9,6 +9,14 @@ use ga4gh_types::PolicyProfile;
 use crate::app::AppState;
 use crate::http_error::AgreementRegistryHttpError;
 
+pub async fn list_profiles(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<PolicyProfile>>, AgreementRegistryHttpError> {
+    let registry = state.registry.read().await;
+    let profiles = registry.list_profiles().into_iter().cloned().collect();
+    Ok(Json(profiles))
+}
+
 pub async fn get_profile(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,

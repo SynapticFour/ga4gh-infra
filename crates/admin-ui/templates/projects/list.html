@@ -4,7 +4,7 @@
 
 <table>
   <thead>
-    <tr><th>Name</th><th>Researcher</th><th>DUO</th><th>Created</th></tr>
+    <tr><th>Name</th><th>Researcher</th><th>DUO</th><th>Created (UTC)</th></tr>
   </thead>
   <tbody>
     {% for p in projects %}
@@ -12,7 +12,7 @@
       <td><a href="/projects/{{ p.id }}">{{ p.name }}</a></td>
       <td><code>{{ p.researcher_id }}</code></td>
       <td>{{ p.duo_codes }}</td>
-      <td>{{ p.created_at }}</td>
+      <td>{{ p.created_at.html()|safe }}</td>
     </tr>
     {% else %}
     <tr><td colspan="4" class="note">No projects registered.</td></tr>

@@ -1198,6 +1198,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ga4gh-dev-seed"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "ga4gh-types",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "wiremock",
+]
+
+[[package]]
 name = "ga4gh-e2e"
 version = "0.1.0"
 dependencies = [

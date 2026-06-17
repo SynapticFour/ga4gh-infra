@@ -39,9 +39,10 @@ impl AppState {
 pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/service-info", get(handlers::service_info))
+        .route("/health", get(handlers::health))
         .route("/templates", get(handlers::list_templates))
         .route("/templates/:id", get(handlers::get_template))
-        .route("/profiles", post(handlers::register_profile))
+        .route("/profiles", get(handlers::list_profiles).post(handlers::register_profile))
         .route("/profiles/:id", get(handlers::get_profile))
         .route("/compatibility-check", post(handlers::compatibility_check))
         .route("/decisions", get(handlers::list_decisions))

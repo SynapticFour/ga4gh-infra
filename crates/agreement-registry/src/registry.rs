@@ -44,6 +44,13 @@ impl InMemoryRegistry {
         self.templates.insert(template.id.clone(), template);
     }
 
+    /// List all policy profiles.
+    pub fn list_profiles(&self) -> Vec<&PolicyProfile> {
+        let mut out: Vec<_> = self.profiles.values().collect();
+        out.sort_by_key(|p| p.id.as_str());
+        out
+    }
+
     /// Look up a policy profile by id.
     pub fn get_profile(&self, id: &str) -> Result<&PolicyProfile, AgreementRegistryError> {
         self.profiles

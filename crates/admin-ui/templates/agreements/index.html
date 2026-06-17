@@ -1,5 +1,5 @@
 {% if degraded %}
-<div class="degraded">Could not reach the agreement registry service.</div>
+<div class="degraded">Could not reach the agreement registry templates API.</div>
 {% endif %}
 
 <h3>Agreement templates</h3>
@@ -11,7 +11,7 @@
     {% for t in templates %}
     <tr>
       <td><code>{{ t.id }}</code></td>
-      <td>{{ t.name }}{% if t.illustrative %} <span class="badge">illustrative</span>{% endif %}</td>
+      <td>{{ t.name }}{% if t.illustrative %} <span class="badge status-warn">illustrative</span>{% endif %}</td>
       <td>{{ t.version }}</td>
       <td>{{ t.description }}</td>
     </tr>
@@ -20,6 +20,27 @@
     {% endfor %}
   </tbody>
 </table>
+
+<h3>Policy profiles</h3>
+{% if profiles_degraded %}
+<div class="degraded">Could not load policy profiles.</div>
+{% else %}
+<table>
+  <thead><tr><th>ID</th><th>Owner</th><th>Version</th><th>Template</th></tr></thead>
+  <tbody>
+    {% for p in profiles %}
+    <tr id="profile-{{ p.id }}">
+      <td><code>{{ p.id }}</code></td>
+      <td>{{ p.owner }}</td>
+      <td>{{ p.version }}</td>
+      <td>{{ p.template_ref }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="note">No policy profiles registered.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
 
 <h3>Compatibility check</h3>
 <p class="note">Demo profiles <code>demo.requester.gru</code> and <code>demo.dataset.gru</code> are pre-registered in the agreement registry service.</p>

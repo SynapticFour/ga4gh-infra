@@ -13,6 +13,7 @@ pub mod ads;
 pub mod agreement;
 pub mod compatibility;
 pub mod duo;
+pub mod health;
 pub mod passport;
 pub mod service_info;
 pub mod visa;
@@ -37,6 +38,7 @@ pub use compatibility::{
     check_compatibility, find_matching_template, is_permission, permission_satisfies,
 };
 pub use duo::{DuoCode, DuoCodeError};
+pub use health::HealthResponse;
 pub use passport::{Passport, PassportClaims};
 pub use service_info::{ServiceInfo, ServiceOrganization, ServiceType};
 pub use visa::{

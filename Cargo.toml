@@ -13,6 +13,7 @@ members = [
     "crates/ga4gh-infra-cli",
     "crates/agreement-registry",
     "crates/ga4gh-e2e",
+    "crates/ga4gh-dev-seed",
     "crates/admin-ui",
     "tests/integration",
 ]

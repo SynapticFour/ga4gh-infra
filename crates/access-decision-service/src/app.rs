@@ -95,12 +95,12 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/datasets",
             post(handlers::create_dataset).get(handlers::list_datasets),
         )
-        .route("/datasets/:id", get(handlers::get_dataset))
+        .route("/datasets/:id", get(handlers::get_dataset).put(handlers::update_dataset))
         .route(
             "/projects",
             post(handlers::create_project).get(handlers::list_projects),
         )
-        .route("/projects/:id", get(handlers::get_project))
+        .route("/projects/:id", get(handlers::get_project).put(handlers::update_project))
         .route("/duo/evaluate", post(handlers::evaluate_duo))
         .route("/access-requests", post(handlers::create_access_request))
         .route("/access-requests/:id", get(handlers::get_access_request))
@@ -132,6 +132,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
         .nest("/ads/v1", api)
         .route("/service-info", get(handlers::service_info))
+        .route("/health", get(handlers::health))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

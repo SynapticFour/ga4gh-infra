@@ -38,7 +38,7 @@ pub async fn login_page(State(state): State<SharedState>) -> impl IntoResponse {
     );
     let broker_login_url = format!(
         "{}/login?return_url={}",
-        state.config.broker_base_url.trim_end_matches('/'),
+        state.config.broker_public_url().trim_end_matches('/'),
         urlencoding(return_url)
     );
     LoginTemplate { broker_login_url }.into_response()

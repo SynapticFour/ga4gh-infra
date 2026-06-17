@@ -5,11 +5,15 @@
 FROM rust:1-bookworm AS builder
 WORKDIR /app
 
+COPY docker/.cargo/config.toml .cargo/config.toml
+COPY docker/vendor ./vendor
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY tests/integration ./tests/integration
 
-RUN cargo build --release -p ga4gh-infra-cli
+RUN --mount=type=cache,target=/app/target,sharing=locked \
+    cargo build --release -p ga4gh-infra-cli \
+    && install -D /app/target/release/ga4gh-infra /app/bin/ga4gh-infra
 
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update \
@@ -18,7 +22,7 @@ RUN apt-get update \
     && useradd --uid 1000 --system --home /app --shell /usr/sbin/nologin ga4gh \
     && mkdir -p /data && chown ga4gh:ga4gh /data
 
-COPY --from=builder /app/target/release/ga4gh-infra /usr/local/bin/ga4gh-infra
+COPY --from=builder /app/bin/ga4gh-infra /usr/local/bin/ga4gh-infra
 
 USER ga4gh
 WORKDIR /app

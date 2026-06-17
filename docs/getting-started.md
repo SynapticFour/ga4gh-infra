@@ -4,38 +4,50 @@ Two single-command paths to run GA4GH Infra locally.
 
 ## Path 1: Docker (recommended)
 
-**Prerequisites:** Docker, Docker Compose, optional [just](https://github.com/casey/just)
+**Prerequisites:** Docker, Docker Compose, optional [just](https://github.com/casey/just) or GNU Make
 
 ```bash
 git clone https://github.com/SynapticFour/ga4gh-infra.git
 cd ga4gh-infra
-just up
+make up-local
+# equivalent: just up
 ```
+
+Use a **hyphen** — `make up-local`, not `make up local`.
 
 What happens:
 
 1. Dev RSA keys are created under `docker/secrets/` if missing (`ga4gh-infra keygen`).
-2. Compose builds per-service images and starts PostgreSQL, mock IdP, broker, visa-registry, access-decision-service, duo-service, service-registry, and sample-resource.
-3. Health checks wait until all services respond on ports 8080–8084, 8090, and 9000.
+2. Rust crates are vendored for offline Docker builds (`make prepare-vendor`).
+3. Compose builds per-service images and starts PostgreSQL, mock IdP, broker, visa-registry, access-decision-service, duo-service, service-registry, agreement-registry, admin-ui, and sample-resource.
+4. Health checks wait until services respond.
+5. Demo seed data is loaded automatically (`make seed`) — datasets, a pending DAC request, and operator login users.
 
 Lighter stack (SQLite visa-registry, no Postgres for visas):
 
 ```bash
-just up-sqlite
+make up-sqlite
+# or: just up-sqlite
 ```
 
 Stop and view logs:
 
 ```bash
-just down
-just logs
+make down
+make logs
+```
+
+Re-load demo data without restarting:
+
+```bash
+make seed
 ```
 
 Run the full integration test:
 
 ```bash
-just e2e
-# or: ./scripts/e2e.sh
+make test
+# or: just e2e / ./scripts/e2e.sh
 ```
 
 ### Service URLs (default)
@@ -46,9 +58,20 @@ just e2e
 | Visa registry | http://localhost:8081 |
 | DUO service | http://localhost:8082 |
 | Service registry | http://localhost:8083 |
-| Access Decision Service | http://localhost:8090 |
 | Sample resource | http://localhost:8084 |
+| Agreement registry | http://localhost:8086 |
+| Access Decision Service | http://localhost:8090 |
+| **Admin UI** | **http://localhost:8095** |
 | Mock IdP | http://localhost:9000 |
+
+### Admin UI quick try
+
+1. Open http://localhost:8095
+2. Log in via mock IdP (e.g. `researcher@uni-heidelberg.de` — Operator role)
+3. Review **DAC Queue** — seed data includes a pending request; approve or reject with htmx row updates
+4. Browse datasets, grants, audit log, and dashboard activity feed
+
+See [admin-ui/overview.md](admin-ui/overview.md) for roles and pages.
 
 ---
 
@@ -82,7 +105,7 @@ source ~/.config/ga4gh-infra/env   # edit secrets first
 ga4gh-infra all-in-one --config ~/.config/ga4gh-infra/all-in-one.toml
 ```
 
-**Note:** Service-registry still expects PostgreSQL at `SERVICE_REGISTRY_DATABASE_URL`. For a fully containerized demo without local Postgres, use `just up-sqlite` instead.
+**Note:** Service-registry still expects PostgreSQL at `SERVICE_REGISTRY_DATABASE_URL`. For a fully containerized demo without local Postgres, use `make up-sqlite` instead.
 
 ---
 
@@ -110,6 +133,7 @@ For container deployment on Pi, use Docker with `linux/arm64` or `linux/arm/v7` 
 ## Next steps
 
 - [architecture.md](architecture.md) — how components interact
+- [admin-ui/overview.md](admin-ui/overview.md) — operations dashboard
 - [configuration.md](configuration.md) — all config fields
 - [deployment-scenarios.md](deployment-scenarios.md) — desktop, institute production, federation notes
 - [limitations.md](limitations.md) — what this project does not do

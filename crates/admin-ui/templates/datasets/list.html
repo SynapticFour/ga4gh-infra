@@ -9,8 +9,9 @@
       <th>External ID</th>
       <th>DAC group</th>
       <th>DUO</th>
+      <th>Active grants</th>
       <th>Auto-approve</th>
-      <th>Created</th>
+      <th>Created (UTC)</th>
     </tr>
   </thead>
   <tbody>
@@ -19,12 +20,13 @@
       <td><a href="/datasets/{{ ds.id }}">{{ ds.name }}</a></td>
       <td>{{ ds.external_id }}</td>
       <td>{{ ds.dac_group }}</td>
-      <td>{{ ds.duo_codes }}</td>
+      <td>{{ ds.duo_codes_html|safe }}</td>
+      <td>{{ ds.grant_count }}</td>
       <td>{{ ds.auto_approve }}</td>
-      <td>{{ ds.created_at }}</td>
+      <td>{{ ds.created_at.html()|safe }}</td>
     </tr>
     {% else %}
-    <tr><td colspan="6" class="note">No datasets registered.</td></tr>
+    <tr><td colspan="7" class="note">No datasets registered.</td></tr>
     {% endfor %}
   </tbody>
 </table>
@@ -60,11 +62,9 @@
       Enable DUO auto-approval
     </label>
     <label>Auto-approve threshold (0–100)
-      <input type="text" name="auto_approve_threshold" value="100">
+      <input type="number" name="auto_approve_threshold" min="0" max="100" value="100">
     </label>
-    <button type="submit" class="btn btn-primary">Create dataset</button>
+    <button type="submit" class="btn btn-primary">Register</button>
   </fieldset>
 </form>
-{% else %}
-<p class="note">Dataset registration requires Admin role.</p>
 {% endif %}

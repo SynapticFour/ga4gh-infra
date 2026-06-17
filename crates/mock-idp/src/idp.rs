@@ -25,6 +25,8 @@ use url::Url;
 /// Shared mock IdP state.
 pub struct MockIdpState {
     issuer: String,
+    /// Browser-facing base URL for the authorization endpoint.
+    public_base_url: String,
     subject: String,
     client_id: String,
     client_secret: String,
@@ -37,7 +39,12 @@ pub struct MockIdpState {
 
 impl MockIdpState {
     /// Load signing material and issuer configuration.
-    pub fn new(issuer: &str, key_path: &str, subject: String) -> anyhow::Result<Self> {
+    pub fn new(
+        issuer: &str,
+        public_base_url: &str,
+        key_path: &str,
+        subject: String,
+    ) -> anyhow::Result<Self> {
         let pem = fs::read_to_string(key_path)
             .map_err(|err| anyhow::anyhow!("reading mock IdP key `{key_path}`: {err}"))?;
         let private_key = RsaPrivateKey::from_pkcs8_pem(&pem)?;
@@ -57,6 +64,7 @@ impl MockIdpState {
 
         Ok(Self {
             issuer: issuer.to_string(),
+            public_base_url: public_base_url.to_string(),
             subject,
             client_id: std::env::var("MOCK_IDP_CLIENT_ID")
                 .unwrap_or_else(|_| "ga4gh-broker".to_string()),
@@ -81,7 +89,7 @@ impl MockIdpState {
 pub async fn openid_configuration(State(state): State<Arc<MockIdpState>>) -> Json<Value> {
     Json(json!({
         "issuer": state.issuer,
-        "authorization_endpoint": format!("{}/oauth/authorize", state.issuer),
+        "authorization_endpoint": format!("{}/oauth/authorize", state.public_base_url),
         "token_endpoint": format!("{}/oauth/token", state.issuer),
         "userinfo_endpoint": format!("{}/oauth/userinfo", state.issuer),
         "jwks_uri": format!("{}/jwks.json", state.issuer),

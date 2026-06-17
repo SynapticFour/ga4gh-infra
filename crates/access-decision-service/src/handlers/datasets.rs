@@ -47,3 +47,14 @@ pub async fn list_datasets(
     let datasets = state.store.list_datasets(filter.filter()).await?;
     Ok(Json(ga4gh_types::DatasetListResponse { datasets }))
 }
+
+#[instrument(skip(state, body))]
+pub async fn update_dataset(
+    State(state): State<Arc<AppState>>,
+    RequireDac(_operator): RequireDac,
+    Path(id): Path<Uuid>,
+    Json(body): Json<CreateDatasetRequest>,
+) -> Result<Json<Dataset>, AdsError> {
+    let dataset = state.store.update_dataset(id, &body).await?;
+    Ok(Json(dataset))
+}

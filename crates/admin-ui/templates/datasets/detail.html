@@ -3,16 +3,74 @@
   <dt>Name</dt><dd>{{ dataset.name }}</dd>
   <dt>Description</dt><dd>{{ dataset.description }}</dd>
   <dt>External ID</dt><dd>{{ dataset.external_id }}</dd>
-  <dt>DUO codes</dt><dd>{{ dataset.duo_codes }}</dd>
-  <dt>DUO labels</dt>
-  <dd>
-    <ul>
-      {% for label in duo_labels %}
-      <li>{{ label }}</li>
-      {% endfor %}
-    </ul>
-  </dd>
+  <dt>DAC group</dt><dd>{{ dataset.dac_group }}</dd>
   <dt>Auto-approve</dt><dd>{{ dataset.auto_approve }}</dd>
-  <dt>Created</dt><dd>{{ dataset.created_at }}</dd>
+  <dt>Created (UTC)</dt><dd>{{ dataset.created_at.html()|safe }}</dd>
 </dl>
+
+<h3>DUO terms</h3>
+<ul class="duo-list">
+  {% for term in duo_terms_detail %}
+  <li>
+    <strong>{{ term.label }}</strong>
+    <span class="note" title="{{ term.curie }}">({{ term.curie }})</span>
+    {% if !term.definition.is_empty() %}
+    <p class="note">{{ term.definition }}</p>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+<h3>Active grants</h3>
+{% if grants_degraded %}
+<div class="degraded">Could not load grants from ADS.</div>
+{% else %}
+<table>
+  <thead><tr><th>Researcher</th><th>Status</th><th>Issued (UTC)</th></tr></thead>
+  <tbody>
+    {% for g in active_grants %}
+    <tr><td><code>{{ g.researcher_id }}</code></td><td>{{ g.status }}</td><td>{{ g.issued.html()|safe }}</td></tr>
+    {% else %}
+    <tr><td colspan="3" class="note">No active grants for this dataset.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if let Some(profile) = policy_profile_id %}
+<h3>Agreement policy</h3>
+<p>Linked policy profile: <a href="/agreements#profile-{{ profile }}"><code>{{ profile }}</code></a></p>
+{% endif %}
+
+{% if is_admin %}
+<h3>Edit dataset</h3>
+<form method="post" action="/datasets/{{ dataset.id }}/edit">
+  <fieldset>
+    <legend>Update dataset</legend>
+    <label>Name
+      <input type="text" name="name" value="{{ dataset.name }}" required>
+    </label>
+    <label>Description
+      <textarea name="description" rows="3">{{ dataset.description }}</textarea>
+    </label>
+    <label>External ID
+      <input type="text" name="external_id" value="{{ dataset.external_id }}">
+    </label>
+    <label>DAC group
+      <input type="text" name="dac_group" value="{{ dataset.dac_group }}">
+    </label>
+    <label>DUO codes
+      <select name="duo_codes" multiple size="8">
+        {% for term in duo_terms %}
+        {% if !term.obsolete %}
+        <option value="{{ term.code }}">{{ term.code }} — {{ term.label }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary">Save changes</button>
+  </fieldset>
+</form>
+{% endif %}
+
 <p><a href="/datasets">← Back to datasets</a></p>

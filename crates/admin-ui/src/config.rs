@@ -7,7 +7,11 @@ use serde::Deserialize;
 pub struct AdminUiConfig {
     pub listen_addr: String,
     pub public_base_url: String,
+    /// Base URL for server-side broker API calls (JWKS, health).
     pub broker_base_url: String,
+    /// Browser-facing broker URL for OIDC login redirects. Defaults to `broker_base_url`.
+    #[serde(default)]
+    pub broker_public_url: Option<String>,
     pub ads_base_url: String,
     pub ads_dac_api_key: String,
     pub duo_base_url: String,
@@ -30,6 +34,9 @@ pub struct AdminUiConfig {
     /// Hint shown on System page for broker config file location.
     #[serde(default = "default_broker_config_path")]
     pub broker_config_path: String,
+    /// Optional ISO-8601 date when broker signing keys should be rotated (dashboard warning).
+    #[serde(default)]
+    pub signing_key_rotation_due: Option<String>,
 }
 
 fn default_broker_config_path() -> String {
@@ -69,5 +76,13 @@ impl AdminUiConfig {
 
     pub fn session_ttl(&self) -> Duration {
         Duration::from_secs(self.session_ttl_hours * 3600)
+    }
+
+    /// Broker URL shown in the browser (login redirect). In Docker, set to `http://localhost:8080`
+    /// while `broker_base_url` stays on the internal service name.
+    pub fn broker_public_url(&self) -> &str {
+        self.broker_public_url
+            .as_deref()
+            .unwrap_or(self.broker_base_url.as_str())
     }
 }

@@ -3,7 +3,46 @@
   <dt>Researcher</dt><dd><code>{{ project.researcher_id }}</code></dd>
   <dt>Name</dt><dd>{{ project.name }}</dd>
   <dt>Description</dt><dd>{{ project.description }}</dd>
-  <dt>DUO</dt><dd>{{ project.duo_codes }}</dd>
-  <dt>Labels</dt><dd><ul>{% for l in duo_labels %}<li>{{ l }}</li>{% endfor %}</ul></dd>
+  <dt>Created (UTC)</dt><dd>{{ project.created_at.html()|safe }}</dd>
 </dl>
-<p><a href="/projects">← Back</a></p>
+
+<h3>DUO terms</h3>
+<ul class="duo-list">
+  {% for term in duo_terms_detail %}
+  <li>
+    <strong>{{ term.label }}</strong>
+    <span class="note" title="{{ term.curie }}">({{ term.curie }})</span>
+    {% if !term.definition.is_empty() %}<p class="note">{{ term.definition }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+{% if is_admin %}
+<h3>Edit project</h3>
+<form method="post" action="/projects/{{ project.id }}/edit">
+  <fieldset>
+    <legend>Update project</legend>
+    <label>Researcher ID
+      <input type="text" name="researcher_id" value="{{ project.researcher_id }}" required>
+    </label>
+    <label>Name
+      <input type="text" name="name" value="{{ project.name }}" required>
+    </label>
+    <label>Description
+      <textarea name="description" rows="3">{{ project.description }}</textarea>
+    </label>
+    <label>DUO codes
+      <select name="duo_codes" multiple size="8">
+        {% for term in duo_terms %}
+        {% if !term.obsolete %}
+        <option value="{{ term.code }}">{{ term.code }} — {{ term.label }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary">Save changes</button>
+  </fieldset>
+</form>
+{% endif %}
+
+<p><a href="/projects">← Back to projects</a></p>

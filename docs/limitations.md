@@ -66,4 +66,8 @@ Docker and native quick starts use plain HTTP. Production requires TLS at a reve
 
 Only Docker Compose and native binary paths are documented. Horizontal scaling, probes beyond `/service-info`, and Helm are left to deployers.
 
+### Admin UI is English-only
+
+The operations dashboard has no i18n or language switcher. All UI copy is English; timestamps are UTC with ISO tooltips.
+
 See [roadmap.md](roadmap.md) for planned follow-on work.

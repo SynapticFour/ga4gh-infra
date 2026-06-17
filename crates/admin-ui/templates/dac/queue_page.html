@@ -4,7 +4,67 @@
 
 <div id="dac-queue"
      hx-get="/dac/queue"
-     hx-trigger="load, every 30s"
+     hx-trigger="every 30s [window.dacQueuePollPaused!==true]"
      hx-swap="innerHTML">
-  <p class="note">Loading queue…</p>
+  {{ initial_html|safe }}
 </div>
+<script>
+window.dacQueuePollPaused = false;
+
+document.body.addEventListener('htmx:beforeRequest', function (evt) {
+  if (evt.detail.path && evt.detail.path.includes('/dac/requests/')) {
+    window.dacQueuePollPaused = true;
+  }
+});
+document.body.addEventListener('htmx:afterRequest', function (evt) {
+  if (evt.detail.path && evt.detail.path.includes('/dac/requests/')) {
+    window.dacQueuePollPaused = false;
+  }
+});
+document.body.addEventListener('htmx:afterSwap', function (evt) {
+  if (evt.detail.target && evt.detail.target.id === 'dac-queue' && window.htmx) {
+    htmx.process(evt.detail.target);
+  }
+});
+document.body.addEventListener('htmx:responseError', function (evt) {
+  if (!evt.detail.path || !evt.detail.path.includes('/dac/requests/')) return;
+  const cell = evt.detail.elt.closest('.dac-actions');
+  if (!cell) return;
+  let el = cell.querySelector('.dac-action-error');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'dac-action-error note';
+    el.setAttribute('role', 'alert');
+    cell.appendChild(el);
+  }
+  el.textContent = evt.detail.xhr.responseText || 'Action failed';
+});
+document.body.addEventListener('htmx:swapError', function (evt) {
+  if (!evt.detail.path || !evt.detail.path.includes('/dac/requests/')) return;
+  const cell = evt.detail.elt.closest('.dac-actions');
+  if (!cell) return;
+  let el = cell.querySelector('.dac-action-error');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'dac-action-error note';
+    el.setAttribute('role', 'alert');
+    cell.appendChild(el);
+  }
+  el.textContent = 'Could not update this row — refresh the page to see the latest status.';
+});
+
+(function ensureDacQueueProcessed() {
+  function processQueue() {
+    var queue = document.getElementById('dac-queue');
+    if (queue && window.htmx) {
+      htmx.process(queue);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', processQueue);
+  } else {
+    processQueue();
+  }
+  document.body.addEventListener('htmx:load', processQueue);
+})();
+</script>

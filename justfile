@@ -27,20 +27,55 @@ prepare-secrets:
         fi
     done
 
-# Start the full Docker stack (PostgreSQL).
-up: prepare-secrets
+# Vendor crates on the host (Docker builds use docker/vendor, not crates.io).
+prepare-vendor:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    chmod +x scripts/prepare-docker-vendor.sh
+    ./scripts/prepare-docker-vendor.sh
+
+prepare-admin-ui-static:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    chmod +x scripts/prepare-admin-ui-static.sh
+    ./scripts/prepare-admin-ui-static.sh
+
+# Start the full Docker stack (PostgreSQL) — same as `make up-local`.
+up-local: prepare-secrets prepare-vendor prepare-admin-ui-static
     {{compose}} up --build --wait
+    GA4GH_SEED_PROFILE=postgres ./scripts/seed-dev-stack.sh postgres
+    @echo ""
+    @echo "Stack is ready. Admin UI: http://localhost:8095  |  Broker: http://localhost:8080"
+    @echo ""
+
+# Alias for up-local / make up.
+up: up-local
 
 # Start the lighter stack (SQLite visa-registry).
-up-sqlite: prepare-secrets
+up-sqlite: prepare-secrets prepare-admin-ui-static
     {{compose_sqlite}} up --build --wait
+    GA4GH_SEED_PROFILE=sqlite ./scripts/seed-dev-stack.sh sqlite
+
+seed:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    chmod +x scripts/seed-dev-stack.sh
+    GA4GH_SEED_PROFILE=postgres ./scripts/seed-dev-stack.sh postgres
+
+seed-sqlite:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    chmod +x scripts/seed-dev-stack.sh
+    GA4GH_SEED_PROFILE=sqlite ./scripts/seed-dev-stack.sh sqlite
 
 down:
     {{compose}} down
+    {{compose_sqlite}} down || true
 
 # Stop stack and remove volumes (database, registry data, etc.).
 destroy:
     {{compose}} down -v --remove-orphans
+    {{compose_sqlite}} down -v --remove-orphans || true
 
 logs *args:
     {{compose}} logs -f {{args}}

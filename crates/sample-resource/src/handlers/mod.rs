@@ -3,7 +3,9 @@
 //! HTTP handlers for the sample resource service.
 
 mod datasets;
+mod health;
 mod service_info;
 
 pub use datasets::{get_dataset, get_dataset_summary};
+pub use health::health;
 pub use service_info::service_info;

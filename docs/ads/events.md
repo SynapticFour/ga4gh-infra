@@ -32,15 +32,28 @@ Each event is an `AdsEvent`:
 Payload keys vary by event type:
 
 - **grant.created** — `grant_id`, `researcher_id`, `dataset_id`
-- **grant.revoked** — `grant_id`
-- **request.created** — `request_id`, `researcher_id`
-- **request.approved** / **request.rejected** — `request_id`
+- **grant.revoked** — `grant_id`, `researcher_id`, `dataset_id`, `actor` (when known)
+- **request.created** — `request_id`, `researcher_id`, `dataset_id`, `project_id`
+- **request.approved** / **request.rejected** — `request_id`, `researcher_id`, `dataset_id`, `project_id`, `actor`
+
+## HTTP export
+
+Events are queryable via ADS:
+
+```http
+GET /ads/v1/audit/events?limit=50&offset=0
+X-API-Key: {dac-or-admin-key}
+```
+
+Optional filters: `event_type`, `since`, `until`, `entity_id` (matches any payload UUID field).
+
+The **admin-ui** dashboard activity feed and audit log page consume this endpoint server-side and resolve dataset/project names for display.
 
 ## Access decisions vs events
 
 **AccessDecision** records (table `access_decisions`) capture DAC/system outcomes with actor
 and reason — suitable for DACReS-style audit. **AdsEvent** records are lighter-weight
-integration hooks for downstream SIEM, webhooks, or analytics (not yet exported via HTTP).
+integration hooks for downstream SIEM, webhooks, or analytics.
 
 ## Future extensions
 
