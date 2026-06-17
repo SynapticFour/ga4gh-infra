@@ -121,11 +121,17 @@ async fn stack_admin_ui_approves_dac_request_via_htmx() {
             admin_ui_url()
         ))
         .header(COOKIE, &session_cookie)
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
         .header("HX-Request", "true")
+        .body("reason=Admin+UI+e2e+DAC+approval")
         .send()
         .await
         .expect("approve via admin-ui");
-    assert!(approve_response.status().is_success());
+    assert!(
+        approve_response.status().is_success(),
+        "approve failed: {}",
+        approve_response.status()
+    );
     let approve_html = approve_response.text().await.expect("approve row html");
     assert!(
         approve_html.contains(&request_id),
