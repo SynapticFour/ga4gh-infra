@@ -88,6 +88,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Prepare Docker vendor tree
+        run: ./scripts/prepare-docker-vendor.sh
+
       - name: Run stack end-to-end test
         run: ./scripts/e2e.sh
 

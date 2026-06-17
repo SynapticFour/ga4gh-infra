@@ -136,10 +136,12 @@ macro_rules! parse_dataset {
                 .map_err(map_db_err)? as u8,
             dac_group: row.try_get("dac_group").map_err(map_db_err)?,
             visibility: parse_visibility(
-                &row.try_get::<String, _>("visibility").unwrap_or_else(|_| "institute".into()),
+                &row.try_get::<String, _>("visibility")
+                    .unwrap_or_else(|_| "institute".into()),
             ),
             resource_type: parse_resource_type(
-                &row.try_get::<String, _>("resource_type").unwrap_or_else(|_| "dataset".into()),
+                &row.try_get::<String, _>("resource_type")
+                    .unwrap_or_else(|_| "dataset".into()),
             ),
             remote_drs_base_url: row.try_get("remote_drs_base_url").ok(),
             created_at: dt_from_ts(row.try_get("created_at").map_err(map_db_err)?),
@@ -741,7 +743,7 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 let vis_placeholders: Vec<String> =
                     (1..=visibilities.len()).map(|i| format!("${i}")).collect();
-                let mut bind_idx = visibilities.len() + 1;
+                let bind_idx = visibilities.len() + 1;
                 let mut sql = format!(
                     "{select} WHERE visibility IN ({})",
                     vis_placeholders.join(", ")
@@ -754,7 +756,7 @@ impl AdsStore {
                 for v in &visibilities {
                     query = query.bind(*v);
                 }
-                if let Some(rt) = resource_type_str.as_deref() {
+                if let Some(rt) = resource_type_str.as_ref() {
                     query = query.bind(rt);
                 }
                 let rows = query.fetch_all(pool).await.map_err(map_db_err)?;
@@ -776,7 +778,7 @@ impl AdsStore {
                 for v in &visibilities {
                     query = query.bind(*v);
                 }
-                if let Some(rt) = resource_type_str.as_deref() {
+                if let Some(rt) = resource_type_str.as_ref() {
                     query = query.bind(rt);
                 }
                 let rows = query.fetch_all(pool).await.map_err(map_db_err)?;

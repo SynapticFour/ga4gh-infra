@@ -58,7 +58,10 @@ fn build_grant_row(g: &Grant, datasets: &HashMap<Uuid, &Dataset>) -> GrantRow {
     }
 }
 
-async fn load_grants(auth: &RequireAuth, state: &SharedState) -> Result<Vec<Grant>, crate::error::AdminUiError> {
+async fn load_grants(
+    auth: &RequireAuth,
+    state: &SharedState,
+) -> Result<Vec<Grant>, crate::error::AdminUiError> {
     let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
     if auth.0.is_admin {
         state.clients.ads_list_grants(None, None).await
@@ -87,8 +90,7 @@ async fn load_grant_rows(
         .await
         .unwrap_or_default();
     let dataset_map: HashMap<Uuid, Dataset> = datasets.into_iter().map(|d| (d.id, d)).collect();
-    let dataset_refs: HashMap<Uuid, &Dataset> =
-        dataset_map.iter().map(|(k, v)| (*k, v)).collect();
+    let dataset_refs: HashMap<Uuid, &Dataset> = dataset_map.iter().map(|(k, v)| (*k, v)).collect();
     Ok(grants
         .iter()
         .map(|g| build_grant_row(g, &dataset_refs))

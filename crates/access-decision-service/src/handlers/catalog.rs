@@ -48,6 +48,7 @@ pub async fn list_catalog_datasets(
         .store
         .list_catalog_datasets(include_institute, resource_type)
         .await?;
-    let entries: Vec<DatasetCatalogEntry> = datasets.iter().map(DatasetCatalogEntry::from).collect();
+    let entries: Vec<DatasetCatalogEntry> =
+        datasets.iter().map(DatasetCatalogEntry::from).collect();
     Ok(Json(DatasetCatalogResponse { datasets: entries }))
 }

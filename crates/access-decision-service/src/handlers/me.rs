@@ -40,9 +40,6 @@ pub async fn list_my_grants(
     State(state): State<Arc<AppState>>,
     RequireResearcher(caller): RequireResearcher,
 ) -> Result<Json<GrantListResponse>, AdsError> {
-    let grants = state
-        .store
-        .list_grants(Some(&caller.sub), None)
-        .await?;
+    let grants = state.store.list_grants(Some(&caller.sub), None).await?;
     Ok(Json(GrantListResponse { grants }))
 }

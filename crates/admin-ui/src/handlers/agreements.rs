@@ -4,7 +4,9 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, Response};
 use axum::Form;
-use ga4gh_types::{AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, PolicyProfile};
+use ga4gh_types::{
+    AgreementTemplate, CompatibilityCheckRequest, CompatibilityCheckResult, PolicyProfile,
+};
 use serde::Deserialize;
 
 use crate::handlers::{render_layout, SharedState};

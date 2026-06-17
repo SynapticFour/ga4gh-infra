@@ -170,7 +170,10 @@ where
                     .and_then(|v| v.to_str().ok())
                     == Some("true")
                 {
-                    Err((StatusCode::UNAUTHORIZED, "session expired — sign in again").into_response())
+                    Err(
+                        (StatusCode::UNAUTHORIZED, "session expired — sign in again")
+                            .into_response(),
+                    )
                 } else {
                     Err(Redirect::to("/login").into_response())
                 }

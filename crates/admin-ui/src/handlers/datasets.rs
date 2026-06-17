@@ -4,13 +4,13 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{Html, Redirect, Response};
 use axum::Form;
-use ga4gh_types::{CreateDatasetRequest, Dataset, DuoCode, Grant};
+use ga4gh_types::{AdsResourceType, CreateDatasetRequest, Dataset, DatasetVisibility, DuoCode, Grant};
 use serde::Deserialize;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::datetime::FormattedDateTime;
 use crate::clients::DuoTermOption;
+use crate::datetime::FormattedDateTime;
 use crate::duo::{duo_display, DuoDisplay};
 use crate::handlers::{render_layout, SharedState};
 use crate::roles::operator_dac_groups;
@@ -141,10 +141,7 @@ fn grant_counts(grants: &[Grant]) -> HashMap<Uuid, usize> {
     counts
 }
 
-async fn find_policy_profile(
-    state: &SharedState,
-    dataset: &Dataset,
-) -> Option<String> {
+async fn find_policy_profile(state: &SharedState, dataset: &Dataset) -> Option<String> {
     let profiles = state.clients.agreement_list_profiles().await.ok()?;
     let external = dataset.external_id.as_deref().unwrap_or("");
     profiles
@@ -167,9 +164,7 @@ pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> i
     let datasets: Vec<DatasetRow> = datasets_result
         .unwrap_or_default()
         .iter()
-        .map(|d| {
-            DatasetRow::from_dataset(d, &duo_terms, *counts.get(&d.id).unwrap_or(&0))
-        })
+        .map(|d| DatasetRow::from_dataset(d, &duo_terms, *counts.get(&d.id).unwrap_or(&0)))
         .collect();
 
     let inner = ListInner {
@@ -212,11 +207,7 @@ pub async fn detail_page(
                 .collect();
             let policy_profile_id = find_policy_profile(&state, &dataset).await;
             let inner = DetailInner {
-                dataset: DatasetRow::from_dataset(
-                    &dataset,
-                    &duo_terms,
-                    active_grants.len(),
-                ),
+                dataset: DatasetRow::from_dataset(&dataset, &duo_terms, active_grants.len()),
                 duo_terms_detail,
                 active_grants,
                 policy_profile_id,
@@ -283,6 +274,9 @@ async fn save_dataset(
         auto_approve_enabled: form.auto_approve_enabled,
         auto_approve_threshold: form.auto_approve_threshold,
         dac_group: form.dac_group.filter(|s| !s.is_empty()),
+        visibility: DatasetVisibility::Institute,
+        resource_type: AdsResourceType::Dataset,
+        remote_drs_base_url: None,
     };
     if let Some(id) = id {
         state.clients.ads_update_dataset(id, &payload).await

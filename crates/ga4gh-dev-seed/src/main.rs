@@ -21,7 +21,9 @@ struct Args {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("ga4gh_dev_seed=info".parse()?))
+        .with_env_filter(
+            EnvFilter::from_default_env().add_directive("ga4gh_dev_seed=info".parse()?),
+        )
         .init();
 
     let args = Args::parse();
@@ -30,10 +32,7 @@ async fn main() -> anyhow::Result<()> {
     let summary = seed_dev_stack(&config).await.context("seed dev stack")?;
 
     println!("Dev stack seed complete ({profile:?} profile):");
-    println!(
-        "  services registered: {}",
-        summary.services_registered
-    );
+    println!("  services registered: {}", summary.services_registered);
     println!(
         "  datasets: {} created, {} skipped",
         summary.datasets_created, summary.datasets_skipped

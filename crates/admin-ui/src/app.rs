@@ -65,7 +65,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/audit", get(handlers::audit::list_page))
         .route("/audit/export.csv", get(handlers::audit::export_csv))
         .route("/services", get(handlers::services::list_page))
-        .route("/services/register", post(handlers::services::register_service))
+        .route(
+            "/services/register",
+            post(handlers::services::register_service),
+        )
         .route(
             "/services/:id/delete",
             post(handlers::services::delete_service),

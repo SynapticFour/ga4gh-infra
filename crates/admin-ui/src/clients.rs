@@ -5,10 +5,10 @@ use ga4gh_types::{
     AccessRequest, AdsEvent, AgreementTemplate, AgreementTemplateListResponse,
     AuditEventListResponse, CompatibilityCheckRequest, CompatibilityCheckResult,
     CreateDatasetRequest, CreatePermissionMappingRequest, CreatePermissionSourceRequest,
-    CreateProjectRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse,
-    Grant, GrantListResponse, PermissionMapping,
-    PermissionMappingListResponse, PermissionSource, PermissionSourceListResponse,
-    PolicyProfile, ProjectListResponse, ResearchProject, Researcher, SignedVisasResponse,
+    CreateProjectRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse, Grant,
+    GrantListResponse, PermissionMapping, PermissionMappingListResponse, PermissionSource,
+    PermissionSourceListResponse, PolicyProfile, ProjectListResponse, ResearchProject, Researcher,
+    SignedVisasResponse,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -210,7 +210,7 @@ impl UpstreamClients {
             }
         }
         let mut grants: Vec<Grant> = by_id.into_values().collect();
-        grants.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        grants.sort_by_key(|b| std::cmp::Reverse(b.created_at));
         Ok(grants)
     }
 
@@ -243,9 +243,7 @@ impl UpstreamClients {
             .unwrap_or_default();
         let projects = self.ads_list_projects().await.unwrap_or_default();
         let grants = if session.is_admin {
-            self.ads_list_grants(None, None)
-                .await
-                .unwrap_or_default()
+            self.ads_list_grants(None, None).await.unwrap_or_default()
         } else {
             self.ads_list_grants_for_operator(&session.sub, groups.as_deref())
                 .await
@@ -330,15 +328,27 @@ impl UpstreamClients {
         Ok(body.mappings)
     }
 
-    pub async fn ads_approve(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<AccessRequest> {
+    pub async fn ads_approve(
+        &self,
+        id: uuid::Uuid,
+        reason: Option<String>,
+    ) -> AdminResult<AccessRequest> {
         self.ads_dac_action(id, "approve", reason).await
     }
 
-    pub async fn ads_reject(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<AccessRequest> {
+    pub async fn ads_reject(
+        &self,
+        id: uuid::Uuid,
+        reason: Option<String>,
+    ) -> AdminResult<AccessRequest> {
         self.ads_dac_action(id, "reject", reason).await
     }
 
-    pub async fn ads_escalate(&self, id: uuid::Uuid, reason: Option<String>) -> AdminResult<AccessRequest> {
+    pub async fn ads_escalate(
+        &self,
+        id: uuid::Uuid,
+        reason: Option<String>,
+    ) -> AdminResult<AccessRequest> {
         self.ads_dac_action(id, "escalate", reason).await
     }
 
@@ -624,7 +634,10 @@ impl UpstreamClients {
             ("DUO Service", self.config.duo_base_url.as_str()),
             ("AAI Broker", self.config.broker_base_url.as_str()),
             ("Visa Registry", self.config.visa_registry_base_url.as_str()),
-            ("Service Registry", self.config.service_registry_base_url.as_str()),
+            (
+                "Service Registry",
+                self.config.service_registry_base_url.as_str(),
+            ),
             (
                 "Agreement Registry",
                 self.config.agreement_registry_base_url.as_str(),

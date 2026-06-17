@@ -64,14 +64,8 @@ fn status_label(status: AccessRequestStatus) -> &'static str {
 
 fn duo_display(eval: Option<&DuoEvaluationResult>) -> (String, bool) {
     match eval {
-        Some(e) if e.compatible => (
-            format!("Compatible — score {}/100", e.score),
-            true,
-        ),
-        Some(e) => (
-            format!("Incompatible — score {}/100", e.score),
-            false,
-        ),
+        Some(e) if e.compatible => (format!("Compatible — score {}/100", e.score), true),
+        Some(e) => (format!("Incompatible — score {}/100", e.score), false),
         None => ("Not evaluated".into(), false),
     }
 }
@@ -83,20 +77,13 @@ fn dac_groups_for(auth: &RequireAuth, state: &SharedState) -> Option<Vec<String>
 async fn lookup_maps(
     state: &SharedState,
     groups: Option<&[String]>,
-) -> (
-    HashMap<Uuid, Dataset>,
-    HashMap<Uuid, ResearchProject>,
-) {
+) -> (HashMap<Uuid, Dataset>, HashMap<Uuid, ResearchProject>) {
     let datasets = state
         .clients
         .ads_list_datasets(groups)
         .await
         .unwrap_or_default();
-    let projects = state
-        .clients
-        .ads_list_projects()
-        .await
-        .unwrap_or_default();
+    let projects = state.clients.ads_list_projects().await.unwrap_or_default();
     let dataset_map = datasets.into_iter().map(|d| (d.id, d)).collect();
     let project_map = projects.into_iter().map(|p| (p.id, p)).collect();
     (dataset_map, project_map)
@@ -120,10 +107,7 @@ fn build_queue_row(
         requester: request.researcher_id.clone(),
         dataset: EntityRef::dataset(request.dataset_id, &dataset_refs),
         project: EntityRef::project(request.project_id, &project_refs),
-        dac_group: request
-            .dac_group
-            .clone()
-            .unwrap_or_else(|| "—".into()),
+        dac_group: request.dac_group.clone().unwrap_or_else(|| "—".into()),
         status: status_label(request.status).to_string(),
         duo_summary,
         duo_compatible,
@@ -304,9 +288,9 @@ pub async fn escalate(
 #[cfg(test)]
 mod tests {
     use super::QueuePartial;
-    use askama::Template;
     use crate::datetime::FormattedDateTime;
     use crate::entity::EntityRef;
+    use askama::Template;
 
     fn sample_row() -> super::QueueRow {
         super::QueueRow {

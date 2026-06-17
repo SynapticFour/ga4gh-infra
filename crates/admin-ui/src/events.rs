@@ -25,10 +25,7 @@ impl EventLabelContext {
                 .iter()
                 .map(|d| (d.id, dataset_display(d)))
                 .collect(),
-            projects: projects
-                .iter()
-                .map(|p| (p.id, p.name.clone()))
-                .collect(),
+            projects: projects.iter().map(|p| (p.id, p.name.clone())).collect(),
             grants: grants
                 .iter()
                 .map(|g| (g.id, (g.researcher_id.clone(), g.dataset_id)))
@@ -74,10 +71,7 @@ pub fn format_event_label(event: &AdsEvent, ctx: &EventLabelContext) -> String {
     match event.event_type {
         AdsEventType::GrantCreated => {
             if let (Some(r), Some(d)) = (researcher, dataset) {
-                format!(
-                    "Grant issued to {r} for {}",
-                    ctx.dataset_label(&d)
-                )
+                format!("Grant issued to {r} for {}", ctx.dataset_label(&d))
             } else if let Some(g) = grant {
                 if let Some((r, d)) = ctx.grant_context(&g) {
                     format!("Grant issued to {r} for {d}")
@@ -90,10 +84,7 @@ pub fn format_event_label(event: &AdsEvent, ctx: &EventLabelContext) -> String {
         }
         AdsEventType::GrantRevoked => {
             if let (Some(r), Some(d)) = (researcher, dataset) {
-                format!(
-                    "Grant for {} ({r}) revoked",
-                    ctx.dataset_label(&d)
-                )
+                format!("Grant for {} ({r}) revoked", ctx.dataset_label(&d))
             } else if let Some(g) = grant {
                 if let Some((r, d)) = ctx.grant_context(&g) {
                     format!("Grant for {d} ({r}) revoked")
@@ -208,9 +199,9 @@ fn short_id(id: &str) -> String {
 }
 
 fn payload_str(event: &AdsEvent, key: &str) -> Option<String> {
-    event.payload.get(key).and_then(|v| match v {
-        serde_json::Value::String(s) => Some(s.clone()),
-        other => Some(other.to_string().trim_matches('"').to_string()),
+    event.payload.get(key).map(|v| match v {
+        serde_json::Value::String(s) => s.clone(),
+        other => other.to_string().trim_matches('"').to_string(),
     })
 }
 
@@ -233,6 +224,7 @@ mod tests {
             auto_approve_threshold: 80,
             visibility: DatasetVisibility::Institute,
             resource_type: AdsResourceType::Dataset,
+            remote_drs_base_url: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

@@ -45,15 +45,25 @@ pub async fn seed_dev_stack(config: &SeedConfig) -> Result<SeedSummary> {
     wait_for_service(&client, &config.service_registry_url).await?;
     wait_for_service(&client, &config.visa_registry_url).await?;
 
-    let mut summary = SeedSummary::default();
-    summary.services_registered = seed_service_registry(&client, config).await?;
+    let mut summary = SeedSummary {
+        services_registered: seed_service_registry(&client, config).await?,
+        ..Default::default()
+    };
 
     let datasets = seed_datasets(&client, config, &mut summary).await?;
     let _compute_pool = seed_compute_pool(&client, config, &mut summary).await?;
     let passport = broker_login(&client, config).await?;
     let projects = seed_projects(&client, config, &passport, &mut summary).await?;
 
-    seed_access_workflow(&client, config, &passport, &datasets, &projects, &mut summary).await?;
+    seed_access_workflow(
+        &client,
+        config,
+        &passport,
+        &datasets,
+        &projects,
+        &mut summary,
+    )
+    .await?;
     seed_visas(&client, config, &mut summary).await?;
 
     Ok(summary)
@@ -166,11 +176,7 @@ async fn seed_service_registry(client: &Client, config: &SeedConfig) -> Result<u
         if response.status().is_success() {
             registered += 1;
         } else {
-            anyhow::bail!(
-                "register {} failed: HTTP {}",
-                svc.id,
-                response.status()
-            );
+            anyhow::bail!("register {} failed: HTTP {}", svc.id, response.status());
         }
     }
     Ok(registered)
@@ -232,7 +238,10 @@ async fn seed_datasets(
 
 async fn list_datasets(client: &Client, config: &SeedConfig) -> Result<Vec<Dataset>> {
     let response = client
-        .get(format!("{}/ads/v1/datasets", config.ads_url.trim_end_matches('/')))
+        .get(format!(
+            "{}/ads/v1/datasets",
+            config.ads_url.trim_end_matches('/')
+        ))
         .header("X-API-Key", &config.ads_api_key)
         .send()
         .await
@@ -257,7 +266,10 @@ async fn create_dataset(
         .with_context(|| format!("parse DUO codes for {}", spec.external_id))?;
 
     let response = client
-        .post(format!("{}/ads/v1/datasets", config.ads_url.trim_end_matches('/')))
+        .post(format!(
+            "{}/ads/v1/datasets",
+            config.ads_url.trim_end_matches('/')
+        ))
         .header("X-API-Key", &config.ads_api_key)
         .header(CONTENT_TYPE, "application/json")
         .json(&CreateDatasetRequest {
@@ -268,6 +280,9 @@ async fn create_dataset(
             auto_approve_enabled: false,
             auto_approve_threshold: 100,
             dac_group: Some("local-dac".to_string()),
+            visibility: DatasetVisibility::Institute,
+            resource_type: AdsResourceType::Dataset,
+            remote_drs_base_url: None,
         })
         .send()
         .await
@@ -298,7 +313,10 @@ async fn seed_compute_pool(
     }
 
     let response = client
-        .post(format!("{}/ads/v1/datasets", config.ads_url.trim_end_matches('/')))
+        .post(format!(
+            "{}/ads/v1/datasets",
+            config.ads_url.trim_end_matches('/')
+        ))
         .header("X-API-Key", &config.ads_api_key)
         .header(CONTENT_TYPE, "application/json")
         .json(&CreateDatasetRequest {
@@ -314,15 +332,13 @@ async fn seed_compute_pool(
             dac_group: Some("local-dac".to_string()),
             visibility: DatasetVisibility::Institute,
             resource_type: AdsResourceType::ComputePool,
+            remote_drs_base_url: None,
         })
         .send()
         .await
         .context("create compute pool resource")?;
     if !response.status().is_success() {
-        anyhow::bail!(
-            "create compute pool failed: {}",
-            response.status()
-        );
+        anyhow::bail!("create compute pool failed: {}", response.status());
     }
     summary.datasets_created += 1;
     response.json().await.context("compute pool response json")
@@ -374,7 +390,10 @@ async fn seed_projects(
             .with_context(|| format!("parse DUO codes for project {}", spec.name))?;
 
         let response = client
-            .post(format!("{}/ads/v1/projects", config.ads_url.trim_end_matches('/')))
+            .post(format!(
+                "{}/ads/v1/projects",
+                config.ads_url.trim_end_matches('/')
+            ))
             .header(AUTHORIZATION, format!("Bearer {passport}"))
             .header(CONTENT_TYPE, "application/json")
             .json(&CreateProjectRequest {
@@ -399,7 +418,10 @@ async fn seed_projects(
 
 async fn list_projects(client: &Client, config: &SeedConfig) -> Result<Vec<ResearchProject>> {
     let response = client
-        .get(format!("{}/ads/v1/projects", config.ads_url.trim_end_matches('/')))
+        .get(format!(
+            "{}/ads/v1/projects",
+            config.ads_url.trim_end_matches('/')
+        ))
         .header("X-API-Key", &config.ads_api_key)
         .send()
         .await
@@ -485,10 +507,9 @@ async fn has_pending_request(
 
 async fn has_active_grant(client: &Client, config: &SeedConfig, dataset_id: Uuid) -> Result<bool> {
     let grants = list_grants(client, config).await?;
-    Ok(grants
-        .grants
-        .iter()
-        .any(|grant| grant.dataset_id == dataset_id && grant.researcher_id == config.researcher_sub))
+    Ok(grants.grants.iter().any(|grant| {
+        grant.dataset_id == dataset_id && grant.researcher_id == config.researcher_sub
+    }))
 }
 
 async fn list_dac_queue(client: &Client, config: &SeedConfig) -> Result<Vec<AccessRequest>> {
@@ -510,7 +531,10 @@ async fn list_dac_queue(client: &Client, config: &SeedConfig) -> Result<Vec<Acce
 
 async fn list_grants(client: &Client, config: &SeedConfig) -> Result<GrantListResponse> {
     let response = client
-        .get(format!("{}/ads/v1/grants", config.ads_url.trim_end_matches('/')))
+        .get(format!(
+            "{}/ads/v1/grants",
+            config.ads_url.trim_end_matches('/')
+        ))
         .header("X-API-Key", &config.ads_api_key)
         .query(&[("researcher_id", config.researcher_sub.as_str())])
         .send()
@@ -584,8 +608,14 @@ async fn seed_visas(client: &Client, config: &SeedConfig, summary: &mut SeedSumm
         .context("list visas")?;
 
     if existing.status().is_success() {
-        let body = existing.json::<serde_json::Value>().await.unwrap_or_default();
-        if body["visas"].as_array().is_some_and(|visas| !visas.is_empty()) {
+        let body = existing
+            .json::<serde_json::Value>()
+            .await
+            .unwrap_or_default();
+        if body["visas"]
+            .as_array()
+            .is_some_and(|visas| !visas.is_empty())
+        {
             summary.visas_skipped += 1;
             return Ok(());
         }
@@ -647,7 +677,10 @@ async fn broker_login(client: &Client, config: &SeedConfig) -> Result<String> {
 
     let auth_redirect = client.get(auth_url).send().await.context("authorize")?;
     if !auth_redirect.status().is_redirection() {
-        anyhow::bail!("authorize expected redirect, got {}", auth_redirect.status());
+        anyhow::bail!(
+            "authorize expected redirect, got {}",
+            auth_redirect.status()
+        );
     }
     let callback_url = auth_redirect
         .headers()
