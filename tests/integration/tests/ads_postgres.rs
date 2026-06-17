@@ -43,6 +43,7 @@ async fn postgres_sync_applies_institutional_mapping() {
             dac_group: Some("ega-dac".to_string()),
             visibility: ga4gh_types::DatasetVisibility::Institute,
             resource_type: ga4gh_types::AdsResourceType::Dataset,
+            remote_drs_base_url: None,
         })
         .await
         .expect("create dataset");

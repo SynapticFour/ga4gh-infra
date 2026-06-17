@@ -141,6 +141,7 @@ macro_rules! parse_dataset {
             resource_type: parse_resource_type(
                 &row.try_get::<String, _>("resource_type").unwrap_or_else(|_| "dataset".into()),
             ),
+            remote_drs_base_url: row.try_get("remote_drs_base_url").ok(),
             created_at: dt_from_ts(row.try_get("created_at").map_err(map_db_err)?),
             updated_at: dt_from_ts(row.try_get("updated_at").map_err(map_db_err)?),
         }
@@ -521,6 +522,7 @@ impl AdsStore {
             dac_group: req.dac_group.clone(),
             visibility: req.visibility,
             resource_type: req.resource_type,
+            remote_drs_base_url: req.remote_drs_base_url.clone(),
             created_at: now,
             updated_at: now,
         };
@@ -529,8 +531,8 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 sqlx::query(
                     "INSERT INTO datasets (id, name, description, duo_codes, external_id,
-                     auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                     auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                 )
                 .bind(dataset.id.to_string())
                 .bind(&dataset.name)
@@ -542,6 +544,7 @@ impl AdsStore {
                 .bind(&dataset.dac_group)
                 .bind(visibility_str(dataset.visibility))
                 .bind(resource_type_str(dataset.resource_type))
+                .bind(&dataset.remote_drs_base_url)
                 .bind(dataset.created_at.timestamp())
                 .bind(dataset.updated_at.timestamp())
                 .execute(pool)
@@ -552,8 +555,8 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 sqlx::query(
                     "INSERT INTO datasets (id, name, description, duo_codes, external_id,
-                     auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                     auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                 )
                 .bind(dataset.id.to_string())
                 .bind(&dataset.name)
@@ -565,6 +568,7 @@ impl AdsStore {
                 .bind(&dataset.dac_group)
                 .bind(visibility_str(dataset.visibility))
                 .bind(resource_type_str(dataset.resource_type))
+                .bind(&dataset.remote_drs_base_url)
                 .bind(dataset.created_at.timestamp())
                 .bind(dataset.updated_at.timestamp())
                 .execute(pool)
@@ -599,6 +603,7 @@ impl AdsStore {
             dac_group: req.dac_group.clone(),
             visibility: req.visibility,
             resource_type: req.resource_type,
+            remote_drs_base_url: req.remote_drs_base_url.clone(),
             created_at: existing.created_at,
             updated_at: now,
         };
@@ -607,8 +612,8 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 sqlx::query(
                     "UPDATE datasets SET name = $1, description = $2, duo_codes = $3, external_id = $4,
-                     auto_approve_enabled = $5, auto_approve_threshold = $6, dac_group = $7, visibility = $8, resource_type = $9, updated_at = $10
-                     WHERE id = $11",
+                     auto_approve_enabled = $5, auto_approve_threshold = $6, dac_group = $7, visibility = $8, resource_type = $9, remote_drs_base_url = $10, updated_at = $11
+                     WHERE id = $12",
                 )
                 .bind(&dataset.name)
                 .bind(&dataset.description)
@@ -619,6 +624,7 @@ impl AdsStore {
                 .bind(&dataset.dac_group)
                 .bind(visibility_str(dataset.visibility))
                 .bind(resource_type_str(dataset.resource_type))
+                .bind(&dataset.remote_drs_base_url)
                 .bind(dataset.updated_at.timestamp())
                 .bind(dataset.id.to_string())
                 .execute(pool)
@@ -629,8 +635,8 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 sqlx::query(
                     "UPDATE datasets SET name = ?1, description = ?2, duo_codes = ?3, external_id = ?4,
-                     auto_approve_enabled = ?5, auto_approve_threshold = ?6, dac_group = ?7, visibility = ?8, resource_type = ?9, updated_at = ?10
-                     WHERE id = ?11",
+                     auto_approve_enabled = ?5, auto_approve_threshold = ?6, dac_group = ?7, visibility = ?8, resource_type = ?9, remote_drs_base_url = ?10, updated_at = ?11
+                     WHERE id = ?12",
                 )
                 .bind(&dataset.name)
                 .bind(&dataset.description)
@@ -641,6 +647,7 @@ impl AdsStore {
                 .bind(&dataset.dac_group)
                 .bind(visibility_str(dataset.visibility))
                 .bind(resource_type_str(dataset.resource_type))
+                .bind(&dataset.remote_drs_base_url)
                 .bind(dataset.updated_at.timestamp())
                 .bind(dataset.id.to_string())
                 .execute(pool)
@@ -658,7 +665,7 @@ impl AdsStore {
         dac_groups: Option<&[String]>,
     ) -> Result<Vec<Dataset>, AdsError> {
         let select = "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at
                      FROM datasets";
         match &self.pool {
             #[cfg(feature = "postgres")]
@@ -721,7 +728,7 @@ impl AdsStore {
         resource_type: Option<AdsResourceType>,
     ) -> Result<Vec<Dataset>, AdsError> {
         let select = "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at
                      FROM datasets";
         let visibilities: Vec<&str> = if include_institute {
             vec!["public", "institute"]
@@ -788,7 +795,7 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 let row = sqlx::query(
                     "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at
                      FROM datasets WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -803,7 +810,7 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 let row = sqlx::query(
                     "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at
                      FROM datasets WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -1743,7 +1750,11 @@ impl AdsStore {
                     }
                 }
                 if let Some(scope) = &g.resource_scope {
-                    return scope == resource || resource.contains(scope.as_str());
+                    let bare = scope.strip_prefix("drs:").unwrap_or(scope.as_str());
+                    return scope == resource
+                        || resource.contains(scope.as_str())
+                        || resource == bare
+                        || format!("drs:{resource}") == *scope;
                 }
                 true
             })
@@ -2400,6 +2411,7 @@ mod tests {
                 dac_group: None,
                 visibility: DatasetVisibility::Institute,
                 resource_type: AdsResourceType::Dataset,
+                remote_drs_base_url: None,
             })
             .await
             .expect("create dataset");

@@ -97,6 +97,9 @@ pub struct Dataset {
     /// Resource kind (`dataset`, `compute_pool`, …).
     #[serde(default)]
     pub resource_type: AdsResourceType,
+    /// Optional peer DRS service base URL (`…/ga4gh/drs/v1`) for federated access.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remote_drs_base_url: Option<String>,
     /// When the dataset was registered.
     pub created_at: DateTime<Utc>,
     /// When the dataset was last updated.
@@ -133,6 +136,9 @@ pub struct CreateDatasetRequest {
     /// Resource kind (default `dataset`).
     #[serde(default)]
     pub resource_type: AdsResourceType,
+    /// Optional peer DRS base URL for federated datasets.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remote_drs_base_url: Option<String>,
 }
 
 /// A research project with intended-use DUO annotations.
@@ -551,6 +557,9 @@ pub struct DatasetCatalogEntry {
     pub visibility: DatasetVisibility,
     /// Resource kind.
     pub resource_type: AdsResourceType,
+    /// Peer DRS base URL when data is served from a remote node.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_drs_base_url: Option<String>,
 }
 
 impl From<&Dataset> for DatasetCatalogEntry {
@@ -565,6 +574,7 @@ impl From<&Dataset> for DatasetCatalogEntry {
             auto_approve_enabled: dataset.auto_approve_enabled,
             visibility: dataset.visibility,
             resource_type: dataset.resource_type,
+            remote_drs_base_url: dataset.remote_drs_base_url.clone(),
         }
     }
 }
