@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use ga4gh_types::{
-    AccessRequest, CreateDatasetRequest, CreateProjectRequest, Dataset, DuoCode, GrantListResponse,
-    ResearchProject,
+    AccessRequest, AdsResourceType, CreateDatasetRequest, CreateProjectRequest, Dataset,
+    DatasetVisibility, DuoCode, GrantListResponse, ResearchProject,
 };
 use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, SET_COOKIE};
 use reqwest::{Client, StatusCode};
@@ -49,6 +49,7 @@ pub async fn seed_dev_stack(config: &SeedConfig) -> Result<SeedSummary> {
     summary.services_registered = seed_service_registry(&client, config).await?;
 
     let datasets = seed_datasets(&client, config, &mut summary).await?;
+    let _compute_pool = seed_compute_pool(&client, config, &mut summary).await?;
     let passport = broker_login(&client, config).await?;
     let projects = seed_projects(&client, config, &passport, &mut summary).await?;
 
@@ -279,6 +280,52 @@ async fn create_dataset(
         );
     }
     response.json().await.context("dataset response json")
+}
+
+async fn seed_compute_pool(
+    client: &Client,
+    config: &SeedConfig,
+    summary: &mut SeedSummary,
+) -> Result<Dataset> {
+    let external_id = "compute-pool-ferrum-tes";
+    let existing = list_datasets(client, config).await?;
+    if let Some(dataset) = existing
+        .iter()
+        .find(|d| d.external_id.as_deref() == Some(external_id))
+    {
+        summary.datasets_skipped += 1;
+        return Ok(dataset.clone());
+    }
+
+    let response = client
+        .post(format!("{}/ads/v1/datasets", config.ads_url.trim_end_matches('/')))
+        .header("X-API-Key", &config.ads_api_key)
+        .header(CONTENT_TYPE, "application/json")
+        .json(&CreateDatasetRequest {
+            name: "Ferrum TES Compute Pool".to_string(),
+            description: Some(
+                "Shared TES/WES compute resource registered in ADS for access-controlled runs"
+                    .to_string(),
+            ),
+            duo_codes: vec!["GRU".parse().expect("duo")],
+            external_id: Some(external_id.to_string()),
+            auto_approve_enabled: false,
+            auto_approve_threshold: 100,
+            dac_group: Some("local-dac".to_string()),
+            visibility: DatasetVisibility::Institute,
+            resource_type: AdsResourceType::ComputePool,
+        })
+        .send()
+        .await
+        .context("create compute pool resource")?;
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "create compute pool failed: {}",
+            response.status()
+        );
+    }
+    summary.datasets_created += 1;
+    response.json().await.context("compute pool response json")
 }
 
 struct SeedProject {
