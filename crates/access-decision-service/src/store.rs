@@ -9,10 +9,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Utc};
 use ga4gh_types::{
     AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestStatus, AdsEvent,
-    AdsEventType, CreateAccessRequestBody, CreateDatasetRequest, CreatePermissionMappingRequest,
-    CreatePermissionSourceRequest, CreateProjectRequest, CreateVisaSourceRequest, Dataset, DuoCode,
-    DuoEvaluationResult, Grant, GrantSource, PermissionMapping, PermissionSource, ResearchProject,
-    Researcher, VisaSource,
+    AdsEventType, AdsResourceType, CreateAccessRequestBody, CreateDatasetRequest,
+    CreatePermissionMappingRequest, CreatePermissionSourceRequest, CreateProjectRequest,
+    CreateVisaSourceRequest, Dataset, DatasetVisibility, DuoCode, DuoEvaluationResult, Grant,
+    GrantSource, PermissionMapping, PermissionSource, ResearchProject, Researcher, VisaSource,
 };
 use sqlx::Row;
 use tracing::instrument;
@@ -24,6 +24,36 @@ use crate::error::AdsError;
 use crate::events::{
     grant_created, grant_revoked, request_approved, request_created, request_rejected,
 };
+
+fn parse_visibility(raw: &str) -> DatasetVisibility {
+    match raw {
+        "public" => DatasetVisibility::Public,
+        "draft" => DatasetVisibility::Draft,
+        _ => DatasetVisibility::Institute,
+    }
+}
+
+fn visibility_str(v: DatasetVisibility) -> &'static str {
+    match v {
+        DatasetVisibility::Public => "public",
+        DatasetVisibility::Draft => "draft",
+        DatasetVisibility::Institute => "institute",
+    }
+}
+
+fn parse_resource_type(raw: &str) -> AdsResourceType {
+    match raw {
+        "compute_pool" => AdsResourceType::ComputePool,
+        _ => AdsResourceType::Dataset,
+    }
+}
+
+fn resource_type_str(t: AdsResourceType) -> &'static str {
+    match t {
+        AdsResourceType::ComputePool => "compute_pool",
+        AdsResourceType::Dataset => "dataset",
+    }
+}
 
 #[cfg(feature = "postgres")]
 use sqlx::PgPool;
@@ -105,6 +135,12 @@ macro_rules! parse_dataset {
                 .try_get::<i32, _>("auto_approve_threshold")
                 .map_err(map_db_err)? as u8,
             dac_group: row.try_get("dac_group").map_err(map_db_err)?,
+            visibility: parse_visibility(
+                &row.try_get::<String, _>("visibility").unwrap_or_else(|_| "institute".into()),
+            ),
+            resource_type: parse_resource_type(
+                &row.try_get::<String, _>("resource_type").unwrap_or_else(|_| "dataset".into()),
+            ),
             created_at: dt_from_ts(row.try_get("created_at").map_err(map_db_err)?),
             updated_at: dt_from_ts(row.try_get("updated_at").map_err(map_db_err)?),
         }
@@ -483,6 +519,8 @@ impl AdsStore {
             auto_approve_enabled: req.auto_approve_enabled,
             auto_approve_threshold: req.auto_approve_threshold,
             dac_group: req.dac_group.clone(),
+            visibility: req.visibility,
+            resource_type: req.resource_type,
             created_at: now,
             updated_at: now,
         };
@@ -491,8 +529,8 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 sqlx::query(
                     "INSERT INTO datasets (id, name, description, duo_codes, external_id,
-                     auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                     auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
                 )
                 .bind(dataset.id.to_string())
                 .bind(&dataset.name)
@@ -502,6 +540,8 @@ impl AdsStore {
                 .bind(i64::from(dataset.auto_approve_enabled))
                 .bind(i64::from(dataset.auto_approve_threshold))
                 .bind(&dataset.dac_group)
+                .bind(visibility_str(dataset.visibility))
+                .bind(resource_type_str(dataset.resource_type))
                 .bind(dataset.created_at.timestamp())
                 .bind(dataset.updated_at.timestamp())
                 .execute(pool)
@@ -512,8 +552,8 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 sqlx::query(
                     "INSERT INTO datasets (id, name, description, duo_codes, external_id,
-                     auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                     auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
                 )
                 .bind(dataset.id.to_string())
                 .bind(&dataset.name)
@@ -523,6 +563,8 @@ impl AdsStore {
                 .bind(i64::from(dataset.auto_approve_enabled))
                 .bind(i64::from(dataset.auto_approve_threshold))
                 .bind(&dataset.dac_group)
+                .bind(visibility_str(dataset.visibility))
+                .bind(resource_type_str(dataset.resource_type))
                 .bind(dataset.created_at.timestamp())
                 .bind(dataset.updated_at.timestamp())
                 .execute(pool)
@@ -555,6 +597,8 @@ impl AdsStore {
             auto_approve_enabled: req.auto_approve_enabled,
             auto_approve_threshold: req.auto_approve_threshold,
             dac_group: req.dac_group.clone(),
+            visibility: req.visibility,
+            resource_type: req.resource_type,
             created_at: existing.created_at,
             updated_at: now,
         };
@@ -563,8 +607,8 @@ impl AdsStore {
             DbPool::Postgres(pool) => {
                 sqlx::query(
                     "UPDATE datasets SET name = $1, description = $2, duo_codes = $3, external_id = $4,
-                     auto_approve_enabled = $5, auto_approve_threshold = $6, dac_group = $7, updated_at = $8
-                     WHERE id = $9",
+                     auto_approve_enabled = $5, auto_approve_threshold = $6, dac_group = $7, visibility = $8, resource_type = $9, updated_at = $10
+                     WHERE id = $11",
                 )
                 .bind(&dataset.name)
                 .bind(&dataset.description)
@@ -573,6 +617,8 @@ impl AdsStore {
                 .bind(i64::from(dataset.auto_approve_enabled))
                 .bind(i64::from(dataset.auto_approve_threshold))
                 .bind(&dataset.dac_group)
+                .bind(visibility_str(dataset.visibility))
+                .bind(resource_type_str(dataset.resource_type))
                 .bind(dataset.updated_at.timestamp())
                 .bind(dataset.id.to_string())
                 .execute(pool)
@@ -583,8 +629,8 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 sqlx::query(
                     "UPDATE datasets SET name = ?1, description = ?2, duo_codes = ?3, external_id = ?4,
-                     auto_approve_enabled = ?5, auto_approve_threshold = ?6, dac_group = ?7, updated_at = ?8
-                     WHERE id = ?9",
+                     auto_approve_enabled = ?5, auto_approve_threshold = ?6, dac_group = ?7, visibility = ?8, resource_type = ?9, updated_at = ?10
+                     WHERE id = ?11",
                 )
                 .bind(&dataset.name)
                 .bind(&dataset.description)
@@ -593,6 +639,8 @@ impl AdsStore {
                 .bind(i64::from(dataset.auto_approve_enabled))
                 .bind(i64::from(dataset.auto_approve_threshold))
                 .bind(&dataset.dac_group)
+                .bind(visibility_str(dataset.visibility))
+                .bind(resource_type_str(dataset.resource_type))
                 .bind(dataset.updated_at.timestamp())
                 .bind(dataset.id.to_string())
                 .execute(pool)
@@ -610,7 +658,7 @@ impl AdsStore {
         dac_groups: Option<&[String]>,
     ) -> Result<Vec<Dataset>, AdsError> {
         let select = "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
                      FROM datasets";
         match &self.pool {
             #[cfg(feature = "postgres")]
@@ -666,13 +714,64 @@ impl AdsStore {
         }
     }
 
+    /// Datasets visible in the researcher catalog (excludes `draft`).
+    pub async fn list_catalog_datasets(
+        &self,
+        include_institute: bool,
+    ) -> Result<Vec<Dataset>, AdsError> {
+        let select = "SELECT id, name, description, duo_codes, external_id,
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
+                     FROM datasets";
+        let visibilities: Vec<&str> = if include_institute {
+            vec!["public", "institute"]
+        } else {
+            vec!["public"]
+        };
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let placeholders: Vec<String> =
+                    (1..=visibilities.len()).map(|i| format!("${i}")).collect();
+                let sql = format!(
+                    "{select} WHERE visibility IN ({}) ORDER BY created_at DESC",
+                    placeholders.join(", ")
+                );
+                let mut query = sqlx::query(&sql);
+                for v in &visibilities {
+                    query = query.bind(*v);
+                }
+                let rows = query.fetch_all(pool).await.map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let placeholders = std::iter::repeat_n("?", visibilities.len())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let sql = format!("{select} WHERE visibility IN ({placeholders}) ORDER BY created_at DESC");
+                let mut query = sqlx::query(&sql);
+                for v in &visibilities {
+                    query = query.bind(*v);
+                }
+                let rows = query.fetch_all(pool).await.map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
     pub async fn get_dataset(&self, id: Uuid) -> Result<Dataset, AdsError> {
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
                 let row = sqlx::query(
                     "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
                      FROM datasets WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -687,7 +786,7 @@ impl AdsStore {
             DbPool::Sqlite(pool) => {
                 let row = sqlx::query(
                     "SELECT id, name, description, duo_codes, external_id,
-                            auto_approve_enabled, auto_approve_threshold, dac_group, created_at, updated_at
+                            auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
                      FROM datasets WHERE id = $1",
                 )
                 .bind(id.to_string())
@@ -785,6 +884,84 @@ impl AdsStore {
                 .map_err(map_db_err)?;
                 rows.into_iter()
                     .map(|row| -> Result<ResearchProject, AdsError> { Ok(parse_project!(&row)) })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
+    pub async fn list_projects_for_researcher(
+        &self,
+        researcher_id: &str,
+    ) -> Result<Vec<ResearchProject>, AdsError> {
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, researcher_id, name, description, duo_codes, created_at, updated_at
+                     FROM research_projects WHERE researcher_id = $1 ORDER BY created_at DESC",
+                )
+                .bind(researcher_id)
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<ResearchProject, AdsError> { Ok(parse_project!(&row)) })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let rows = sqlx::query(
+                    "SELECT id, researcher_id, name, description, duo_codes, created_at, updated_at
+                     FROM research_projects WHERE researcher_id = ? ORDER BY created_at DESC",
+                )
+                .bind(researcher_id)
+                .fetch_all(pool)
+                .await
+                .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<ResearchProject, AdsError> { Ok(parse_project!(&row)) })
+                    .collect()
+            }
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }
+
+    pub async fn list_access_requests_for_researcher(
+        &self,
+        researcher_id: &str,
+    ) -> Result<Vec<AccessRequest>, AdsError> {
+        let select = "SELECT id, researcher_id, dataset_id, project_id, status, justification,
+                            duo_evaluation, dac_group, created_at, updated_at
+                     FROM access_requests WHERE researcher_id = $1 ORDER BY created_at DESC";
+        match &self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres(pool) => {
+                let rows = sqlx::query(select)
+                    .bind(researcher_id)
+                    .fetch_all(pool)
+                    .await
+                    .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<AccessRequest, AdsError> {
+                        Ok(parse_access_request!(&row))
+                    })
+                    .collect()
+            }
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite(pool) => {
+                let select_sqlite = select.replace("$1", "?");
+                let rows = sqlx::query(&select_sqlite)
+                    .bind(researcher_id)
+                    .fetch_all(pool)
+                    .await
+                    .map_err(map_db_err)?;
+                rows.into_iter()
+                    .map(|row| -> Result<AccessRequest, AdsError> {
+                        Ok(parse_access_request!(&row))
+                    })
                     .collect()
             }
             #[allow(unreachable_patterns)]
@@ -2204,6 +2381,8 @@ mod tests {
                 auto_approve_enabled: true,
                 auto_approve_threshold: 100,
                 dac_group: None,
+                visibility: DatasetVisibility::Institute,
+                resource_type: AdsResourceType::Dataset,
             })
             .await
             .expect("create dataset");

@@ -41,6 +41,8 @@ async fn postgres_sync_applies_institutional_mapping() {
             auto_approve_enabled: false,
             auto_approve_threshold: 100,
             dac_group: Some("ega-dac".to_string()),
+            visibility: ga4gh_types::DatasetVisibility::Institute,
+            resource_type: ga4gh_types::AdsResourceType::Dataset,
         })
         .await
         .expect("create dataset");

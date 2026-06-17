@@ -219,6 +219,8 @@ mod tests {
     use super::*;
     use std::collections::BTreeMap;
 
+    use ga4gh_types::{AdsResourceType, DatasetVisibility};
+
     fn sample_dataset() -> Dataset {
         Dataset {
             id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
@@ -229,6 +231,8 @@ mod tests {
             duo_codes: vec![],
             auto_approve_enabled: false,
             auto_approve_threshold: 80,
+            visibility: DatasetVisibility::Institute,
+            resource_type: AdsResourceType::Dataset,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

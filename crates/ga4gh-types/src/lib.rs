@@ -19,10 +19,12 @@ pub mod service_info;
 pub mod visa;
 
 pub use ads::{
-    AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestStatus, AdsEvent,
+    AccessDecision, AccessDecisionOutcome, AccessRequest, AccessRequestListResponse,
+    AccessRequestStatus, AdsEvent,
     AdsEventType, AuditEventListResponse, CreateAccessRequestBody, CreateDatasetRequest,
     CreatePermissionMappingRequest, CreatePermissionSourceRequest, CreateProjectRequest,
-    CreateVisaSourceRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetListResponse,
+    CreateVisaSourceRequest, DacActionRequest, DacQueueResponse, Dataset, DatasetCatalogEntry,
+    DatasetCatalogResponse, DatasetListResponse, DatasetVisibility, AdsResourceType,
     DuoEvaluateRequest, DuoEvaluationResult, Grant, GrantListResponse, GrantSource,
     IntrospectRequest, IntrospectResponse, PermissionMapping, PermissionMappingListResponse,
     PermissionSource, PermissionSourceListResponse, ProjectListResponse, ResearchProject,

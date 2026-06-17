@@ -43,6 +43,30 @@ pub struct ResearcherAffiliation {
     pub role: String,
 }
 
+/// Catalog visibility for ADS-registered resources (workspace-private data stays in Ferrum only).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DatasetVisibility {
+    /// Hidden from public catalog; DAC-only listing.
+    Draft,
+    /// Visible to authenticated institute members in catalog.
+    #[default]
+    Institute,
+    /// Visible in anonymous public catalog.
+    Public,
+}
+
+/// ADS resource kind (datasets, compute pools, etc.).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AdsResourceType {
+    /// Genomic dataset (DRS object, cohort, etc.).
+    #[default]
+    Dataset,
+    /// Compute pool (TES/WES) requiring ADS grant before run submission.
+    ComputePool,
+}
+
 /// A controlled-access dataset registered with ADS.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dataset {
@@ -67,6 +91,12 @@ pub struct Dataset {
     /// DAC group owning review responsibility for this dataset (e.g. `ega-dac`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dac_group: Option<String>,
+    /// Catalog visibility (`draft`, `institute`, `public`).
+    #[serde(default)]
+    pub visibility: DatasetVisibility,
+    /// Resource kind (`dataset`, `compute_pool`, …).
+    #[serde(default)]
+    pub resource_type: AdsResourceType,
     /// When the dataset was registered.
     pub created_at: DateTime<Utc>,
     /// When the dataset was last updated.
@@ -97,6 +127,12 @@ pub struct CreateDatasetRequest {
     /// DAC group owning review responsibility for this dataset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dac_group: Option<String>,
+    /// Catalog visibility (default `institute`).
+    #[serde(default)]
+    pub visibility: DatasetVisibility,
+    /// Resource kind (default `dataset`).
+    #[serde(default)]
+    pub resource_type: AdsResourceType,
 }
 
 /// A research project with intended-use DUO annotations.
@@ -488,6 +524,63 @@ pub struct DacQueueResponse {
 pub struct DatasetListResponse {
     /// Registered datasets.
     pub datasets: Vec<Dataset>,
+}
+
+/// Public-safe dataset catalog entry for researcher browsing (EGA/dbGaP-style discovery).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DatasetCatalogEntry {
+    /// Stable dataset identifier.
+    pub id: Uuid,
+    /// Human-readable dataset name.
+    pub name: String,
+    /// Optional description safe for public viewing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// DUO codes describing access conditions.
+    pub duo_codes: Vec<DuoCode>,
+    /// Optional external resource identifier (DRS, Beacon, etc.).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
+    /// DAC group responsible for review (e.g. `ega-dac`, `dbgap-dac`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dac_group: Option<String>,
+    /// Whether DUO-compatible requests may be auto-approved.
+    #[serde(default)]
+    pub auto_approve_enabled: bool,
+    /// Catalog visibility.
+    pub visibility: DatasetVisibility,
+    /// Resource kind.
+    pub resource_type: AdsResourceType,
+}
+
+impl From<&Dataset> for DatasetCatalogEntry {
+    fn from(dataset: &Dataset) -> Self {
+        Self {
+            id: dataset.id,
+            name: dataset.name.clone(),
+            description: dataset.description.clone(),
+            duo_codes: dataset.duo_codes.clone(),
+            external_id: dataset.external_id.clone(),
+            dac_group: dataset.dac_group.clone(),
+            auto_approve_enabled: dataset.auto_approve_enabled,
+            visibility: dataset.visibility,
+            resource_type: dataset.resource_type,
+        }
+    }
+}
+
+/// Public researcher catalog listing (excludes `draft` visibility).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DatasetCatalogResponse {
+    /// Datasets available for access requests.
+    pub datasets: Vec<DatasetCatalogEntry>,
+}
+
+/// Researcher's own access requests.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AccessRequestListResponse {
+    /// Access requests submitted by the authenticated researcher.
+    pub requests: Vec<AccessRequest>,
 }
 
 /// Research project list response.

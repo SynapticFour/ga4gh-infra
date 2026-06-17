@@ -96,6 +96,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             post(handlers::create_dataset).get(handlers::list_datasets),
         )
         .route("/datasets/:id", get(handlers::get_dataset).put(handlers::update_dataset))
+        .route("/catalog/datasets", get(handlers::list_catalog_datasets))
+        .route("/me/projects", get(handlers::list_my_projects))
+        .route("/me/access-requests", get(handlers::list_my_access_requests))
+        .route("/me/grants", get(handlers::list_my_grants))
         .route(
             "/projects",
             post(handlers::create_project).get(handlers::list_projects),
