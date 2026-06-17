@@ -718,6 +718,7 @@ impl AdsStore {
     pub async fn list_catalog_datasets(
         &self,
         include_institute: bool,
+        resource_type: Option<AdsResourceType>,
     ) -> Result<Vec<Dataset>, AdsError> {
         let select = "SELECT id, name, description, duo_codes, external_id,
                             auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, created_at, updated_at
@@ -727,18 +728,27 @@ impl AdsStore {
         } else {
             vec!["public"]
         };
+        let resource_type_str = resource_type.map(resource_type_str);
         match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
-                let placeholders: Vec<String> =
+                let vis_placeholders: Vec<String> =
                     (1..=visibilities.len()).map(|i| format!("${i}")).collect();
-                let sql = format!(
-                    "{select} WHERE visibility IN ({}) ORDER BY created_at DESC",
-                    placeholders.join(", ")
+                let mut bind_idx = visibilities.len() + 1;
+                let mut sql = format!(
+                    "{select} WHERE visibility IN ({})",
+                    vis_placeholders.join(", ")
                 );
+                if resource_type_str.is_some() {
+                    sql.push_str(&format!(" AND resource_type = ${bind_idx}"));
+                }
+                sql.push_str(" ORDER BY created_at DESC");
                 let mut query = sqlx::query(&sql);
                 for v in &visibilities {
                     query = query.bind(*v);
+                }
+                if let Some(rt) = resource_type_str.as_deref() {
+                    query = query.bind(rt);
                 }
                 let rows = query.fetch_all(pool).await.map_err(map_db_err)?;
                 rows.into_iter()
@@ -747,13 +757,20 @@ impl AdsStore {
             }
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
-                let placeholders = std::iter::repeat_n("?", visibilities.len())
+                let vis_placeholders = std::iter::repeat_n("?", visibilities.len())
                     .collect::<Vec<_>>()
                     .join(", ");
-                let sql = format!("{select} WHERE visibility IN ({placeholders}) ORDER BY created_at DESC");
+                let mut sql = format!("{select} WHERE visibility IN ({vis_placeholders})");
+                if resource_type_str.is_some() {
+                    sql.push_str(" AND resource_type = ?");
+                }
+                sql.push_str(" ORDER BY created_at DESC");
                 let mut query = sqlx::query(&sql);
                 for v in &visibilities {
                     query = query.bind(*v);
+                }
+                if let Some(rt) = resource_type_str.as_deref() {
+                    query = query.bind(rt);
                 }
                 let rows = query.fetch_all(pool).await.map_err(map_db_err)?;
                 rows.into_iter()
