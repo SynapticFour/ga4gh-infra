@@ -62,5 +62,5 @@ tokio = { workspace = true }
 serde_json = { workspace = true }
 rsa = { version = "0.9", features = ["pem", "sha2"] }
 rand = "0.8"
-rand_chacha = "0.3"
+rand_chacha = "0.9"
 sha2 = { workspace = true }
