@@ -6,7 +6,9 @@ use axum::http::request::Parts;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{dangerous::insecure_decode, decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    dangerous::insecure_decode, decode, encode, DecodingKey, EncodingKey, Header, Validation,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::config::AdminUiConfig;
