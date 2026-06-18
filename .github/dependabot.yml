@@ -51,6 +51,8 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "testcontainers"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "testcontainers-modules"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "rand_chacha"
         update-types: ["version-update:semver-major"]
       - dependency-name: "sha2"
