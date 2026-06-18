@@ -57,3 +57,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "sha2"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "axum"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "rand"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "askama"
+        update-types: ["version-update:semver-major"]
