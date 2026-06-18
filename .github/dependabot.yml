@@ -33,3 +33,14 @@ updates:
       include: "scope"
     labels:
       - "dependencies"
+    ignore:
+      - dependency-name: "toml"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "hmac"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "tower-http"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "config"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "quick-xml"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
