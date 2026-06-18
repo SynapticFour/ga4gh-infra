@@ -45,3 +45,13 @@ updates:
       - dependency-name: "quick-xml"
         update-types: ["version-update:semver-minor", "version-update:semver-major"]
       - dependency-name: "tokio-tar"
+      - dependency-name: "axum-core"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "askama_axum"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "testcontainers"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "rand_chacha"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "sha2"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
