@@ -12,5 +12,5 @@ ga4gh-types = { workspace = true }
 tokio = { workspace = true }
 uuid = { workspace = true }
 serde_json = { workspace = true }
-testcontainers = "0.23"
+testcontainers = "0.24"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }
