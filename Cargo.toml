@@ -48,7 +48,7 @@ base64 = "0.22"
 sha2 = "0.10"
 hmac = "0.12"
 url = "2"
-toml = "0.8"
+toml = "1.1"
 
 ga4gh-types = { path = "crates/ga4gh-types", version = "0.1.0" }
 ga4gh-clearinghouse = { path = "crates/ga4gh-clearinghouse", version = "0.1.0" }
