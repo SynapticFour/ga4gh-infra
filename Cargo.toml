@@ -41,7 +41,7 @@ clap = { version = "4", features = ["derive", "env"] }
 openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 tower-http = { version = "0.7", features = ["trace", "fs"] }
-askama = "0.12"
+askama = "0.16"
 askama_axum = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 base64 = "0.22"
