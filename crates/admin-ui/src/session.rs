@@ -6,7 +6,7 @@ use axum::http::request::Parts;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{dangerous::insecure_decode, decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
 use crate::config::AdminUiConfig;
@@ -30,12 +30,8 @@ impl UserSession {
         token: &str,
         config: &AdminUiConfig,
     ) -> Result<Self, jsonwebtoken::errors::Error> {
-        let mut validation = Validation::default();
-        validation.validate_exp = false;
-        validation.insecure_disable_signature_validation();
-        let token_data =
-            decode::<serde_json::Value>(token, &DecodingKey::from_secret(b"unused"), &validation)?;
-        let claims = token_data.claims;
+        // Broker access token: read claims only (signature verified upstream by broker OIDC).
+        let claims = insecure_decode::<serde_json::Value>(token)?.claims;
 
         let sub = claims
             .get("sub")
