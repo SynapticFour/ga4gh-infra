@@ -10,6 +10,11 @@ on:
       - "access-decision-service-v*"
       - "ga4gh-infra-v*"
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   packages: write
