@@ -10,6 +10,7 @@
 | [design-decisions.md](design-decisions.md) | ADR-style decision log |
 | [DECISIONS.md](DECISIONS.md) | Architecture decision records (Africa-Mode, Ferrum boundary) |
 | [limitations.md](limitations.md) | Honest list of non-goals and gaps |
+| [THREAT_MODEL.md](THREAT_MODEL.md) | Identity-plane threat addendum (Ferrum co-deploy) |
 | [contributing.md](contributing.md) | Development, testing, PR expectations |
 | [ECOSYSTEM.md](ECOSYSTEM.md) | Five-repo SynapticFour GA4GH stack overview |
 | [versioning.md](versioning.md) | Releases, semver, Docker tags, ARM binaries |
