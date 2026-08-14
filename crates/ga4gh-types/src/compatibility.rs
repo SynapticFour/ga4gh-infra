@@ -14,21 +14,9 @@ use crate::agreement::{
 };
 use crate::duo::DuoCode;
 
-/// DUO permission codes treated as primary use permissions (not modifiers).
-const PERMISSION_CODES: &[DuoCode] = &[
-    DuoCode::Nres,
-    DuoCode::Gru,
-    DuoCode::Hmb,
-    DuoCode::Ds,
-    DuoCode::Poa,
-    DuoCode::Gso,
-    DuoCode::GruCc,
-    DuoCode::Ru,
-];
-
 /// Returns `true` when `code` is a DUO permission (vs modifier).
 pub fn is_permission(code: DuoCode) -> bool {
-    PERMISSION_CODES.contains(&code)
+    code.is_permission()
 }
 
 /// Returns `true` when requester permission satisfies dataset requirement in DUO hierarchy.
@@ -115,6 +103,15 @@ pub fn check_compatibility(
     let mut unsatisfied_codes = Vec::new();
     let mut conditions = Vec::new();
 
+    for assertion in &dataset.duo_codes {
+        if assertion.code == DuoCode::Ds && assertion.modifier_value.is_none() {
+            conditions.push(
+                "disease-specific (DS) dataset requires MONDO or equivalent modifier_value"
+                    .to_string(),
+            );
+        }
+    }
+
     if dataset_permissions.contains(&DuoCode::Nres) {
         satisfied_codes.extend(dataset_permissions.clone());
     } else {
@@ -135,12 +132,6 @@ pub fn check_compatibility(
             satisfied_codes.push(modifier.code);
         } else {
             unsatisfied_codes.push(modifier.code);
-        }
-        if modifier.code == DuoCode::Ds && modifier.modifier_value.is_none() {
-            conditions.push(
-                "disease-specific (DS) dataset requires MONDO or equivalent modifier_value"
-                    .to_string(),
-            );
         }
         if let Some(note) = procedural_modifier(modifier.code) {
             conditions.push(note.to_string());
@@ -217,12 +208,17 @@ pub fn find_matching_template<'a>(
 ) -> Option<&'a AgreementTemplate> {
     let dataset_codes: HashSet<DuoCode> = dataset.duo_codes.iter().map(|a| a.code).collect();
     templates.iter().find(|tmpl| {
-        tmpl.required_duo_codes
+        let required: HashSet<DuoCode> = tmpl.required_duo_codes.iter().copied().collect();
+        if !required.iter().all(|code| dataset_codes.contains(code)) {
+            return false;
+        }
+        if tmpl.allowed_duo_codes.is_empty() {
+            return true;
+        }
+        let allowed: HashSet<DuoCode> = tmpl.allowed_duo_codes.iter().copied().collect();
+        dataset_codes
             .iter()
-            .all(|code| dataset_codes.contains(code))
-            && (tmpl.allowed_duo_codes.is_empty()
-                || dataset_codes.len()
-                    <= tmpl.required_duo_codes.len() + tmpl.allowed_duo_codes.len())
+            .all(|code| required.contains(code) || allowed.contains(code))
     })
 }
 
@@ -345,5 +341,31 @@ mod tests {
         };
         let result = check_compatibility(&requester, &dataset, Some(&template));
         assert!(result.conditions.iter().any(|c| c.contains("illustrative")));
+    }
+
+    #[test]
+    fn find_matching_template_rejects_extra_codes_not_in_allowed() {
+        let dataset = profile("ds", vec![assertion(DuoCode::Gru), assertion(DuoCode::Ncu)]);
+        let templates = [AgreementTemplate {
+            id: "tmpl".to_string(),
+            name: "T".to_string(),
+            version: "1".to_string(),
+            description: "d".to_string(),
+            required_duo_codes: vec![DuoCode::Gru],
+            allowed_duo_codes: vec![DuoCode::Npu],
+            required_visa_types: vec![],
+            reference_url: None,
+            is_illustrative: false,
+        }];
+        assert!(find_matching_template(&templates, &dataset).is_none());
+
+        let allowed = profile(
+            "ds2",
+            vec![assertion(DuoCode::Gru), assertion(DuoCode::Npu)],
+        );
+        assert_eq!(
+            find_matching_template(&templates, &allowed).map(|t| t.id.as_str()),
+            Some("tmpl")
+        );
     }
 }

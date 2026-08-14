@@ -107,14 +107,6 @@ impl ServiceStore {
         }
     }
 
-    #[cfg(all(test, feature = "sqlite"))]
-    #[allow(dead_code)]
-    pub(crate) fn from_pool_sqlite(pool: SqlitePool) -> Self {
-        Self {
-            pool: DbPool::Sqlite(pool),
-        }
-    }
-
     /// Register or update a service entry keyed by service id.
     #[instrument(skip(self, service))]
     pub async fn upsert(&self, service: &ExternalService) -> Result<(), RegistryError> {

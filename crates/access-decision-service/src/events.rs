@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 
 use chrono::Utc;
 use ga4gh_types::{AccessRequest, AdsEvent, AdsEventType, Grant};
-use reqwest::Client;
 use serde_json::json;
 use tracing::warn;
 use uuid::Uuid;
@@ -27,7 +26,7 @@ pub async fn emit_event(
         payload,
     };
     store.insert_event(&event).await?;
-    notify_webhooks(store.webhook_urls(), &event).await;
+    notify_webhooks(store, &event).await;
     tracing::info!(event_type = ?event.event_type, event_id = %event.id, "ads audit event");
     Ok(event)
 }
@@ -38,19 +37,13 @@ fn insert_dac_group(payload: &mut BTreeMap<String, serde_json::Value>, dac_group
     }
 }
 
-async fn notify_webhooks(urls: &[String], event: &AdsEvent) {
+async fn notify_webhooks(store: &AdsStore, event: &AdsEvent) {
+    let urls = store.webhook_urls();
     if urls.is_empty() {
         return;
     }
-    let client = match Client::builder().use_rustls_tls().build() {
-        Ok(client) => client,
-        Err(err) => {
-            warn!(error = %err, "webhook client build failed");
-            return;
-        }
-    };
     for url in urls {
-        if let Err(err) = client.post(url).json(event).send().await {
+        if let Err(err) = store.webhook_http().post(url).json(event).send().await {
             warn!(%url, error = %err, "webhook delivery failed");
         }
     }

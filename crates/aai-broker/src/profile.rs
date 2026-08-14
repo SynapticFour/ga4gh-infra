@@ -3,7 +3,8 @@
 //! Cached researcher profile data returned from `/userinfo`.
 
 use std::collections::HashMap;
-use std::sync::RwLock;
+
+use tokio::sync::RwLock;
 
 use crate::identity::ResearcherIdentity;
 
@@ -26,25 +27,21 @@ pub struct ProfileStore {
 
 impl ProfileStore {
     /// Store a researcher profile keyed by subject.
-    pub fn insert(&self, identity: &ResearcherIdentity, exp: i64) {
-        if let Ok(mut guard) = self.inner.write() {
-            guard.insert(
-                identity.sub.clone(),
-                CachedProfile {
-                    email: identity.email.clone(),
-                    affiliation: identity.affiliation.clone(),
-                    exp,
-                },
-            );
-        }
+    pub async fn insert(&self, identity: &ResearcherIdentity, exp: i64) {
+        let mut guard = self.inner.write().await;
+        guard.insert(
+            identity.sub.clone(),
+            CachedProfile {
+                email: identity.email.clone(),
+                affiliation: identity.affiliation.clone(),
+                exp,
+            },
+        );
     }
 
     /// Look up a cached profile by subject if it has not expired.
-    pub fn get(&self, sub: &str, now: i64) -> Option<CachedProfile> {
-        self.inner
-            .read()
-            .ok()
-            .and_then(|guard| guard.get(sub).cloned())
-            .filter(|profile| profile.exp > now)
+    pub async fn get(&self, sub: &str, now: i64) -> Option<CachedProfile> {
+        let guard = self.inner.read().await;
+        guard.get(sub).cloned().filter(|profile| profile.exp > now)
     }
 }

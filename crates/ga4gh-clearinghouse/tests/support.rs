@@ -123,6 +123,9 @@ impl TestIssuer {
             ga4gh_passport_v1: visa_jwts,
             scope: Some("openid ga4gh_passport_v1".to_string()),
             aud: None,
+            email: None,
+            name: None,
+            groups: vec![],
         };
         encode(
             &self.signing_header(&self.broker_kid),

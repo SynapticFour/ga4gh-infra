@@ -175,6 +175,7 @@ pub struct CreateProjectRequest {
 
 /// Lifecycle status of an access request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum AccessRequestStatus {
     /// Awaiting DAC review or auto-approval evaluation.
@@ -485,6 +486,7 @@ pub struct ResearcherVisasResponse {
 /// ADS audit/event types emitted to the event log.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum AdsEventType {
     /// A grant was created.
     GrantCreated,

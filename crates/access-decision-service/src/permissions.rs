@@ -39,15 +39,23 @@ pub fn claim_values(claims: &BTreeMap<String, Value>, path: &str) -> Vec<String>
     }
 
     if path.contains('.') {
-        let mut current =
-            Value::Object(claims.iter().map(|(k, v)| (k.clone(), v.clone())).collect());
-        for segment in path.split('.') {
+        let mut segments = path.split('.');
+        let Some(first) = segments.next() else {
+            return vec![];
+        };
+        let Some(mut current) = claims.get(first) else {
+            return vec![];
+        };
+        for segment in segments {
             current = match current {
-                Value::Object(map) => map.get(segment).cloned().unwrap_or(Value::Null),
-                _ => Value::Null,
+                Value::Object(map) => match map.get(segment) {
+                    Some(value) => value,
+                    None => return vec![],
+                },
+                _ => return vec![],
             };
         }
-        return values_from_json(&current);
+        return values_from_json(current);
     }
 
     vec![]

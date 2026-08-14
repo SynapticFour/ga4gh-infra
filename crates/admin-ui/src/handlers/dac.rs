@@ -59,6 +59,7 @@ fn status_label(status: AccessRequestStatus) -> &'static str {
         AccessRequestStatus::Approved => "Approved",
         AccessRequestStatus::Rejected => "Rejected",
         AccessRequestStatus::Escalated => "Escalated",
+        _ => "Unknown",
     }
 }
 
@@ -157,7 +158,10 @@ async fn render_queue_partial(
     }
 }
 
-pub async fn queue_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
+pub async fn queue_page(auth: RequireAuth, State(state): State<SharedState>) -> Response {
+    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+        return resp;
+    }
     let groups = dac_groups_for(&auth, &state);
     let queue_result = state.clients.ads_dac_queue(groups.as_deref()).await;
     let degraded = queue_result.is_err();
@@ -176,10 +180,10 @@ pub async fn queue_page(auth: RequireAuth, State(state): State<SharedState>) -> 
     }
 }
 
-pub async fn queue_partial(
-    auth: RequireAuth,
-    State(state): State<SharedState>,
-) -> impl IntoResponse {
+pub async fn queue_partial(auth: RequireAuth, State(state): State<SharedState>) -> Response {
+    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+        return resp;
+    }
     let groups = dac_groups_for(&auth, &state);
     match render_queue_partial(
         &state,
@@ -232,6 +236,9 @@ pub async fn approve(
     headers: HeaderMap,
     Form(form): Form<DacActionForm>,
 ) -> Response {
+    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+        return resp;
+    }
     let groups = dac_groups_for(&auth, &state);
     let reason = form.reason.filter(|s| !s.trim().is_empty());
     dac_action_response(
@@ -250,6 +257,9 @@ pub async fn reject(
     headers: HeaderMap,
     Form(form): Form<DacActionForm>,
 ) -> Response {
+    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+        return resp;
+    }
     let groups = dac_groups_for(&auth, &state);
     let reason = form.reason.filter(|s| !s.trim().is_empty());
     if reason.is_none() {
@@ -271,6 +281,9 @@ pub async fn escalate(
     headers: HeaderMap,
     Form(form): Form<DacActionForm>,
 ) -> Response {
+    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+        return resp;
+    }
     let groups = dac_groups_for(&auth, &state);
     let reason = form.reason.filter(|s| !s.trim().is_empty());
     if reason.is_none() {

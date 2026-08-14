@@ -48,8 +48,8 @@ pub struct SearchForm {
 }
 
 pub async fn search_page(auth: RequireAuth, State(_state): State<SharedState>) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     let inner = SearchInner {
         query: String::new(),
@@ -68,8 +68,8 @@ pub async fn search(
     State(state): State<SharedState>,
     Form(form): Form<SearchForm>,
 ) -> impl IntoResponse {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err().into_response();
+    if let Err(resp) = auth.require_admin() {
+        return resp.into_response();
     }
     let id = form.researcher_id.trim();
     let (researcher, visas_json, error) = match state.clients.ads_get_researcher(id).await {

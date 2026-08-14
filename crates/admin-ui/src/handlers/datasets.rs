@@ -234,8 +234,8 @@ pub async fn create(
     State(state): State<SharedState>,
     Form(form): Form<CreateDatasetForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     match save_dataset(&state, None, form).await {
         Ok(dataset) => Redirect::to(&format!("/datasets/{}", dataset.id)).into_response(),
@@ -249,8 +249,8 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Form(form): Form<CreateDatasetForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     match save_dataset(&state, Some(id), form).await {
         Ok(dataset) => Redirect::to(&format!("/datasets/{}", dataset.id)).into_response(),

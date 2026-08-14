@@ -52,8 +52,8 @@ pub struct MappingForm {
 }
 
 pub async fn index_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err().into_response();
+    if let Err(resp) = auth.require_admin() {
+        return resp.into_response();
     }
     render_system(&auth, &state).await
 }
@@ -111,15 +111,17 @@ pub async fn create_source(
     State(state): State<SharedState>,
     Form(form): Form<SourceForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     let payload = CreatePermissionSourceRequest {
         name: form.name,
         oidc_issuer: form.oidc_issuer,
         claim_path: form.claim_path,
     };
-    let _ = state.clients.ads_create_permission_source(&payload).await;
+    if let Err(err) = state.clients.ads_create_permission_source(&payload).await {
+        return (StatusCode::BAD_GATEWAY, err.to_string()).into_response();
+    }
     render_system(&auth, &state).await
 }
 
@@ -128,8 +130,8 @@ pub async fn create_mapping(
     State(state): State<SharedState>,
     Form(form): Form<MappingForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     let Ok(source_id) = Uuid::parse_str(&form.source_id) else {
         return (StatusCode::BAD_REQUEST, "invalid source_id").into_response();
@@ -143,7 +145,9 @@ pub async fn create_mapping(
         dataset_id,
         grant_lifetime_seconds: form.grant_lifetime_seconds,
     };
-    let _ = state.clients.ads_create_permission_mapping(&payload).await;
+    if let Err(err) = state.clients.ads_create_permission_mapping(&payload).await {
+        return (StatusCode::BAD_GATEWAY, err.to_string()).into_response();
+    }
     render_system(&auth, &state).await
 }
 
@@ -152,9 +156,11 @@ pub async fn delete_mapping(
     State(state): State<SharedState>,
     Path(id): Path<Uuid>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
-    let _ = state.clients.ads_delete_permission_mapping(id).await;
+    if let Err(err) = state.clients.ads_delete_permission_mapping(id).await {
+        return (StatusCode::BAD_GATEWAY, err.to_string()).into_response();
+    }
     render_system(&auth, &state).await
 }

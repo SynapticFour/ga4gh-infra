@@ -96,7 +96,7 @@ jwks_uri = "http://visa-registry:8081/jwks.json"
 | Visa-registry RS256 PEM | Visa JWT signing | separate keypair |
 | `BROKER_COOKIE_SECRET` | HMAC for RP session cookies | `openssl rand -base64 32` |
 | `MY_INSTITUTE_CLIENT_SECRET` | OIDC client secret at IdP | from IdP admin console |
-| `REGISTRY_BOOTSTRAP_API_KEY` | DAC visa API (visa-registry) | strong random; rotate after bootstrap |
+| `REGISTRY_BOOTSTRAP_API_KEY` | DAC visa API (visa-registry) and broker `GET /visas` | strong random; rotate after bootstrap |
 | `SERVICE_REGISTRY_REGISTRATION_KEY` | Internal service registration | strong random; not exposed publicly |
 | Postgres passwords | DB access | managed by DBA / secret store |
 

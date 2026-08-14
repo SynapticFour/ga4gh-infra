@@ -2,8 +2,6 @@
 
 //! Visa JWT minting from stored assertions.
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use ga4gh_types::{VisaClaim, VisaJwtClaims};
 use jsonwebtoken::encode;
 use tracing::instrument;
@@ -11,7 +9,7 @@ use tracing::instrument;
 use crate::config::RegistryConfig;
 use crate::error::RegistryError;
 use crate::keys::SigningKeys;
-use crate::store::VisaAssertion;
+use crate::store::{unix_now, VisaAssertion};
 
 /// Mint a signed GA4GH visa JWT from an unsigned stored assertion.
 #[instrument(skip(keys, config, assertion))]
@@ -47,13 +45,6 @@ pub fn mint_visa_jwt(
 
     encode(&keys.signing_header(), &claims, keys.encoding_key())
         .map_err(|err| RegistryError::Signing(err.to_string()))
-}
-
-fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs() as i64)
-        .unwrap_or(0)
 }
 
 #[cfg(test)]

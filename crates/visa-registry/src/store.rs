@@ -9,7 +9,7 @@ use sqlx::{Row, SqlitePool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::auth::{hash_api_key, verify_api_key};
+use crate::auth::hash_api_key;
 use crate::config::{DatabaseConfig, DatabaseDriver};
 use crate::error::RegistryError;
 
@@ -28,6 +28,17 @@ enum DbPool {
 #[derive(Clone)]
 pub struct VisaStore {
     pool: DbPool,
+}
+
+macro_rules! with_pool {
+    ($self:expr, $pool:ident, $body:expr) => {{
+        match &$self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres($pool) => $body,
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite($pool) => $body,
+        }
+    }};
 }
 
 /// Unsigned visa assertion stored in the database.
@@ -166,35 +177,19 @@ impl VisaStore {
         let now = unix_now();
         let id = Uuid::new_v4().to_string();
         let key_hash = hash_api_key(raw_key);
+        let sql = "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)";
 
-        match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query(
-                    "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)",
-                )
+        with_pool!(self, pool, {
+            sqlx::query(sql)
                 .bind(&id)
                 .bind(name)
                 .bind(&key_hash)
                 .bind(now)
                 .execute(pool)
                 .await
-                .map_err(|err| RegistryError::Database(err.to_string()))?;
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query(
-                    "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)",
-                )
-                .bind(&id)
-                .bind(name)
-                .bind(&key_hash)
-                .bind(now)
-                .execute(pool)
-                .await
-                .map_err(|err| RegistryError::Database(err.to_string()))?;
-            }
-        }
+                .map(|_| ())
+                .map_err(|err| RegistryError::Database(err.to_string()))
+        })?;
 
         Ok(())
     }
@@ -202,32 +197,17 @@ impl VisaStore {
     /// Verify a raw API key against active hashed keys in the database.
     #[instrument(skip(self, raw_key))]
     pub async fn verify_api_key(&self, raw_key: &str) -> Result<(), RegistryError> {
-        let authorized = match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                let rows = sqlx::query("SELECT key_hash FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_all(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?;
-                rows.iter().any(|row| {
-                    let stored_hash: String = row.get("key_hash");
-                    verify_api_key(raw_key, &stored_hash)
-                })
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                let rows = sqlx::query("SELECT key_hash FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_all(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?;
-                rows.iter().any(|row| {
-                    let stored_hash: String = row.get("key_hash");
-                    verify_api_key(raw_key, &stored_hash)
-                })
-            }
-        };
+        let key_hash = hash_api_key(raw_key);
+        let found = with_pool!(self, pool, {
+            sqlx::query("SELECT 1 FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL")
+                .bind(&key_hash)
+                .fetch_optional(pool)
+                .await
+                .map_err(|err| RegistryError::Database(err.to_string()))
+                .map(|row| row.is_some())
+        })?;
 
-        if authorized {
+        if found {
             Ok(())
         } else {
             Err(RegistryError::Unauthorized)
@@ -250,56 +230,30 @@ impl VisaStore {
             .map_err(|err| RegistryError::BadRequest(err.to_string()))?;
         let by_authority = input.by.map(authority_to_db);
 
-        match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query(
-                    r#"
+        with_pool!(self, pool, {
+            sqlx::query(
+                r#"
                     INSERT INTO visa_assertions (
                         id, sub, visa_type, value, source, by_authority, conditions,
                         asserted, created_at, expires_at
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     "#,
-                )
-                .bind(id.to_string())
-                .bind(&input.sub)
-                .bind(input.visa_type.as_str())
-                .bind(&input.value)
-                .bind(&input.source)
-                .bind(by_authority)
-                .bind(conditions)
-                .bind(input.asserted)
-                .bind(now)
-                .bind(input.expires_at)
-                .execute(pool)
-                .await
-                .map_err(|err| RegistryError::Database(err.to_string()))?;
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query(
-                    r#"
-                    INSERT INTO visa_assertions (
-                        id, sub, visa_type, value, source, by_authority, conditions,
-                        asserted, created_at, expires_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                    "#,
-                )
-                .bind(id.to_string())
-                .bind(&input.sub)
-                .bind(input.visa_type.as_str())
-                .bind(&input.value)
-                .bind(&input.source)
-                .bind(by_authority)
-                .bind(conditions)
-                .bind(input.asserted)
-                .bind(now)
-                .bind(input.expires_at)
-                .execute(pool)
-                .await
-                .map_err(|err| RegistryError::Database(err.to_string()))?;
-            }
-        }
+            )
+            .bind(id.to_string())
+            .bind(&input.sub)
+            .bind(input.visa_type.as_str())
+            .bind(&input.value)
+            .bind(&input.source)
+            .bind(by_authority)
+            .bind(&conditions)
+            .bind(input.asserted)
+            .bind(now)
+            .bind(input.expires_at)
+            .execute(pool)
+            .await
+            .map(|_| ())
+            .map_err(|err| RegistryError::Database(err.to_string()))
+        })?;
 
         Ok(VisaAssertion {
             id,
@@ -320,28 +274,17 @@ impl VisaStore {
     #[instrument(skip(self))]
     pub async fn revoke_assertion(&self, id: Uuid) -> Result<(), RegistryError> {
         let now = unix_now();
-        let affected = match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => sqlx::query(
+        let affected = with_pool!(self, pool, {
+            sqlx::query(
                 "UPDATE visa_assertions SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
             )
             .bind(now)
             .bind(id.to_string())
             .execute(pool)
             .await
-            .map_err(|err| RegistryError::Database(err.to_string()))?
-            .rows_affected(),
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => sqlx::query(
-                "UPDATE visa_assertions SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
-            )
-            .bind(now)
-            .bind(id.to_string())
-            .execute(pool)
-            .await
-            .map_err(|err| RegistryError::Database(err.to_string()))?
-            .rows_affected(),
-        };
+            .map_err(|err| RegistryError::Database(err.to_string()))
+            .map(|result| result.rows_affected())
+        })?;
 
         if affected == 0 {
             return Err(RegistryError::NotFound);
@@ -407,22 +350,12 @@ impl VisaStore {
     }
 
     async fn count_active_api_keys(&self) -> Result<i64, RegistryError> {
-        match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query_scalar("SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query_scalar("SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL")
-                    .fetch_one(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))
-            }
-        }
+        with_pool!(self, pool, {
+            sqlx::query_scalar("SELECT COUNT(*) FROM api_keys WHERE revoked_at IS NULL")
+                .fetch_one(pool)
+                .await
+                .map_err(|err| RegistryError::Database(err.to_string()))
+        })
     }
 }
 
@@ -534,7 +467,7 @@ fn authority_from_db(raw: &str) -> Result<VisaAuthority, String> {
     }
 }
 
-fn unix_now() -> i64 {
+pub(crate) fn unix_now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs() as i64)

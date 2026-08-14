@@ -603,6 +603,7 @@ async fn seed_visas(client: &Client, config: &SeedConfig, summary: &mut SeedSumm
             config.visa_registry_url.trim_end_matches('/')
         ))
         .query(&[("sub", config.researcher_sub.as_str())])
+        .header("X-API-Key", &config.visa_api_key)
         .send()
         .await
         .context("list visas")?;

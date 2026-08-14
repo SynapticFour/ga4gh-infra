@@ -85,14 +85,15 @@ pub async fn callback(
     )?;
 
     let exp = unix_now() + state.config.signing.passport_lifetime_seconds as i64;
-    state.profiles.insert(&identity, exp);
+    state.profiles.insert(&identity, exp).await;
 
     let clear_cookie = state.sessions.clear_set_cookie();
     let return_url = session.return_url.clone();
+    let expires_in = state.config.signing.passport_lifetime_seconds;
     let body = serde_json::json!({
         "access_token": passport_jwt,
         "token_type": "Bearer",
-        "expires_in": state.config.signing.token_lifetime_seconds,
+        "expires_in": expires_in,
         "scope": "openid ga4gh_passport_v1",
     });
 
@@ -100,7 +101,7 @@ pub async fn callback(
         let fragment = format!(
             "access_token={}&token_type=Bearer&expires_in={}",
             urlencoding::encode(&passport_jwt),
-            state.config.signing.token_lifetime_seconds
+            expires_in
         );
         let location = format!("{return_url}#{fragment}");
         Redirect::temporary(&location).into_response()
@@ -174,6 +175,11 @@ async fn identity_from_token_response(
     if let Some(name) = claims.name().and_then(|value| value.get(None)) {
         claim_map.insert("name".to_string(), Value::String(name.to_string()));
     }
+    if let Some(payload) = jwt_payload_value(&id_token.to_string()) {
+        if let Some(groups) = payload.get("groups") {
+            claim_map.insert("groups".to_string(), groups.clone());
+        }
+    }
 
     if let Some(userinfo) = idp.fetch_userinfo(http_client, token_response).await? {
         if let Some(email) = userinfo.email() {
@@ -196,6 +202,15 @@ async fn identity_from_token_response(
     ResearcherIdentity::from_upstream(&idp.config, &claim_map)
         .ok_or(BrokerError::AuthenticationFailed)
         .map(|identity| (identity, BTreeMap::from_iter(claim_map)))
+}
+
+fn jwt_payload_value(token: &str) -> Option<Value> {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    use base64::Engine;
+
+    let payload = token.split('.').nth(1)?;
+    let bytes = URL_SAFE_NO_PAD.decode(payload).ok()?;
+    serde_json::from_slice(&bytes).ok()
 }
 
 #[cfg(test)]

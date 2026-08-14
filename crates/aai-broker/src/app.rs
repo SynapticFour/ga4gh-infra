@@ -47,11 +47,21 @@ impl AppState {
         let keys = SigningKeys::from_pem_file(&config.signing.private_key_pem)?;
         let http_client = build_http_client()?;
         let upstream = UpstreamRegistry::discover_all(&config, &http_client).await?;
-        let visa_sources = config
-            .visa_sources
-            .iter()
-            .map(VisaSourceClient::new)
-            .collect::<Result<Vec<_>, _>>()?;
+        let visa_sources = {
+            let mut sources = Vec::new();
+            for source in &config.visa_sources {
+                match VisaSourceClient::new(source) {
+                    Ok(client) => sources.push(client),
+                    Err(err) if source.required => return Err(err),
+                    Err(err) => tracing::warn!(
+                        source = %source.name,
+                        error = %err,
+                        "skipping optional visa source"
+                    ),
+                }
+            }
+            sources
+        };
         let ads = config.ads.as_ref().map(AdsClient::new).transpose()?;
 
         Ok(Arc::new(Self {

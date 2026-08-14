@@ -22,6 +22,9 @@ pub enum ClearinghouseError {
     /// The token issuer is not configured as trusted.
     #[error("untrusted issuer")]
     UntrustedIssuer,
+    /// An embedded visa JWT `sub` does not match the Passport `sub`.
+    #[error("visa subject does not match passport subject")]
+    VisaSubjectMismatch,
     /// JWKS could not be fetched or parsed.
     #[error("JWKS fetch failed: {0}")]
     JwksFetchFailed(String),

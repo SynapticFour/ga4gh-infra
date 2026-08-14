@@ -98,10 +98,20 @@ fn sign_value(value: &str, key: &[u8]) -> Result<String, BrokerError> {
 
 fn verify_value(value: &str, signature: &str, key: &[u8]) -> Result<(), BrokerError> {
     let expected = sign_value(value, key)?;
-    if expected != signature {
+    if !constant_time_eq(expected.as_bytes(), signature.as_bytes()) {
         return Err(BrokerError::InvalidSession);
     }
     Ok(())
+}
+
+fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    left.iter()
+        .zip(right.iter())
+        .fold(0u8, |acc, (a, b)| acc | (a ^ b))
+        == 0
 }
 
 /// Current Unix timestamp in seconds.

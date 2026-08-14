@@ -43,6 +43,6 @@ pub use health::HealthResponse;
 pub use passport::{Passport, PassportClaims};
 pub use service_info::{ServiceInfo, ServiceOrganization, ServiceType};
 pub use visa::{
-    ConditionMatch, ConditionMatchType, Visa, VisaAuthority, VisaClaim, VisaConditionClause,
-    VisaConditions, VisaJwtClaims, VisaType, VisaTypeError,
+    visa_conditions_met, ConditionMatch, ConditionMatchType, Visa, VisaAuthority, VisaClaim,
+    VisaConditionClause, VisaConditions, VisaJwtClaims, VisaType, VisaTypeError,
 };

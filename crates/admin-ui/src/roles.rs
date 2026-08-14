@@ -3,7 +3,9 @@ pub fn is_admin(groups: &[String], admin_claim_value: &str) -> bool {
     groups.iter().any(|g| g == admin_claim_value)
 }
 
-/// DAC groups for operator-scoped ADS queries. Admins receive `None` (no filter).
+/// DAC groups for operator-scoped ADS queries.
+/// Admins receive `None` (unfiltered). Non-admins receive `Some(groups)`, including
+/// an empty vector when they have no DAC groups (never unrestricted).
 pub fn operator_dac_groups(
     session: &crate::session::UserSession,
     admin_claim_value: &str,
@@ -17,11 +19,7 @@ pub fn operator_dac_groups(
         .filter(|g| *g != admin_claim_value)
         .cloned()
         .collect();
-    if groups.is_empty() {
-        None
-    } else {
-        Some(groups)
-    }
+    Some(groups)
 }
 
 #[cfg(test)]
@@ -65,6 +63,15 @@ mod tests {
         assert_eq!(
             operator_dac_groups(&s, "ga4gh-infra-admins"),
             Some(vec!["ega-dac".into()])
+        );
+    }
+
+    #[test]
+    fn operator_without_groups_is_empty_filter_not_unrestricted() {
+        let s = session(&[], false);
+        assert_eq!(
+            operator_dac_groups(&s, "ga4gh-infra-admins"),
+            Some(Vec::<String>::new())
         );
     }
 }

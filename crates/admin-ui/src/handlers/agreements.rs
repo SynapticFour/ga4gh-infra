@@ -125,8 +125,8 @@ async fn agreements_page(
 }
 
 pub async fn index_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err().into_response();
+    if let Err(resp) = auth.require_admin() {
+        return resp.into_response();
     }
     agreements_page(&auth, &state, None, None).await
 }
@@ -136,8 +136,8 @@ pub async fn compatibility_check(
     State(state): State<SharedState>,
     Form(form): Form<CompatibilityForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err().into_response();
+    if let Err(resp) = auth.require_admin() {
+        return resp.into_response();
     }
     let payload = CompatibilityCheckRequest {
         requester_profile_id: form.requester_profile_id,

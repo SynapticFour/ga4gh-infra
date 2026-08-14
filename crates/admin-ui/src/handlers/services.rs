@@ -74,8 +74,8 @@ pub async fn register_service(
     headers: HeaderMap,
     Form(form): Form<RegisterServiceForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     let payload = RegistryServicePayload {
         id: form.id,
@@ -113,8 +113,8 @@ pub async fn delete_service(
     Path(id): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     match state.clients.registry_delete_service(&id).await {
         Ok(()) => {

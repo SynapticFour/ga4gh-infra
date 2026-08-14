@@ -2,11 +2,14 @@
 
 //! Application state and HTTP router construction.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::routing::{delete, get, post};
 use axum::Router;
+use tokio::sync::RwLock;
 use tower_http::trace::TraceLayer;
+use uuid::Uuid;
 
 use crate::config::RegistryConfig;
 use crate::error::RegistryError;
@@ -22,6 +25,8 @@ pub struct AppState {
     pub keys: SigningKeys,
     /// Database-backed assertion store.
     pub store: VisaStore,
+    /// Signed visa JWTs keyed by assertion id (invalidated on revoke).
+    pub visa_jwts: RwLock<HashMap<Uuid, String>>,
 }
 
 impl AppState {
@@ -43,6 +48,7 @@ impl AppState {
             config,
             keys,
             store,
+            visa_jwts: RwLock::new(HashMap::new()),
         }))
     }
 }

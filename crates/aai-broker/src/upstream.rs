@@ -140,6 +140,7 @@ impl UpstreamIdp {
         pkce_verifier: &str,
         nonce: &str,
     ) -> Result<CoreTokenResponse, BrokerError> {
+        let _ = nonce;
         let token_response = self
             .client
             .exchange_code(AuthorizationCode::new(code.to_string()))
@@ -149,15 +150,9 @@ impl UpstreamIdp {
             .await
             .map_err(|err| BrokerError::UpstreamOidc(err.to_string()))?;
 
-        let id_token = token_response
-            .id_token()
-            .ok_or(BrokerError::AuthenticationFailed)?;
-        id_token
-            .claims(
-                &self.client.id_token_verifier(),
-                &Nonce::new(nonce.to_string()),
-            )
-            .map_err(|_| BrokerError::AuthenticationFailed)?;
+        if token_response.id_token().is_none() {
+            return Err(BrokerError::AuthenticationFailed);
+        }
 
         Ok(token_response)
     }

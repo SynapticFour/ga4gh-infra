@@ -87,7 +87,7 @@ pub async fn userinfo(
     let token = bearer_token(&headers).ok_or(BrokerError::InvalidAccessToken)?;
     let claims = decode_passport(&state, token)?;
 
-    let profile = state.profiles.get(&claims.sub, unix_now());
+    let profile = state.profiles.get(&claims.sub, unix_now()).await;
     let response = UserinfoResponse {
         sub: claims.sub,
         email: profile.as_ref().and_then(|value| value.email.clone()),
@@ -139,8 +139,9 @@ mod tests {
         let identity = ResearcherIdentity {
             sub: "researcher@example.org".to_string(),
             email: Some("researcher@example.org".to_string()),
+            display_name: None,
             affiliation: None,
-            extra: Default::default(),
+            groups: vec![],
         };
         let token = mint_passport_jwt(
             keys,

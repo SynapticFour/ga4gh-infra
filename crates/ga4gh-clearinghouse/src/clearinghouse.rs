@@ -3,16 +3,14 @@
 //! Clearinghouse validation and policy evaluation.
 
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-use ga4gh_types::{Passport, PassportClaims, Visa, VisaJwtClaims};
+use ga4gh_types::{visa_conditions_met, Passport, PassportClaims, Visa, VisaJwtClaims};
 use tracing::instrument;
 
 use crate::config::ClearinghouseConfig;
 use crate::error::ClearinghouseError;
 use crate::jwks::{JwksCache, SharedJwksCache};
 use crate::policy::{evaluate_policy, PolicyCheck, PolicyResult};
-use crate::token::peek_expiry;
 
 /// Passport clearinghouse that validates broker-issued Passports and Visas.
 pub struct Clearinghouse {
@@ -36,10 +34,6 @@ impl Clearinghouse {
         &self,
         raw_passport_jwt: &str,
     ) -> Result<Passport, ClearinghouseError> {
-        if is_expired(peek_expiry(raw_passport_jwt)?) {
-            return Err(ClearinghouseError::ExpiredPassport);
-        }
-
         let claims: PassportClaims = self.jwks.verify_and_decode(raw_passport_jwt).await?;
         Ok(Passport::from_claims(claims))
     }
@@ -60,12 +54,16 @@ impl Clearinghouse {
                         ClearinghouseError::ExpiredPassport => ClearinghouseError::ExpiredVisa,
                         other => other,
                     })?;
-            if is_expired(claims.exp) {
-                return Err(ClearinghouseError::ExpiredVisa);
+            if claims.sub != passport.sub {
+                return Err(ClearinghouseError::VisaSubjectMismatch);
             }
             visas.push(Visa::from_claims(claims));
         }
-        Ok(visas)
+        Ok(visas
+            .iter()
+            .filter(|visa| visa_conditions_met(visa, &visas))
+            .cloned()
+            .collect())
     }
 
     /// Evaluate whether visas satisfy a policy expression.
@@ -79,17 +77,6 @@ impl Clearinghouse {
     pub fn jwks_cache(&self) -> &SharedJwksCache {
         &self.jwks
     }
-}
-
-fn is_expired(exp: i64) -> bool {
-    unix_now() >= exp
-}
-
-fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs() as i64)
-        .unwrap_or(0)
 }
 
 #[cfg(test)]

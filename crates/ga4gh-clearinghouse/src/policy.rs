@@ -83,14 +83,9 @@ pub fn evaluate_policy(visas: &[Visa], policy: &PolicyCheck) -> PolicyResult {
             }
         }
         PolicyCheck::HasDuoPermission { code } => {
-            let code_str = code.as_str();
             let matched: Vec<_> = visas
                 .iter()
-                .filter(|visa| {
-                    visa.claim.value == code_str
-                        || visa.claim.value.contains(code_str)
-                        || visa.claim.value.contains(&format!("DUO:{code_str}"))
-                })
+                .filter(|visa| visa_references_duo(&visa.claim.value, code))
                 .cloned()
                 .collect();
             let permitted = !matched.is_empty();
@@ -98,9 +93,9 @@ pub fn evaluate_policy(visas: &[Visa], policy: &PolicyCheck) -> PolicyResult {
                 permitted,
                 matched_visas: matched,
                 reason: if permitted {
-                    format!("visa references DUO permission `{code_str}`")
+                    format!("visa references DUO permission `{}`", code.as_str())
                 } else {
-                    format!("no visa references DUO permission `{code_str}`")
+                    format!("no visa references DUO permission `{}`", code.as_str())
                 },
             }
         }
@@ -148,10 +143,17 @@ pub fn evaluate_policy(visas: &[Visa], policy: &PolicyCheck) -> PolicyResult {
 }
 
 fn affiliation_matches_domain(value: &str, domain: &str) -> bool {
-    value
-        .split('@')
-        .nth(1)
-        .is_some_and(|suffix| suffix == domain)
+    let Some(suffix) = value.split('@').nth(1) else {
+        return false;
+    };
+    suffix == domain
+        || suffix
+            .strip_suffix(domain)
+            .is_some_and(|prefix| prefix.ends_with('.'))
+}
+
+fn visa_references_duo(value: &str, code: &DuoCode) -> bool {
+    value == code.as_str() || value == code.obo_id()
 }
 
 #[cfg(test)]
@@ -207,8 +209,23 @@ mod tests {
     }
 
     #[test]
-    fn duo_permission_policy_matches_code() {
-        let visas = vec![visa(VisaType::ControlledAccessGrants, "DUO:HMB")];
+    fn affiliation_policy_matches_subdomain() {
+        let visas = vec![visa(
+            VisaType::AffiliationAndRole,
+            "faculty@cs.uni-heidelberg.de",
+        )];
+        let result = evaluate_policy(
+            &visas,
+            &PolicyCheck::HasAffiliation {
+                domain: "uni-heidelberg.de".to_string(),
+            },
+        );
+        assert!(result.permitted);
+    }
+
+    #[test]
+    fn duo_permission_matches_shorthand_or_obo() {
+        let visas = vec![visa(VisaType::ControlledAccessGrants, "HMB")];
         let result = evaluate_policy(
             &visas,
             &PolicyCheck::HasDuoPermission {
@@ -216,6 +233,27 @@ mod tests {
             },
         );
         assert!(result.permitted);
+
+        let visas = vec![visa(VisaType::ControlledAccessGrants, "DUO:0000006")];
+        let result = evaluate_policy(
+            &visas,
+            &PolicyCheck::HasDuoPermission {
+                code: ga4gh_types::DuoCode::Hmb,
+            },
+        );
+        assert!(result.permitted);
+    }
+
+    #[test]
+    fn duo_permission_does_not_substring_match() {
+        let visas = vec![visa(VisaType::AffiliationAndRole, "faculty@us.example.org")];
+        let result = evaluate_policy(
+            &visas,
+            &PolicyCheck::HasDuoPermission {
+                code: ga4gh_types::DuoCode::Us,
+            },
+        );
+        assert!(!result.permitted);
     }
 
     #[test]

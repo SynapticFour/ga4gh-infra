@@ -134,6 +134,24 @@ impl DuoCode {
         matches!(self, Self::GruCc | Self::Ru)
     }
 
+    /// Returns `true` when this code is a primary data-use permission (not a modifier).
+    ///
+    /// Aligned with DUO OWL roots `DUO:0000001` (permission) vs `DUO:0000017` (modifier).
+    /// `GSO` is a modifier.
+    pub fn is_permission(self) -> bool {
+        matches!(
+            self,
+            Self::Nres
+                | Self::Gru
+                | Self::Hmb
+                | Self::Ds
+                | Self::Poa
+                | Self::Cc
+                | Self::GruCc
+                | Self::Ru
+        )
+    }
+
     /// Returns all known DUO codes.
     pub fn all() -> &'static [Self] {
         &[

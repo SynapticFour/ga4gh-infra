@@ -92,6 +92,20 @@ pub struct VisaSourceConfig {
     pub name: String,
     /// Base URL of the visa source service.
     pub url: String,
+    /// Environment variable holding the API key for `GET /visas` (default: `REGISTRY_BOOTSTRAP_API_KEY`).
+    #[serde(default = "default_visa_source_api_key_env")]
+    pub api_key_env: String,
+    /// When true, a failed fetch aborts Passport issuance.
+    #[serde(default = "default_true")]
+    pub required: bool,
+}
+
+fn default_visa_source_api_key_env() -> String {
+    "REGISTRY_BOOTSTRAP_API_KEY".to_string()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// ADS integration for researcher sync and signed visa export.
@@ -203,5 +217,10 @@ mod tests {
         assert_eq!(config.upstream_idps.len(), 1);
         assert_eq!(config.upstream_idps[0].name, "my-institute");
         assert_eq!(config.callback_url(), "https://aai.example.org/callback");
+        assert_eq!(
+            config.visa_sources[0].api_key_env,
+            "REGISTRY_BOOTSTRAP_API_KEY"
+        );
+        assert!(config.visa_sources[0].required);
     }
 }

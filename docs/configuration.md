@@ -54,6 +54,8 @@ Maps upstream JWT claim names to GA4GH identity fields (`sub`, `email`, `affilia
 |-------|------|-------------|
 | `name` | string | Label for logs |
 | `url` | URL | Visa registry base URL (`GET /visas?sub=`) |
+| `api_key_env` | string | Env var for `X-API-Key` (default: `REGISTRY_BOOTSTRAP_API_KEY`) |
+| `required` | bool | When true (default), a failed fetch aborts Passport issuance |
 
 ### `[ads]` (optional)
 
@@ -274,7 +276,7 @@ Environment template: [`config/env.native.example`](../config/env.native.example
 | `BROKER_COOKIE_SECRET` | broker | `dev-broker-cookie-secret` |
 | `MOCK_IDP_CLIENT_SECRET` | broker → mock-idp | `mock-client-secret` |
 | `REGISTRY_DATABASE_URL` | visa-registry | Postgres in Docker stack |
-| `REGISTRY_BOOTSTRAP_API_KEY` | visa-registry | `dev-visa-api-key` |
+| `REGISTRY_BOOTSTRAP_API_KEY` | visa-registry, broker `[[visa_sources]]` | `dev-visa-api-key` |
 | `SERVICE_REGISTRY_DATABASE_URL` | service-registry | Postgres in Docker stack |
 | `SERVICE_REGISTRY_REGISTRATION_KEY` | service-registry | `dev-service-registry-key` |
 | `ADS_DATABASE_URL` | access-decision-service | Postgres in Docker stack |

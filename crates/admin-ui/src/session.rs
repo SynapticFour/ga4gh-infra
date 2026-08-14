@@ -6,9 +6,8 @@ use axum::http::request::Parts;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{
-    dangerous::insecure_decode, decode, encode, DecodingKey, EncodingKey, Header, Validation,
-};
+use ga4gh_clearinghouse::JwksCache;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
 use crate::config::AdminUiConfig;
@@ -28,17 +27,21 @@ pub struct UserSession {
 }
 
 impl UserSession {
-    pub fn from_access_token(
+    pub async fn from_access_token(
         token: &str,
         config: &AdminUiConfig,
-    ) -> Result<Self, jsonwebtoken::errors::Error> {
-        // Broker access token: read claims only (signature verified upstream by broker OIDC).
-        let claims = insecure_decode::<serde_json::Value>(token)?.claims;
+        jwks: &JwksCache,
+    ) -> Result<Self, StatusCode> {
+        let claims: serde_json::Value = jwks
+            .verify_and_decode(token)
+            .await
+            .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
         let sub = claims
             .get("sub")
             .and_then(|v| v.as_str())
-            .unwrap_or("unknown")
+            .filter(|value| !value.is_empty())
+            .ok_or(StatusCode::UNAUTHORIZED)?
             .to_string();
         let display_name = claims
             .get("name")
@@ -130,6 +133,19 @@ impl RequireAuth {
             Ok(())
         } else {
             Err((StatusCode::FORBIDDEN, "admin role required").into_response())
+        }
+    }
+
+    /// Admins and users with at least one non-admin group may operate the DAC queue.
+    #[allow(clippy::result_large_err)]
+    pub fn require_dac_operator(&self, admin_claim_value: &str) -> Result<(), Response> {
+        if self.0.is_admin {
+            return Ok(());
+        }
+        if self.0.groups.iter().any(|group| group != admin_claim_value) {
+            Ok(())
+        } else {
+            Err((StatusCode::FORBIDDEN, "DAC operator role required").into_response())
         }
     }
 }

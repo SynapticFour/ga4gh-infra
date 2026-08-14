@@ -9,17 +9,17 @@ use std::time::{Duration, Instant};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use reqwest::Client;
 use serde::Deserialize;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tracing::instrument;
 
 use crate::config::TrustedBroker;
 use crate::error::ClearinghouseError;
-use crate::token::{decode_jwt_header, peek_issuer};
+use crate::token::{decode_jwt_header, peek_meta};
 
 /// Cached JWKS keys keyed by `kid`.
 #[derive(Clone)]
 struct CachedJwks {
-    keys_by_kid: HashMap<String, DecodingKey>,
+    keys_by_kid: HashMap<String, Arc<DecodingKey>>,
     fetched_at: Instant,
 }
 
@@ -29,6 +29,7 @@ pub struct JwksCache {
     ttl: Duration,
     brokers_by_issuer: HashMap<String, TrustedBroker>,
     cache: RwLock<HashMap<String, CachedJwks>>,
+    inflight: Mutex<HashMap<String, Arc<Mutex<()>>>>,
 }
 
 impl JwksCache {
@@ -52,6 +53,7 @@ impl JwksCache {
             ttl,
             brokers_by_issuer,
             cache: RwLock::new(HashMap::new()),
+            inflight: Mutex::new(HashMap::new()),
         })
     }
 
@@ -66,9 +68,12 @@ impl JwksCache {
     where
         T: serde::de::DeserializeOwned,
     {
-        let issuer = peek_issuer(token)?;
+        let meta = peek_meta(token)?;
+        if is_expired(meta.exp) {
+            return Err(ClearinghouseError::ExpiredPassport);
+        }
         let broker = self
-            .trusted_broker(&issuer)
+            .trusted_broker(&meta.iss)
             .ok_or(ClearinghouseError::UntrustedIssuer)?;
 
         let header = decode_jwt_header(token)?;
@@ -79,10 +84,10 @@ impl JwksCache {
         let key = self.decoding_key_for(&broker.jwks_uri, &kid).await?;
 
         let mut validation = Validation::new(Algorithm::RS256);
-        validation.set_issuer(&[issuer.as_str()]);
+        validation.set_issuer(&[meta.iss.as_str()]);
         validation.validate_aud = false;
 
-        decode::<T>(token, &key, &validation)
+        decode::<T>(token, key.as_ref(), &validation)
             .map(|data| data.claims)
             .map_err(map_decode_error)
     }
@@ -91,36 +96,56 @@ impl JwksCache {
         &self,
         jwks_uri: &str,
         kid: &str,
-    ) -> Result<DecodingKey, ClearinghouseError> {
+    ) -> Result<Arc<DecodingKey>, ClearinghouseError> {
         if let Some(key) = self.cached_key(jwks_uri, kid).await {
             return Ok(key);
         }
 
-        self.refresh(jwks_uri).await?;
+        let gate = {
+            let mut inflight = self.inflight.lock().await;
+            inflight
+                .entry(jwks_uri.to_string())
+                .or_insert_with(|| Arc::new(Mutex::new(())))
+                .clone()
+        };
+        let _in_flight = gate.lock().await;
 
         if let Some(key) = self.cached_key(jwks_uri, kid).await {
             return Ok(key);
         }
 
-        // The issuer may publish a new key after an initially stale or empty JWKS response.
-        self.refresh(jwks_uri).await?;
+        let mut cache = self.cache.write().await;
+        if let Some(key) = cached_key_from(&cache, jwks_uri, kid, self.ttl) {
+            return Ok(key);
+        }
 
-        self.cached_key(jwks_uri, kid)
-            .await
+        self.refresh_locked(&mut cache, jwks_uri).await?;
+        if let Some(key) = cached_key_from(&cache, jwks_uri, kid, self.ttl) {
+            return Ok(key);
+        }
+
+        // Retry only when the issuer returned an empty JWKS (startup / rotation race).
+        let empty = cache
+            .get(jwks_uri)
+            .is_none_or(|entry| entry.keys_by_kid.is_empty());
+        if empty {
+            self.refresh_locked(&mut cache, jwks_uri).await?;
+        }
+        cached_key_from(&cache, jwks_uri, kid, self.ttl)
             .ok_or_else(|| ClearinghouseError::UnknownKeyId(kid.to_string()))
     }
 
-    async fn cached_key(&self, jwks_uri: &str, kid: &str) -> Option<DecodingKey> {
+    async fn cached_key(&self, jwks_uri: &str, kid: &str) -> Option<Arc<DecodingKey>> {
         let cache = self.cache.read().await;
-        let entry = cache.get(jwks_uri)?;
-        if self.ttl > Duration::ZERO && entry.fetched_at.elapsed() > self.ttl {
-            return None;
-        }
-        entry.keys_by_kid.get(kid).cloned()
+        cached_key_from(&cache, jwks_uri, kid, self.ttl)
     }
 
-    #[instrument(skip(self))]
-    async fn refresh(&self, jwks_uri: &str) -> Result<(), ClearinghouseError> {
+    #[instrument(skip(self, cache))]
+    async fn refresh_locked(
+        &self,
+        cache: &mut tokio::sync::RwLockWriteGuard<'_, HashMap<String, CachedJwks>>,
+        jwks_uri: &str,
+    ) -> Result<(), ClearinghouseError> {
         let response = self
             .http
             .get(jwks_uri)
@@ -154,11 +179,10 @@ impl JwksCache {
             let Some(e) = key.e else {
                 continue;
             };
-            let decoding_key = decoding_key_from_components(&n, &e)?;
+            let decoding_key = Arc::new(decoding_key_from_components(&n, &e)?);
             keys_by_kid.insert(kid, decoding_key);
         }
 
-        let mut cache = self.cache.write().await;
         cache.insert(
             jwks_uri.to_string(),
             CachedJwks {
@@ -168,6 +192,27 @@ impl JwksCache {
         );
         Ok(())
     }
+}
+
+fn cached_key_from(
+    cache: &HashMap<String, CachedJwks>,
+    jwks_uri: &str,
+    kid: &str,
+    ttl: Duration,
+) -> Option<Arc<DecodingKey>> {
+    let entry = cache.get(jwks_uri)?;
+    if ttl > Duration::ZERO && entry.fetched_at.elapsed() > ttl {
+        return None;
+    }
+    entry.keys_by_kid.get(kid).cloned()
+}
+
+fn is_expired(exp: i64) -> bool {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs() as i64)
+        .unwrap_or(0)
+        >= exp
 }
 
 fn decoding_key_from_components(n: &str, e: &str) -> Result<DecodingKey, ClearinghouseError> {

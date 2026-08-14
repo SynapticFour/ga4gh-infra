@@ -120,7 +120,7 @@ Unauthenticated or under-privileged requests receive GA4GH-shaped JSON errors (`
 
 1. **Upstream login** — The broker starts an OIDC authorization code + PKCE flow with the institute IdP (`mock-idp` in docker).
 2. **Callback** — The broker exchanges the authorization code, validates the upstream ID token, and resolves the researcher `sub`.
-3. **Visa collection** — The broker calls `GET /visas?sub=` on each configured visa source and collects signed visa JWT strings.
+3. **Visa collection** — The broker calls authenticated `GET /visas?sub=` on each configured visa source (`X-API-Key` from `api_key_env`) and collects signed visa JWT strings. Required sources fail closed; optional sources log and continue.
 4. **Passport minting** — The broker embeds visa JWTs in a GA4GH Passport JWT signed with the broker key.
 5. **Clearinghouse validation** — A resource service (or the e2e test) validates the Passport signature, issuer, and expiry, then validates embedded visas against trusted issuer JWKS.
 6. **Policy checks** — The clearinghouse evaluates `PolicyCheck` expressions (controlled access, affiliation, DUO permissions).
@@ -161,7 +161,7 @@ Or manually:
 cargo test -p ga4gh-e2e -- --ignored --test-threads=1
 ```
 
-The stack includes **admin-ui** on port **8095**. The `stack_admin_ui_approves_dac_request_via_htmx` test logs in via the broker, establishes an admin-ui session, approves a pending DAC request through the htmx endpoint, and verifies the grant via ADS.
+The stack includes **admin-ui** on port **8095**. The `stack_admin_ui_approves_dac_request_via_htmx` test logs in via the broker (mock IdP issues `groups: ["ga4gh-infra-admins"]`), establishes an admin-ui session after JWKS verification of the Passport JWT, approves a pending DAC request through the htmx endpoint, and verifies the grant via ADS.
 
 ### Environment defaults (development)
 

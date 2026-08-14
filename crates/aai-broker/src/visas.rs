@@ -4,7 +4,7 @@
 
 use reqwest::Client;
 use serde::Deserialize;
-use tracing::instrument;
+use tracing::{instrument, warn};
 
 use crate::config::VisaSourceConfig;
 use crate::error::BrokerError;
@@ -14,12 +14,20 @@ use crate::error::BrokerError;
 pub struct VisaSourceClient {
     name: String,
     base_url: String,
+    api_key: String,
+    required: bool,
     http: Client,
 }
 
 impl VisaSourceClient {
     /// Create a visa source client from configuration.
     pub fn new(config: &VisaSourceConfig) -> Result<Self, BrokerError> {
+        let api_key = std::env::var(&config.api_key_env).map_err(|err| {
+            BrokerError::Config(format!(
+                "visa source `{}` API key env `{}`: {err}",
+                config.name, config.api_key_env
+            ))
+        })?;
         let http = Client::builder()
             .use_rustls_tls()
             .build()
@@ -27,6 +35,8 @@ impl VisaSourceClient {
         Ok(Self {
             name: config.name.clone(),
             base_url: config.url.trim_end_matches('/').to_string(),
+            api_key,
+            required: config.required,
             http,
         })
     }
@@ -38,6 +48,7 @@ impl VisaSourceClient {
         let response = self
             .http
             .get(url)
+            .header("X-API-Key", &self.api_key)
             .send()
             .await
             .map_err(|err| BrokerError::VisaSource(err.to_string()))?;
@@ -95,10 +106,26 @@ pub async fn collect_visas(
     sources: &[VisaSourceClient],
     sub: &str,
 ) -> Result<Vec<String>, BrokerError> {
-    let mut visas = Vec::new();
+    let mut set = tokio::task::JoinSet::new();
     for source in sources {
-        let mut fetched = source.fetch_visas(sub).await?;
-        visas.append(&mut fetched);
+        let source = source.clone();
+        let sub = sub.to_string();
+        set.spawn(async move {
+            let required = source.required;
+            let name = source.name.clone();
+            (required, name, source.fetch_visas(&sub).await)
+        });
+    }
+
+    let mut visas = Vec::new();
+    while let Some(joined) = set.join_next().await {
+        let (required, name, result) =
+            joined.map_err(|err| BrokerError::Internal(format!("visa source task: {err}")))?;
+        match result {
+            Ok(mut fetched) => visas.append(&mut fetched),
+            Err(err) if required => return Err(err),
+            Err(err) => warn!(source = %name, error = %err, "optional visa source failed"),
+        }
     }
     Ok(visas)
 }
@@ -106,7 +133,7 @@ pub async fn collect_visas(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path, query_param};
+    use wiremock::matchers::{header, method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
@@ -115,6 +142,7 @@ mod tests {
         Mock::given(method("GET"))
             .and(path("/visas"))
             .and(query_param("sub", "researcher-1"))
+            .and(header("X-API-Key", "visa-key"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "visas": [
                     { "jwt": "visa-jwt-1" },
@@ -124,9 +152,12 @@ mod tests {
             .mount(&server)
             .await;
 
+        std::env::set_var("TEST_VISA_API_KEY", "visa-key");
         let client = VisaSourceClient::new(&VisaSourceConfig {
             name: "test".to_string(),
             url: server.uri(),
+            api_key_env: "TEST_VISA_API_KEY".to_string(),
+            required: true,
         })
         .expect("client");
 

@@ -29,6 +29,9 @@ pub fn mint_passport_jwt(
         ga4gh_passport_v1: visa_jwts.to_vec(),
         scope: Some("openid ga4gh_passport_v1".to_string()),
         aud: None,
+        email: identity.email.clone(),
+        name: identity.display_name.clone(),
+        groups: identity.groups.clone(),
     };
 
     encode(&keys.signing_header(), &claims, keys.encoding_key())
@@ -46,8 +49,9 @@ mod tests {
         let identity = ResearcherIdentity {
             sub: "researcher@example.org".to_string(),
             email: None,
+            display_name: None,
             affiliation: None,
-            extra: Default::default(),
+            groups: vec![],
         };
         let token = mint_passport_jwt(
             keys,

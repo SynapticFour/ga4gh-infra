@@ -54,6 +54,7 @@ impl IntoResponse for ClearinghouseError {
             | ClearinghouseError::ExpiredVisa
             | ClearinghouseError::InvalidSignature
             | ClearinghouseError::UntrustedIssuer
+            | ClearinghouseError::VisaSubjectMismatch
             | ClearinghouseError::UnknownKeyId(_) => StatusCode::UNAUTHORIZED,
             ClearinghouseError::InvalidTokenFormat | ClearinghouseError::InvalidClaims(_) => {
                 StatusCode::BAD_REQUEST
@@ -68,6 +69,9 @@ impl IntoResponse for ClearinghouseError {
             ClearinghouseError::ExpiredVisa => "Expired visa".to_string(),
             ClearinghouseError::InvalidSignature => "Invalid passport signature".to_string(),
             ClearinghouseError::UntrustedIssuer => "Untrusted passport issuer".to_string(),
+            ClearinghouseError::VisaSubjectMismatch => {
+                "Visa subject does not match passport subject".to_string()
+            }
             ClearinghouseError::UnknownKeyId(_) => "Unknown signing key".to_string(),
             ClearinghouseError::InvalidTokenFormat => "Invalid passport token format".to_string(),
             ClearinghouseError::InvalidClaims(_) => "Invalid passport claims".to_string(),

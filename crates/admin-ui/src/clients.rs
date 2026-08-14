@@ -21,6 +21,10 @@ use crate::health::{probe_service, ServiceHealth};
 use crate::roles::operator_dac_groups;
 use crate::session::UserSession;
 
+fn str_slice_empty(groups: &[String]) -> bool {
+    groups.is_empty()
+}
+
 #[derive(Clone)]
 pub struct UpstreamClients {
     http: Client,
@@ -122,6 +126,9 @@ impl UpstreamClients {
         &self,
         dac_groups: Option<&[String]>,
     ) -> AdminResult<Vec<AccessRequest>> {
+        if dac_groups.is_some_and(str_slice_empty) {
+            return Ok(vec![]);
+        }
         let body: DacQueueResponse = self.ads_get("/dac/requests", dac_groups).await?;
         Ok(body.requests)
     }
@@ -130,6 +137,9 @@ impl UpstreamClients {
         &self,
         dac_groups: Option<&[String]>,
     ) -> AdminResult<Vec<Dataset>> {
+        if dac_groups.is_some_and(str_slice_empty) {
+            return Ok(vec![]);
+        }
         let body: DatasetListResponse = self.ads_get("/datasets", dac_groups).await?;
         Ok(body.datasets)
     }
@@ -152,6 +162,9 @@ impl UpstreamClients {
         researcher_id: Option<&str>,
         dac_groups: Option<&[String]>,
     ) -> AdminResult<Vec<Grant>> {
+        if researcher_id.is_none() && dac_groups.is_some_and(str_slice_empty) {
+            return Ok(vec![]);
+        }
         let mut query: Vec<(&str, String)> = Vec::new();
         if let Some(sub) = researcher_id {
             query.push(("researcher_id", sub.to_string()));
@@ -219,6 +232,9 @@ impl UpstreamClients {
         limit: u32,
         dac_groups: Option<&[String]>,
     ) -> AdminResult<Vec<AdsEvent>> {
+        if dac_groups.is_some_and(str_slice_empty) {
+            return Ok(vec![]);
+        }
         let body: AuditEventListResponse = self
             .ads_get(&format!("/audit/events?limit={limit}"), dac_groups)
             .await?;

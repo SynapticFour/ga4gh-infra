@@ -189,6 +189,7 @@ pub async fn token(
             nonce,
             email: Some(state.subject.clone()),
             name: Some("Test Researcher".to_string()),
+            groups: vec!["ga4gh-infra-admins".to_string()],
         },
         &state.encoding_key,
     )
@@ -210,6 +211,7 @@ pub async fn userinfo(State(state): State<Arc<MockIdpState>>) -> Json<Value> {
         "email": state.subject,
         "name": "Test Researcher",
         "preferred_username": state.subject,
+        "groups": ["ga4gh-infra-admins"],
     }))
 }
 
@@ -225,6 +227,7 @@ struct IdTokenClaims {
     email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
+    groups: Vec<String>,
 }
 
 fn client_authenticated(state: &MockIdpState, headers: &HeaderMap, form: &TokenForm) -> bool {

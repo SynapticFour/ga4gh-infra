@@ -2,9 +2,8 @@
 
 //! PostgreSQL and SQLite persistence for ADS entities.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
 use ga4gh_types::{
@@ -18,12 +17,23 @@ use sqlx::Row;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::auth::{hash_api_key, verify_api_key};
+use crate::auth::hash_api_key;
 use crate::config::{DatabaseConfig, DatabaseDriver};
 use crate::error::AdsError;
 use crate::events::{
     grant_created, grant_revoked, request_approved, request_created, request_rejected,
 };
+
+fn empty_dac_filter(dac_groups: Option<&[String]>) -> bool {
+    matches!(dac_groups, Some(groups) if groups.is_empty())
+}
+
+fn webhook_http_client() -> Result<reqwest::Client, AdsError> {
+    reqwest::Client::builder()
+        .use_rustls_tls()
+        .build()
+        .map_err(|err| AdsError::Internal(err.to_string()))
+}
 
 fn parse_visibility(raw: &str) -> DatasetVisibility {
     match raw {
@@ -73,6 +83,20 @@ enum DbPool {
 pub struct AdsStore {
     pool: DbPool,
     webhook_urls: Arc<Vec<String>>,
+    http: reqwest::Client,
+}
+
+macro_rules! with_pool {
+    ($self:expr, $pool:ident, $body:expr) => {{
+        match &$self.pool {
+            #[cfg(feature = "postgres")]
+            DbPool::Postgres($pool) => $body,
+            #[cfg(feature = "sqlite")]
+            DbPool::Sqlite($pool) => $body,
+            #[allow(unreachable_patterns)]
+            _ => Err(AdsError::Config("no database driver enabled".to_string())),
+        }
+    }};
 }
 
 /// Joined permission mapping row used for institutional grant evaluation.
@@ -84,10 +108,7 @@ struct ActivePermissionMapping {
 }
 
 fn unix_now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
+    Utc::now().timestamp()
 }
 
 fn dt_from_ts(ts: i64) -> DateTime<Utc> {
@@ -267,6 +288,7 @@ impl AdsStore {
                 Ok(Self {
                     pool: DbPool::Postgres(pool),
                     webhook_urls: Arc::new(webhook_urls),
+                    http: webhook_http_client()?,
                 })
             }
             #[cfg(feature = "sqlite")]
@@ -312,6 +334,7 @@ impl AdsStore {
         Ok(Self {
             pool: DbPool::Sqlite(pool),
             webhook_urls: Arc::new(webhook_urls),
+            http: webhook_http_client()?,
         })
     }
 
@@ -355,74 +378,31 @@ impl AdsStore {
         let id = Uuid::new_v4().to_string();
         let key_hash = hash_api_key(raw_key);
         let now = unix_now();
-        match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query(
-                    "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)",
-                )
-                .bind(&id)
-                .bind(name)
-                .bind(&key_hash)
-                .bind(now)
-                .execute(pool)
-                .await
-                .map_err(map_db_err)?;
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query(
-                    "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)",
-                )
-                .bind(&id)
-                .bind(name)
-                .bind(&key_hash)
-                .bind(now)
-                .execute(pool)
-                .await
-                .map_err(map_db_err)?;
-            }
-        }
-        Ok(())
+        with_pool!(self, pool, {
+            sqlx::query(
+                "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)",
+            )
+            .bind(&id)
+            .bind(name)
+            .bind(&key_hash)
+            .bind(now)
+            .execute(pool)
+            .await
+            .map(|_| ())
+            .map_err(map_db_err)
+        })
     }
 
     pub async fn verify_api_key(&self, raw_key: &str) -> Result<Option<String>, AdsError> {
-        match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                let rows =
-                    sqlx::query("SELECT name, key_hash FROM api_keys WHERE revoked_at IS NULL")
-                        .fetch_all(pool)
-                        .await
-                        .map_err(map_db_err)?;
-                for row in rows {
-                    let name: String = row.get("name");
-                    let hash: String = row.get("key_hash");
-                    if verify_api_key(raw_key, &hash) {
-                        return Ok(Some(name));
-                    }
-                }
-                Ok(None)
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                let rows =
-                    sqlx::query("SELECT name, key_hash FROM api_keys WHERE revoked_at IS NULL")
-                        .fetch_all(pool)
-                        .await
-                        .map_err(map_db_err)?;
-                for row in rows {
-                    let name: String = row.get("name");
-                    let hash: String = row.get("key_hash");
-                    if verify_api_key(raw_key, &hash) {
-                        return Ok(Some(name));
-                    }
-                }
-                Ok(None)
-            }
-            #[allow(unreachable_patterns)]
-            _ => Err(AdsError::Config("no database driver enabled".to_string())),
-        }
+        let key_hash = hash_api_key(raw_key);
+        with_pool!(self, pool, {
+            sqlx::query("SELECT name FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL")
+                .bind(&key_hash)
+                .fetch_optional(pool)
+                .await
+                .map_err(map_db_err)
+                .map(|row| row.map(|row| row.get("name")))
+        })
     }
 
     pub async fn upsert_researcher(&self, researcher: &Researcher) -> Result<(), AdsError> {
@@ -666,6 +646,9 @@ impl AdsStore {
         &self,
         dac_groups: Option<&[String]>,
     ) -> Result<Vec<Dataset>, AdsError> {
+        if empty_dac_filter(dac_groups) {
+            return Ok(vec![]);
+        }
         let select = "SELECT id, name, description, duo_codes, external_id,
                             auto_approve_enabled, auto_approve_threshold, dac_group, visibility, resource_type, remote_drs_base_url, created_at, updated_at
                      FROM datasets";
@@ -1245,6 +1228,9 @@ impl AdsStore {
         &self,
         dac_groups: Option<&[String]>,
     ) -> Result<Vec<AccessRequest>, AdsError> {
+        if empty_dac_filter(dac_groups) {
+            return Ok(vec![]);
+        }
         let select = "SELECT id, researcher_id, dataset_id, project_id, status, justification,
                             duo_evaluation, dac_group, created_at, updated_at
                      FROM access_requests
@@ -1546,6 +1532,9 @@ impl AdsStore {
         researcher_id: Option<&str>,
         dac_groups: Option<&[String]>,
     ) -> Result<Vec<Grant>, AdsError> {
+        if researcher_id.is_none() && empty_dac_filter(dac_groups) {
+            return Ok(vec![]);
+        }
         let grant_cols = "g.id, g.researcher_id, g.dataset_id, g.request_id, g.source, g.duo_codes,
                                 g.resource_scope, g.expires_at, g.revoked_at, g.created_at";
         match &self.pool {
@@ -2106,19 +2095,29 @@ impl AdsStore {
         use crate::permissions::{claim_values, grant_from_mapping};
 
         let mappings = self.list_active_permission_mappings().await?;
+        let mut existing: HashSet<Uuid> = self
+            .list_grants(Some(researcher_id), None)
+            .await?
+            .into_iter()
+            .map(|grant| grant.dataset_id)
+            .collect();
+        let mut dataset_cache: HashMap<Uuid, Dataset> = HashMap::new();
         let mut created = Vec::new();
         for mapping in mappings {
             let values = claim_values(claims, &mapping.claim_path);
             if !values.iter().any(|value| value == &mapping.claim_value) {
                 continue;
             }
-            if self
-                .has_active_grant(researcher_id, mapping.dataset_id)
-                .await?
-            {
+            if existing.contains(&mapping.dataset_id) {
                 continue;
             }
-            let dataset = self.get_dataset(mapping.dataset_id).await?;
+            let dataset = if let Some(dataset) = dataset_cache.get(&mapping.dataset_id) {
+                dataset.clone()
+            } else {
+                let dataset = self.get_dataset(mapping.dataset_id).await?;
+                dataset_cache.insert(mapping.dataset_id, dataset.clone());
+                dataset
+            };
             let grant = grant_from_mapping(
                 researcher_id,
                 mapping.dataset_id,
@@ -2135,6 +2134,7 @@ impl AdsStore {
                 dataset.dac_group.as_deref(),
             )
             .await?;
+            existing.insert(grant.dataset_id);
             created.push(grant);
         }
         Ok(created)
@@ -2203,52 +2203,30 @@ impl AdsStore {
         }
     }
 
-    async fn has_active_grant(
-        &self,
-        researcher_id: &str,
-        dataset_id: Uuid,
-    ) -> Result<bool, AdsError> {
-        let grants = self.list_grants(Some(researcher_id), None).await?;
-        Ok(grants.iter().any(|grant| grant.dataset_id == dataset_id))
-    }
-
     pub fn webhook_urls(&self) -> &[String] {
         &self.webhook_urls
     }
 
+    pub fn webhook_http(&self) -> &reqwest::Client {
+        &self.http
+    }
+
     pub async fn insert_event(&self, event: &AdsEvent) -> Result<(), AdsError> {
         let payload = serde_json::to_string(&event.payload).map_err(map_db_err)?;
-        match &self.pool {
-            #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query(
-                    "INSERT INTO audit_events (id, event_type, payload, occurred_at)
+        with_pool!(self, pool, {
+            sqlx::query(
+                "INSERT INTO audit_events (id, event_type, payload, occurred_at)
                      VALUES ($1, $2, $3, $4)",
-                )
-                .bind(event.id.to_string())
-                .bind(event_type_str(&event.event_type))
-                .bind(payload)
-                .bind(event.occurred_at.timestamp())
-                .execute(pool)
-                .await
-                .map_err(map_db_err)?;
-            }
-            #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query(
-                    "INSERT INTO audit_events (id, event_type, payload, occurred_at)
-                     VALUES ($1, $2, $3, $4)",
-                )
-                .bind(event.id.to_string())
-                .bind(event_type_str(&event.event_type))
-                .bind(payload)
-                .bind(event.occurred_at.timestamp())
-                .execute(pool)
-                .await
-                .map_err(map_db_err)?;
-            }
-        }
-        Ok(())
+            )
+            .bind(event.id.to_string())
+            .bind(event_type_str(&event.event_type))
+            .bind(&payload)
+            .bind(event.occurred_at.timestamp())
+            .execute(pool)
+            .await
+            .map(|_| ())
+            .map_err(map_db_err)
+        })
     }
 
     pub async fn list_audit_events(
@@ -2256,6 +2234,9 @@ impl AdsStore {
         limit: u32,
         dac_groups: Option<&[String]>,
     ) -> Result<Vec<AdsEvent>, AdsError> {
+        if empty_dac_filter(dac_groups) {
+            return Ok(vec![]);
+        }
         let mut events: Vec<AdsEvent> = match &self.pool {
             #[cfg(feature = "postgres")]
             DbPool::Postgres(pool) => {
@@ -2320,6 +2301,7 @@ fn status_str(status: AccessRequestStatus) -> &'static str {
         AccessRequestStatus::Approved => "approved",
         AccessRequestStatus::Rejected => "rejected",
         AccessRequestStatus::Escalated => "escalated",
+        _ => "unknown",
     }
 }
 
@@ -2365,6 +2347,7 @@ fn event_type_str(event_type: &AdsEventType) -> &'static str {
         AdsEventType::RequestCreated => "request.created",
         AdsEventType::RequestApproved => "request.approved",
         AdsEventType::RequestRejected => "request.rejected",
+        _ => "unknown",
     }
 }
 

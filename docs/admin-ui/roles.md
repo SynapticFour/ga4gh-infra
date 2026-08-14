@@ -62,6 +62,8 @@ The following are intentionally **read-only or file-based in Phase 9**:
 
 ## Mock IdP / development
 
-The bundled mock IdP does not emit `groups` by default, so development logins are **Operator** unless you extend mock token claims.
+The bundled mock IdP issues `"groups": ["ga4gh-infra-admins"]` on ID tokens and userinfo so the docker e2e admin-ui flow can exercise Admin actions. Production IdPs must issue the configured admin group (or DAC operator groups) explicitly.
 
-To exercise Admin locally, configure your IdP to issue `"groups": ["ga4gh-infra-admins"]`, or POST a test JWT with that claim to `/auth/session`.
+DAC approve/reject/escalate require Admin **or** at least one non-admin group. Users with an empty group list receive **403**. Empty operator groups are treated as an empty DAC filter (no unrestricted ADS queries).
+
+Admin-ui `POST /auth/session` verifies the broker Passport JWT against the broker JWKS (`broker_base_url/jwks.json`, expected `iss` = `broker_public_url()`). Forged or unsigned tokens are rejected.

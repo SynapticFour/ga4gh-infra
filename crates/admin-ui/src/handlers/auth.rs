@@ -39,7 +39,7 @@ pub async fn login_page(State(state): State<SharedState>) -> impl IntoResponse {
     let broker_login_url = format!(
         "{}/login?return_url={}",
         state.config.broker_public_url().trim_end_matches('/'),
-        urlencoding(return_url)
+        urlencoding::encode(&return_url)
     );
     LoginTemplate { broker_login_url }.into_response()
 }
@@ -55,8 +55,8 @@ pub async fn establish_session(
     State(state): State<SharedState>,
     Form(form): Form<SessionForm>,
 ) -> Result<Response, StatusCode> {
-    let session = UserSession::from_access_token(&form.access_token, &state.config)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let session =
+        UserSession::from_access_token(&form.access_token, &state.config, &state.jwks).await?;
     let token = session
         .encode(&state.config.session_secret)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -71,13 +71,4 @@ pub async fn logout(_auth: RequireAuth, State(_state): State<SharedState>) -> Re
     let mut headers = HeaderMap::new();
     clear_session_cookie(&mut headers);
     (headers, Redirect::to("/login")).into_response()
-}
-
-fn urlencoding(s: String) -> String {
-    s.chars()
-        .map(|c| match c {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' => c.to_string(),
-            _ => format!("%{:02X}", c as u8),
-        })
-        .collect()
 }

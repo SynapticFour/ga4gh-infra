@@ -140,6 +140,7 @@ pub fn format_event_label(event: &AdsEvent, ctx: &EventLabelContext) -> String {
                 format!("Access request rejected by {actor}")
             }
         }
+        _ => "Audit event".to_string(),
     }
 }
 

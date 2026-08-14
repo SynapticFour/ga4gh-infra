@@ -175,4 +175,12 @@ mod tests {
         assert!(catalog.get("DUO:0000042").is_some());
         assert!(catalog.get("duo:0000042").is_some());
     }
+
+    #[test]
+    fn parse_duo_code_round_trips_shorthand() {
+        let gru = DuoCatalog::parse_duo_code("GRU").expect("gru");
+        assert_eq!(gru.as_str(), "GRU");
+        let hmb = DuoCatalog::parse_duo_code("hmb").expect("hmb");
+        assert_eq!(hmb.as_str(), "HMB");
+    }
 }

@@ -75,13 +75,6 @@ impl ProjectRow {
     }
 }
 
-#[allow(dead_code)]
-impl From<&ResearchProject> for ProjectRow {
-    fn from(p: &ResearchProject) -> Self {
-        ProjectRow::from_project(p)
-    }
-}
-
 #[derive(Debug, Deserialize)]
 pub struct CreateProjectForm {
     pub researcher_id: String,
@@ -98,7 +91,7 @@ pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> i
             .as_ref()
             .unwrap_or(&vec![])
             .iter()
-            .map(ProjectRow::from)
+            .map(ProjectRow::from_project)
             .collect(),
         degraded: result.is_err(),
         is_admin: auth.0.is_admin,
@@ -119,7 +112,7 @@ pub async fn detail_page(
     match state.clients.ads_get_project(id).await {
         Ok(project) => {
             let inner = DetailInner {
-                project: ProjectRow::from(&project),
+                project: ProjectRow::from_project(&project),
                 duo_terms_detail: project
                     .duo_codes
                     .iter()
@@ -145,8 +138,8 @@ pub async fn create(
     State(state): State<SharedState>,
     Form(form): Form<CreateProjectForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     match save_project(&state, None, form).await {
         Ok(p) => Redirect::to(&format!("/projects/{}", p.id)).into_response(),
@@ -160,8 +153,8 @@ pub async fn update(
     Path(id): Path<Uuid>,
     Form(form): Form<CreateProjectForm>,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     match save_project(&state, Some(id), form).await {
         Ok(p) => Redirect::to(&format!("/projects/{}", p.id)).into_response(),

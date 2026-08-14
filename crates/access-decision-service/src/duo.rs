@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! DUO compatibility evaluation for datasets and research projects.
+//!
+//! This uses the published `ga4gh-types` hierarchy (same as agreement matching).
+//! Full OWL ancestor evaluation lives in `duo-service`; merging that catalog into
+//! the published crate would ship ontology data on every resource-service build.
 
 use ga4gh_types::{
     is_permission, permission_satisfies, DuoCode, DuoEvaluateRequest, DuoEvaluationResult,

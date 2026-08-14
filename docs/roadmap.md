@@ -210,7 +210,7 @@ Ordered by impact for “real institute deployment”:
 |-------------------|---------|---------|
 | `BROKER_COOKIE_SECRET` | `dev-broker-cookie-secret` | aai-broker |
 | `MOCK_IDP_CLIENT_SECRET` | `mock-client-secret` | aai-broker → mock-idp |
-| `REGISTRY_BOOTSTRAP_API_KEY` | `dev-visa-api-key` | visa-registry DAC API |
+| `REGISTRY_BOOTSTRAP_API_KEY` | `dev-visa-api-key` | visa-registry DAC API and broker visa collection |
 | `SERVICE_REGISTRY_REGISTRATION_KEY` | `dev-service-registry-key` | service-registry writes |
 | PEM files in `docker/secrets/` | test RSA keys | broker, registry, mock-idp signing |
 

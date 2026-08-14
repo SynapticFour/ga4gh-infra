@@ -29,6 +29,15 @@ pub struct PassportClaims {
     /// Audience claim, when present on the Passport JWT.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aud: Option<String>,
+    /// Email address from upstream identity, when mapped at mint time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// Display name from upstream identity, when mapped at mint time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Group / entitlement claims used by operator UIs (not a GA4GH visa).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<String>,
 }
 
 /// A decoded GA4GH Passport wrapping the `ga4gh_passport_v1` visa JWT array.
@@ -54,6 +63,12 @@ pub struct Passport {
     pub scope: Option<String>,
     /// Audience claim, when present.
     pub aud: Option<String>,
+    /// Email address from upstream identity, when mapped at mint time.
+    pub email: Option<String>,
+    /// Display name from upstream identity, when mapped at mint time.
+    pub name: Option<String>,
+    /// Group / entitlement claims used by operator UIs (not a GA4GH visa).
+    pub groups: Vec<String>,
 }
 
 impl Passport {
@@ -68,6 +83,9 @@ impl Passport {
             visa_jwts: claims.ga4gh_passport_v1,
             scope: claims.scope,
             aud: claims.aud,
+            email: claims.email,
+            name: claims.name,
+            groups: claims.groups,
         }
     }
 
@@ -82,6 +100,9 @@ impl Passport {
             ga4gh_passport_v1: self.visa_jwts,
             scope: self.scope,
             aud: self.aud,
+            email: self.email,
+            name: self.name,
+            groups: self.groups,
         }
     }
 }
@@ -113,6 +134,9 @@ mod tests {
             visa_jwts: vec!["eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJyIn0.sig".to_string()],
             scope: None,
             aud: None,
+            email: None,
+            name: None,
+            groups: vec![],
         };
 
         let json = serde_json::to_string(&passport).expect("serialize");
@@ -131,6 +155,9 @@ mod tests {
             ga4gh_passport_v1: vec!["eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJyIn0.sig".to_string()],
             scope: Some("openid ga4gh_passport_v1".to_string()),
             aud: None,
+            email: None,
+            name: None,
+            groups: vec![],
         };
 
         let json = serde_json::to_string(&claims).expect("serialize");
@@ -153,11 +180,16 @@ mod tests {
             ga4gh_passport_v1: vec![],
             scope: None,
             aud: None,
+            email: None,
+            name: None,
+            groups: vec![],
         };
 
         let json = serde_json::to_value(&claims).expect("serialize");
         assert!(json.get("scope").is_none());
         assert!(json.get("aud").is_none());
+        assert!(json.get("email").is_none());
+        assert!(json.get("groups").is_none());
     }
 
     #[test]

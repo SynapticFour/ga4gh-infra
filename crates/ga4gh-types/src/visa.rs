@@ -156,6 +156,17 @@ impl ConditionMatch {
         })
     }
 
+    /// Return whether `candidate` satisfies this match expression.
+    pub fn matches(&self, candidate: &str) -> bool {
+        match self.r#type {
+            ConditionMatchType::Const => candidate == self.value,
+            ConditionMatchType::Pattern => glob_match(&self.value, candidate),
+            ConditionMatchType::SplitPattern => candidate
+                .split(';')
+                .any(|part| glob_match(&self.value, part.trim())),
+        }
+    }
+
     /// Format this match as a condition claim value string.
     pub fn to_condition_string(&self) -> String {
         let prefix = match self.r#type {
@@ -272,6 +283,61 @@ impl Visa {
             scope: self.scope,
             jku: self.jku,
         }
+    }
+}
+
+impl VisaConditionClause {
+    /// Return whether `visa` satisfies this AND-clause fragment.
+    pub fn is_satisfied_by(&self, visa: &Visa) -> bool {
+        if visa.claim.r#type != self.r#type {
+            return false;
+        }
+        self.matches.iter().all(|(claim, raw)| {
+            let Some(matcher) = ConditionMatch::parse(raw) else {
+                return false;
+            };
+            let candidate = match claim.as_str() {
+                "value" => visa.claim.value.as_str(),
+                "source" => visa.claim.source.as_str(),
+                _ => return false,
+            };
+            matcher.matches(candidate)
+        })
+    }
+}
+
+/// Return whether `visa` conditions (DNF) are satisfied by sibling visas in `set`.
+///
+/// Visas without conditions are valid. The visa does not satisfy its own conditions.
+pub fn visa_conditions_met(visa: &Visa, set: &[Visa]) -> bool {
+    let Some(conditions) = visa.claim.conditions.as_ref() else {
+        return true;
+    };
+    if conditions.is_empty() {
+        return true;
+    }
+    conditions.iter().any(|and_clause| {
+        and_clause.iter().all(|clause| {
+            set.iter()
+                .any(|other| other.jti != visa.jti && clause.is_satisfied_by(other))
+        })
+    })
+}
+
+fn glob_match(pattern: &str, text: &str) -> bool {
+    glob_match_bytes(pattern.as_bytes(), text.as_bytes())
+}
+
+fn glob_match_bytes(pattern: &[u8], text: &[u8]) -> bool {
+    match (pattern.first(), text.first()) {
+        (None, None) => true,
+        (Some(b'*'), _) => {
+            glob_match_bytes(&pattern[1..], text)
+                || (!text.is_empty() && glob_match_bytes(pattern, &text[1..]))
+        }
+        (Some(b'?'), Some(_)) => glob_match_bytes(&pattern[1..], &text[1..]),
+        (Some(p), Some(t)) if p == t => glob_match_bytes(&pattern[1..], &text[1..]),
+        _ => false,
     }
 }
 
@@ -397,6 +463,65 @@ mod tests {
         assert_eq!(parsed.r#type, ConditionMatchType::Pattern);
         assert_eq!(parsed.value, "faculty@*");
         assert_eq!(parsed.to_condition_string(), raw);
+        assert!(parsed.matches("faculty@uni-heidelberg.de"));
+        assert!(!parsed.matches("staff@uni-heidelberg.de"));
+    }
+
+    #[test]
+    fn condition_match_const_and_split_pattern() {
+        let exact = ConditionMatch::parse("const:faculty@uni.de").expect("parse");
+        assert!(exact.matches("faculty@uni.de"));
+        assert!(!exact.matches("Faculty@uni.de"));
+
+        let split = ConditionMatch::parse("split_pattern:*@uni.de").expect("parse");
+        assert!(split.matches("faculty@uni.de;staff@other.org"));
+        assert!(!split.matches("faculty@other.org"));
+    }
+
+    #[test]
+    fn visa_conditions_require_sibling_affiliation() {
+        let grant = Visa {
+            sub: "researcher@example.org".to_string(),
+            iss: "https://visas.example.org".to_string(),
+            iat: 1,
+            exp: 2,
+            jti: "grant".to_string(),
+            claim: VisaClaim {
+                r#type: VisaType::ControlledAccessGrants,
+                asserted: 1,
+                value: "dataset-a".to_string(),
+                source: "https://dac.example.org".to_string(),
+                by: None,
+                conditions: Some(vec![vec![VisaConditionClause {
+                    r#type: VisaType::AffiliationAndRole,
+                    matches: BTreeMap::from([(
+                        "value".to_string(),
+                        "const:faculty@uni-heidelberg.de".to_string(),
+                    )]),
+                }]]),
+            },
+            scope: None,
+            jku: None,
+        };
+        let affiliation = Visa {
+            sub: "researcher@example.org".to_string(),
+            iss: "https://visas.example.org".to_string(),
+            iat: 1,
+            exp: 2,
+            jti: "aff".to_string(),
+            claim: VisaClaim {
+                r#type: VisaType::AffiliationAndRole,
+                asserted: 1,
+                value: "faculty@uni-heidelberg.de".to_string(),
+                source: "https://visas.example.org".to_string(),
+                by: None,
+                conditions: None,
+            },
+            scope: None,
+            jku: None,
+        };
+        assert!(!visa_conditions_met(&grant, std::slice::from_ref(&grant)));
+        assert!(visa_conditions_met(&grant, &[grant.clone(), affiliation]));
     }
 
     #[test]

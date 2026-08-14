@@ -155,8 +155,9 @@ mod tests {
         let identity = ResearcherIdentity {
             sub: "researcher-1".to_string(),
             email: Some("r@example.org".to_string()),
+            display_name: None,
             affiliation: None,
-            extra: Default::default(),
+            groups: vec![],
         };
         client
             .sync_researcher(&identity, &BTreeMap::new())

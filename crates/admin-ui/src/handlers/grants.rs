@@ -164,8 +164,8 @@ pub async fn revoke(
     Path(id): Path<uuid::Uuid>,
     headers: HeaderMap,
 ) -> Response {
-    if auth.require_admin().is_err() {
-        return auth.require_admin().unwrap_err();
+    if let Err(resp) = auth.require_admin() {
+        return resp;
     }
     match state.clients.ads_revoke_grant(id).await {
         Ok(()) => {

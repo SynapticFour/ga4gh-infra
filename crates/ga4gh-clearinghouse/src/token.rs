@@ -11,29 +11,45 @@ use serde_json::Value;
 
 use crate::error::ClearinghouseError;
 
+const MAX_TOKEN_BYTES: usize = 256 * 1024;
+
 /// Decode a JWT header without verifying the signature.
 pub fn decode_jwt_header(token: &str) -> Result<Header, ClearinghouseError> {
+    reject_oversized(token)?;
     decode_header(token).map_err(|err| ClearinghouseError::InvalidClaims(err.to_string()))
+}
+
+/// Issuer and expiry peeked from an unverified JWT payload.
+pub struct PeekedMeta {
+    /// JWT `iss` claim.
+    pub iss: String,
+    /// JWT `exp` claim (unix seconds).
+    pub exp: i64,
+}
+
+/// Read `iss` and `exp` from a JWT payload without verifying the signature.
+pub fn peek_meta(token: &str) -> Result<PeekedMeta, ClearinghouseError> {
+    #[derive(Deserialize)]
+    struct MetaClaim {
+        iss: String,
+        exp: i64,
+    }
+
+    let claims = peek_claims::<MetaClaim>(token)?;
+    Ok(PeekedMeta {
+        iss: claims.iss,
+        exp: claims.exp,
+    })
 }
 
 /// Read the `iss` claim from a JWT payload without verifying the signature.
 pub fn peek_issuer(token: &str) -> Result<String, ClearinghouseError> {
-    #[derive(Deserialize)]
-    struct IssuerClaim {
-        iss: String,
-    }
-
-    Ok(peek_claims::<IssuerClaim>(token)?.iss)
+    Ok(peek_meta(token)?.iss)
 }
 
 /// Read the `exp` claim from a JWT payload without verifying the signature.
 pub fn peek_expiry(token: &str) -> Result<i64, ClearinghouseError> {
-    #[derive(Deserialize)]
-    struct ExpiryClaim {
-        exp: i64,
-    }
-
-    Ok(peek_claims::<ExpiryClaim>(token)?.exp)
+    Ok(peek_meta(token)?.exp)
 }
 
 /// Deserialize JWT payload JSON without verifying the signature.
@@ -47,6 +63,7 @@ where
 }
 
 fn peek_json_payload(token: &str) -> Result<Value, ClearinghouseError> {
+    reject_oversized(token)?;
     let payload_segment = token
         .split('.')
         .nth(1)
@@ -55,6 +72,13 @@ fn peek_json_payload(token: &str) -> Result<Value, ClearinghouseError> {
         .decode(payload_segment)
         .map_err(|_| ClearinghouseError::InvalidTokenFormat)?;
     serde_json::from_slice(&bytes).map_err(|err| ClearinghouseError::InvalidClaims(err.to_string()))
+}
+
+fn reject_oversized(token: &str) -> Result<(), ClearinghouseError> {
+    if token.len() > MAX_TOKEN_BYTES {
+        return Err(ClearinghouseError::InvalidTokenFormat);
+    }
+    Ok(())
 }
 
 #[cfg(test)]

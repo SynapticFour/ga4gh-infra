@@ -94,6 +94,7 @@ impl VisaRegistryClient {
         let response = self
             .http
             .get(format!("{}/visas", self.base_url))
+            .header("X-API-Key", &self.api_key)
             .query(&[("sub", sub)])
             .send()
             .await

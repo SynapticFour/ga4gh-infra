@@ -72,7 +72,8 @@ fn passport_status(error: &ClearinghouseError) -> StatusCode {
         | ClearinghouseError::ExpiredVisa
         | ClearinghouseError::InvalidSignature
         | ClearinghouseError::UntrustedIssuer
-        | ClearinghouseError::UnknownKeyId(_) => StatusCode::UNAUTHORIZED,
+        | ClearinghouseError::UnknownKeyId(_)
+        | ClearinghouseError::VisaSubjectMismatch => StatusCode::UNAUTHORIZED,
         ClearinghouseError::InvalidTokenFormat | ClearinghouseError::InvalidClaims(_) => {
             StatusCode::BAD_REQUEST
         }
@@ -89,6 +90,9 @@ fn passport_message(error: &ClearinghouseError) -> String {
         ClearinghouseError::InvalidSignature => "Invalid passport signature".to_string(),
         ClearinghouseError::UntrustedIssuer => "Untrusted passport issuer".to_string(),
         ClearinghouseError::UnknownKeyId(_) => "Unknown signing key".to_string(),
+        ClearinghouseError::VisaSubjectMismatch => {
+            "Visa subject does not match passport subject".to_string()
+        }
         ClearinghouseError::InvalidTokenFormat => "Invalid passport token format".to_string(),
         ClearinghouseError::InvalidClaims(_) => "Invalid passport claims".to_string(),
         ClearinghouseError::JwksFetchFailed(_) => "Unable to fetch issuer keys".to_string(),

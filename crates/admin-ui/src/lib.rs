@@ -22,7 +22,7 @@ pub async fn run(config: AdminUiConfig) -> anyhow::Result<()> {
     use std::net::SocketAddr;
 
     let listen_addr: SocketAddr = config.listen_addr.parse()?;
-    let state = AppState::new(config);
+    let state = AppState::new(config)?;
     let app = build_router(state);
 
     tracing::info!(%listen_addr, "admin-ui listening");

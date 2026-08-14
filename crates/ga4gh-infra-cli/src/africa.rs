@@ -208,6 +208,8 @@ mod tests {
         [[broker.visa_sources]]
         name = "local"
         url = "http://127.0.0.1:8081"
+        api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+        required = true
 
         [visa_registry.server]
         host = "127.0.0.1"
