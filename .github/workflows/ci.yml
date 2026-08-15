@@ -47,12 +47,17 @@ jobs:
   audit:
     name: cargo-audit
     runs-on: ubuntu-latest
+    env:
+      # rust-toolchain.toml pins 1.91.1 for product crates. Latest cargo-audit
+      # needs a newer rustc (kstring). Audit-only override; builds stay on 1.91.1.
+      RUSTUP_TOOLCHAIN: stable
     permissions:
       contents: read
       checks: write
       issues: write
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

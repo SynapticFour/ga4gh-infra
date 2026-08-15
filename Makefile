@@ -56,6 +56,8 @@ upsqlite up_sqlite:
 
 # Generate dev RSA keys when missing (broker, registry, mock IdP).
 # Never commit the PEMs. openssl first so CI/e2e does not compile the CLI just for keys.
+# Mode 644: Compose bind-mounts these into uid 1000 containers. 600 on the runner
+# uid is unreadable inside the image and visa-registry exits immediately.
 prepare-secrets:
 	@mkdir -p $(SECRETS_DIR)
 	@for name in broker_rs256.pem registry_rs256.pem mock_idp_rs256.pem; do \
@@ -69,7 +71,7 @@ prepare-secrets:
 			else \
 				cargo run -q -p ga4gh-infra-cli -- keygen --output "$$path"; \
 			fi; \
-			chmod 600 "$$path" 2>/dev/null || true; \
+			chmod 644 "$$path" 2>/dev/null || true; \
 		fi; \
 	done
 	@echo "Dev PEMs in $(SECRETS_DIR) (gitignored). Do not copy them off this machine."

@@ -9,7 +9,11 @@ echo "Preparing dev RSA keys (gitignored)..."
 make -C "${ROOT}" prepare-secrets
 
 echo "Starting ga4gh-infra stack..."
-docker compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" up --build --wait
+if ! docker compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" up --build --wait; then
+  echo "e2e: compose up failed — visa-registry / mock-idp logs:" >&2
+  docker compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" logs --no-color visa-registry mock-idp postgres || true
+  exit 1
+fi
 
 echo "Seeding demo data..."
 GA4GH_SEED_PROFILE=postgres "${ROOT}/scripts/seed-dev-stack.sh" postgres

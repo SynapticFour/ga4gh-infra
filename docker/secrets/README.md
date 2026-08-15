@@ -10,7 +10,9 @@
 
 These files are gitignored. Keys that once lived in this directory are **public**
 (git history). Do not reuse them. Treat any clone older than the removal commit
-as having leaked those private keys.
+as having leaked those private keys. Mode **644** is required so Compose
+bind-mounts are readable by the non-root container user (uid 1000). Production
+keys stay off this path.
 
 ## Generate
 
@@ -20,7 +22,7 @@ make prepare-secrets
 ga4gh-infra keygen --output docker/secrets/broker_rs256.pem
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
   -out docker/secrets/broker_rs256.pem
-chmod 600 docker/secrets/*.pem
+chmod 644 docker/secrets/*.pem
 ```
 
 `prepare-secrets` prefers `openssl`, then `ga4gh-infra keygen`, then `cargo run -p ga4gh-infra-cli`.

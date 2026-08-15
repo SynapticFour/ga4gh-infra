@@ -4,6 +4,8 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+- **CI:** `cargo-audit` uses rustc stable so the auditor can compile; product crates stay on 1.91.1. Dev PEMs are mode 644 so visa-registry can read Compose bind-mounts (uid 1000).
+
 ## [ga4gh-infra-v0.2.3] - 2026-08-15
 
 - **Stack Docker Release publishes every Compose service.** Tag `ga4gh-infra-v0.2.3` pushes broker, visa-registry, duo, service-registry, ADS, agreement-registry, admin-ui, sample-resource, mock-idp, register-tools, and all-in-one as `:0.2.3`. `v0.2.2` on origin only pushed all-in-one.
