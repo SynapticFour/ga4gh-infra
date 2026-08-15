@@ -1,8 +1,12 @@
 # Changelog (workspace)
 
-Identity-plane hardening for institute production. Application crates remain at `0.1.0` until you cut Git tags; **do not install `ga4gh-infra-v0.1.0`**.
+Identity-plane hardening for institute production. Application crates remain at `0.1.0` (crate/image tags); the **Git** release tag is `ga4gh-infra-v0.2.0`. **Do not install `ga4gh-infra-v0.1.0`.**
 
-## Unreleased (post v0.1.0)
+## [Unreleased]
+
+## [ga4gh-infra-v0.2.0] - 2026-08-15
+
+Git tag on origin. Ferrum `VERSIONS.lock` pins `GA4GH_INFRA_REF=ga4gh-infra-v0.2.0`.
 
 ### Security
 
@@ -17,10 +21,14 @@ Identity-plane hardening for institute production. Application crates remain at 
 - In-process login/callback rate limit; security headers on all HTTP services.
 - Structured audit events (`audit=true`) on Passport issue, visa create/revoke, DAC actions.
 - Documented bootstrap secrets rejected outside development.
+- Passport JWTs verified; visa subjects bound; visa API keys required (Rust audit close-out).
+- Identity-plane threat model addendum for Ferrum co-deploy.
 
 ### Operations
 
-- Dependabot, `cargo-audit`, Docker e2e on pull requests, CODEOWNERS.
+- Dependabot disabled; `cargo-audit` clear; compatible crate bumps.
+- Docker e2e, coverage, and ARM moved off every PR (schedule/dispatch).
+- Dependency-review workflow; CODEOWNERS; local hooks mirroring GitHub CI.
 - Production Compose includes ADS + admin-ui and omits mock-idp.
 - Starter Helm chart under `deploy/k8s/chart`.
 - IdP wiring guide: Keycloak groups mapper, Entra, ELIXIR, Shibboleth OIDC.
