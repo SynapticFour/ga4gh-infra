@@ -26,7 +26,7 @@ It does **not** replace your IdP, your TLS termination, or your dataset storage 
 6. **Keep Passport TTL short and use revocation lists.** Production examples use `passport_lifetime_seconds = 900`. Visa revocation (`GET /revoked-jtis`) drops revoked visas on extract. Stolen or withdrawn Passports: `POST /revoke-passports` then `GET /revoked-passports`. Persist `passport_ledger_path` when running more than one broker replica.
 7. **Terminate TLS at a reverse proxy.** Enable `Secure` cookies via `https://` public URLs. Rate-limit `/login` and `/callback` at the proxy **and** keep the broker `login_rate_limit_per_minute` (default 20).
 8. **Issue admin groups from the real IdP.** Default mock tokens carry **no** groups. Admin membership is `admin_claim_value` (default `ga4gh-infra-admins`).
-9. **Ship a signed stack release.** Pin installers and GHCR to `ga4gh-infra-v0.2.2` or later (image tags `:0.2.2`). Do not use `ga4gh-infra-v0.1.0`. See [governance.md](governance.md) and [versioning.md](versioning.md).
+9. **Ship a signed stack release.** Pin installers and GHCR to `ga4gh-infra-v0.2.3` or later (image tags `:0.2.3`). Do not use `ga4gh-infra-v0.1.0`. See [governance.md](governance.md) and [versioning.md](versioning.md).
 
 ## Authentication and authorization
 

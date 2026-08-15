@@ -33,11 +33,11 @@ These changes always need a second reviewer (even if that reviewer is at your in
 Do not run `scripts/install.sh` against `ga4gh-infra-v0.1.0`. Current stack tag:
 
 ```bash
-git tag ga4gh-infra-v0.2.2
-git push origin ga4gh-infra-v0.2.2
+git tag ga4gh-infra-v0.2.3
+git push origin ga4gh-infra-v0.2.3
 ```
 
-That tag publishes checksummed binaries **and** (after the stack Docker Release) every Compose image as `:0.2.2`. Confirm both `Release Binaries` and `Docker Release` succeeded before pointing production pins at the version.
+That tag publishes checksummed binaries **and** (after the stack Docker Release) every Compose image as `:0.2.3`. Confirm both `Release Binaries` and `Docker Release` succeeded before pointing production pins at the version.
 
 ## Incident response
 

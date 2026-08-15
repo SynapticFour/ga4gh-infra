@@ -57,21 +57,21 @@ Two tag families exist:
 ga4gh-types-v0.1.0
 ga4gh-clearinghouse-v0.2.0
 aai-broker-v0.3.0
-ga4gh-infra-v0.2.2          # current stack: all service images :0.2.2
+ga4gh-infra-v0.2.3          # current stack: all service images :0.2.3
 ```
 
-**Crate `version` in Cargo.toml is not the stack tag.** Application crates may remain `0.1.0` while the deploy tag is `0.2.2`. Library crates (`ga4gh-types`, `ga4gh-clearinghouse`) follow crates.io semver independently.
+**Crate `version` in Cargo.toml is not the stack tag.** Application crates may remain `0.1.0` while the deploy tag is `0.2.3`. Library crates (`ga4gh-types`, `ga4gh-clearinghouse`) follow crates.io semver independently.
 
 Tag names for crate releases are configured via `[package.metadata.release]` (see [`release.toml`](../release.toml)).
 
 ## Docker image tags
 
-A **stack** tag `ga4gh-infra-v0.2.2` publishes every Compose service at `:0.2.2` (see `.github/workflows/docker-release.yml`). That is what `docker/.env.example` pins.
+A **stack** tag `ga4gh-infra-v0.2.3` publishes every Compose service at `:0.2.3` (see `.github/workflows/docker-release.yml`). That is what `docker/.env.example` pins.
 
 ```text
-ghcr.io/<org>/aai-broker:0.2.2
-ghcr.io/<org>/visa-registry:0.2.2
-ghcr.io/<org>/ga4gh-infra:0.2.2
+ghcr.io/<org>/aai-broker:0.2.3
+ghcr.io/<org>/visa-registry:0.2.3
+ghcr.io/<org>/ga4gh-infra:0.2.3
 ```
 
 `make up` **builds locally** and applies the same tags; GHCR is optional. Per-crate tags still exist for mixed-version stacks (`AAI_BROKER_VERSION=0.3.0` next to `VISA_REGISTRY_VERSION=0.2.2`).

@@ -196,7 +196,7 @@ services:
       retries: 10
 
   agreement-registry:
-    image: ${GA4GH_IMAGE_PREFIX}/agreement-registry:${AGREEMENT_REGISTRY_VERSION:-0.2.2}
+    image: ${GA4GH_IMAGE_PREFIX}/agreement-registry:${AGREEMENT_REGISTRY_VERSION:-0.2.3}
     build:
       context: ..
       dockerfile: docker/Dockerfile.agreement-registry
@@ -213,7 +213,7 @@ services:
       retries: 10
 
   admin-ui:
-    image: ${GA4GH_IMAGE_PREFIX}/admin-ui:${ADMIN_UI_VERSION:-0.2.2}
+    image: ${GA4GH_IMAGE_PREFIX}/admin-ui:${ADMIN_UI_VERSION:-0.2.3}
     build:
       context: ..
       dockerfile: docker/Dockerfile.admin-ui

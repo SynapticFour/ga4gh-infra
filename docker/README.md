@@ -21,7 +21,7 @@ Images use a multi-stage build (`rust:1-bookworm` → `debian:bookworm-slim`) an
 Example manual build:
 
 ```bash
-docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.2 .
+docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.3 .
 ```
 
 ## Compose stacks
@@ -60,12 +60,12 @@ docker compose -f docker/docker-compose.sqlite.yml --env-file docker/.env.exampl
 
 ### Version pins (`.env`)
 
-Image tags follow the **stack** git tag `ga4gh-infra-v0.2.2` → `:0.2.2` (crate Cargo.toml may stay `0.1.0`). See [docs/versioning.md](../docs/versioning.md):
+Image tags follow the **stack** git tag `ga4gh-infra-v0.2.3` → `:0.2.3` (crate Cargo.toml may stay `0.1.0`). See [docs/versioning.md](../docs/versioning.md):
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
-AAI_BROKER_VERSION=0.2.2
-VISA_REGISTRY_VERSION=0.2.2
+AAI_BROKER_VERSION=0.2.3
+VISA_REGISTRY_VERSION=0.2.3
 # ...
 ```
 
@@ -77,7 +77,8 @@ Pushing a git tag triggers `.github/workflows/docker-release.yml`:
 
 | Git tag | Images pushed |
 |---------|----------------|
-| `ga4gh-infra-v0.2.2` | **every** Compose service + all-in-one as `:0.2.2` (+ `:latest`) |
+| `ga4gh-infra-v0.2.3` | **every** Compose service + all-in-one as `:0.2.3` (+ `:latest`) |
+| `ga4gh-infra-v0.2.2` | all-in-one `:0.2.2` only (workflow predates the stack matrix) |
 | `aai-broker-v0.3.0` | `aai-broker:0.3.0` only (mixed-version stacks) |
 
 Replace `<org>` with your GitHub organization or username (lowercase).
