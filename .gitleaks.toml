@@ -1,13 +1,13 @@
 # Gitleaks configuration (see https://github.com/gitleaks/gitleaks)
 #
-# docker/secrets/*.pem are dev-only RSA keys for local docker-compose (see
-# docker/secrets/README.md and SECURITY.md). Production must rotate all keys.
+# Historical docker/secrets/*.pem (removed from HEAD) remain in git history
+# and are treated as public. Allowlist keeps scans green; do not re-add PEMs.
 
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Dev-only docker-compose signing keys (not production secrets)"
+description = "Historical dev PEMs (removed from HEAD; do not reintroduce)"
 paths = [
   '''^docker/secrets/.*\.pem$''',
 ]

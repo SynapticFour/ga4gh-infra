@@ -19,14 +19,14 @@ It does **not** replace your IdP, your TLS termination, or your dataset storage 
 ## Production requirements (non-negotiable)
 
 1. **Do not run `mock-idp`.** It is a test fixture. Docker Compose sets `MOCK_IDP_GROUPS` only so end-to-end tests can exercise admin-ui. Production compose must omit the service.
-2. **Do not use committed secrets.** `docker/secrets/*.pem`, `dev-broker-cookie-secret`, `dev-ads-api-key`, and similar values are blocked outside development unless `GA4GH_ALLOW_DEV_SECRETS` is set (that override is for CI, not production).
+2. **Do not use documented bootstrap secrets or historical PEMs.** `make prepare-secrets` writes gitignored keys under `docker/secrets/`. Private keys that were once committed there are **public** (git history) — rotate if you ever used them. `dev-broker-cookie-secret`, `dev-ads-api-key`, and similar values are blocked outside development unless `GA4GH_ALLOW_DEV_SECRETS` is set (that override is for CI, not production).
 3. **Pin a signed release newer than `ga4gh-infra-v0.1.0`.** `v0.1.0` shipped without checksums and without later authentication fixes. `scripts/install.sh` and `scripts/install.ps1` refuse that tag and refuse any asset without a matching `.sha256` file.
 4. **Allowlist `return_url`.** Set `server.allowed_return_url_origins` to the admin-ui (and any other post-login origin). An empty list is rejected outside development. Passports are returned in the URL fragment; an open redirect would leak them to a third party.
 5. **Scope DAC operators.** Configure `dac_operator_groups` on admin-ui. An empty list means **only** the admin claim may approve or reject. ADS checks that scoped operators belong to the request's `dac_group`. The ADS API key remains break-glass; treat it as a secret, not as a user role.
 6. **Keep Passport TTL short and use revocation lists.** Production examples use `passport_lifetime_seconds = 900`. Visa revocation (`GET /revoked-jtis`) drops revoked visas on extract. Stolen or withdrawn Passports: `POST /revoke-passports` then `GET /revoked-passports`. Persist `passport_ledger_path` when running more than one broker replica.
 7. **Terminate TLS at a reverse proxy.** Enable `Secure` cookies via `https://` public URLs. Rate-limit `/login` and `/callback` at the proxy **and** keep the broker `login_rate_limit_per_minute` (default 20).
 8. **Issue admin groups from the real IdP.** Default mock tokens carry **no** groups. Admin membership is `admin_claim_value` (default `ga4gh-infra-admins`).
-9. **Ship a signed release.** Tag `ga4gh-infra-v0.2.0` (or later) so installers and GHCR pins are not `v0.1.0`. See [governance.md](governance.md).
+9. **Ship a signed stack release.** Pin installers and GHCR to `ga4gh-infra-v0.2.2` or later (image tags `:0.2.2`). Do not use `ga4gh-infra-v0.1.0`. See [governance.md](governance.md) and [versioning.md](versioning.md).
 
 ## Authentication and authorization
 

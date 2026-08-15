@@ -5,6 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${ROOT}/docker/docker-compose.yml"
 COMPOSE_ENV="${ROOT}/docker/.env.example"
 
+echo "Preparing dev RSA keys (gitignored)..."
+make -C "${ROOT}" prepare-secrets
+
 echo "Starting ga4gh-infra stack..."
 docker compose -f "${COMPOSE_FILE}" --env-file "${COMPOSE_ENV}" up --build --wait
 

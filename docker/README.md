@@ -21,7 +21,7 @@ Images use a multi-stage build (`rust:1-bookworm` → `debian:bookworm-slim`) an
 Example manual build:
 
 ```bash
-docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.1.0 .
+docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.2 .
 ```
 
 ## Compose stacks
@@ -60,12 +60,12 @@ docker compose -f docker/docker-compose.sqlite.yml --env-file docker/.env.exampl
 
 ### Version pins (`.env`)
 
-Component image tags match crate versions independently (see [docs/versioning.md](../docs/versioning.md)):
+Image tags follow the **stack** git tag `ga4gh-infra-v0.2.2` → `:0.2.2` (crate Cargo.toml may stay `0.1.0`). See [docs/versioning.md](../docs/versioning.md):
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
-AAI_BROKER_VERSION=0.1.0
-VISA_REGISTRY_VERSION=0.1.0
+AAI_BROKER_VERSION=0.2.2
+VISA_REGISTRY_VERSION=0.2.2
 # ...
 ```
 
@@ -75,13 +75,10 @@ Mix versions by editing `docker/.env` before `docker compose up`.
 
 Pushing a git tag triggers `.github/workflows/docker-release.yml`:
 
-| Git tag | Image pushed |
+| Git tag | Images pushed |
 |---------|----------------|
-| `aai-broker-v0.3.0` | `ghcr.io/<org>/aai-broker:0.3.0` (+ `:latest`) |
-| `visa-registry-v0.1.5` | `ghcr.io/<org>/visa-registry:0.1.5` (+ `:latest`) |
-| `service-registry-v0.1.0` | `ghcr.io/<org>/service-registry:0.1.0` (+ `:latest`) |
-| `access-decision-service-v0.1.0` | `ghcr.io/<org>/access-decision-service:0.1.0` (+ `:latest`) |
-| `ga4gh-infra-v0.4.0` | `ghcr.io/<org>/ga4gh-infra:0.4.0` (+ `:latest`) |
+| `ga4gh-infra-v0.2.2` | **every** Compose service + all-in-one as `:0.2.2` (+ `:latest`) |
+| `aai-broker-v0.3.0` | `aai-broker:0.3.0` only (mixed-version stacks) |
 
 Replace `<org>` with your GitHub organization or username (lowercase).
 
@@ -94,7 +91,7 @@ docker/
 ├── docker-compose.sqlite.yml
 ├── .env.example            # version pins (copy to .env)
 ├── config/                 # service TOML for containers
-├── secrets/                # dev-only RSA keys
+├── secrets/                # generated locally (gitignored PEMs); README only in git
 ├── postgres/init.sql
 └── scripts/register-service.sh
 ```

@@ -2,7 +2,6 @@
 **/*.rs.bk
 Cargo.lock.bak
 *.pem
-!docker/secrets/*.pem
 .env
 .env.*
 !.env.example

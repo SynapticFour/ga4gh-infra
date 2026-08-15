@@ -1,8 +1,11 @@
 # Changelog (workspace)
 
-Identity-plane hardening for institute production. Application crates remain at `0.1.0` (crate/image tags); the **Git** release tag is `ga4gh-infra-v0.2.2`. **Do not install `ga4gh-infra-v0.1.0`.**
+Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.2` and Compose/GHCR image tags are **`0.2.2`**. **Do not install `ga4gh-infra-v0.1.0`.**
 
 ## [Unreleased]
+
+- **Stack image tags follow `ga4gh-infra-v*`.** Compose pins and GHCR tags for a stack release are `0.2.2`, not crate `0.1.0`. Docker Release on `ga4gh-infra-v*` pushes every service image at that version.
+- **Dev PEMs are no longer in git.** `make prepare-secrets` generates PKCS#8 keys under `docker/secrets/` (gitignored). Keys that were previously committed are public; do not reuse them.
 
 ## [ga4gh-infra-v0.2.2] - 2026-08-15
 

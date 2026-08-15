@@ -55,19 +55,24 @@ upsqlite up_sqlite:
 	@exit 1
 
 # Generate dev RSA keys when missing (broker, registry, mock IdP).
+# Never commit the PEMs. openssl first so CI/e2e does not compile the CLI just for keys.
 prepare-secrets:
 	@mkdir -p $(SECRETS_DIR)
 	@for name in broker_rs256.pem registry_rs256.pem mock_idp_rs256.pem; do \
 		path="$(SECRETS_DIR)/$$name"; \
 		if [ ! -f "$$path" ]; then \
 			echo "Generating $$name …"; \
-			if command -v ga4gh-infra >/dev/null 2>&1; then \
+			if command -v openssl >/dev/null 2>&1; then \
+				openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$$path"; \
+			elif command -v ga4gh-infra >/dev/null 2>&1; then \
 				ga4gh-infra keygen --output "$$path"; \
 			else \
 				cargo run -q -p ga4gh-infra-cli -- keygen --output "$$path"; \
 			fi; \
+			chmod 600 "$$path" 2>/dev/null || true; \
 		fi; \
 	done
+	@echo "Dev PEMs in $(SECRETS_DIR) (gitignored). Do not copy them off this machine."
 
 # Vendor crates on the host so Docker builds do not hit crates.io (avoids SSL flakes).
 prepare-vendor:

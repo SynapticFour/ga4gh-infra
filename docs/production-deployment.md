@@ -91,7 +91,7 @@ jwks_uri = "http://visa-registry:8081/jwks.json"
 
 ## Step 3 — Secrets and signing keys
 
-**Never** use keys from [`docker/secrets/`](../docker/secrets/) in production.
+**Never** use keys from a laptop `docker/secrets/` directory in production. Generate onto a secret mount.
 
 | Secret | Purpose | How to provision |
 |--------|---------|------------------|
@@ -246,12 +246,12 @@ Changes from dev stack:
 | Dev API keys in compose | Secrets from env file / secret manager |
 | `external_url = http://localhost:...` | Public `https://...` URLs |
 
-Pin image versions in `.env` to a release **newer than `ga4gh-infra-v0.1.0`** (that tag is unsigned and predates authentication fixes):
+Pin image versions in `.env` to the **stack** tag (`ga4gh-infra-v0.2.2` → `:0.2.2`). Do not use `ga4gh-infra-v0.1.0`:
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
-AAI_BROKER_VERSION=0.1.0
-VISA_REGISTRY_VERSION=0.1.0
+AAI_BROKER_VERSION=0.2.2
+VISA_REGISTRY_VERSION=0.2.2
 ```
 
 Start internal stack, then reverse proxy:

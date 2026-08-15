@@ -10,7 +10,7 @@ Self-hostable Rust implementation of GA4GH infrastructure: OIDC brokering, Passp
 
 ## SynapticFour GA4GH stack
 
-ga4gh-infra is the **identity plane**. See **[docs/ECOSYSTEM.md](docs/ECOSYSTEM.md)** for Ferrum (data/compute), Lab Kit, Demo, and HelixTest.
+ga4gh-infra is the **identity plane**. Who it is for and how it composes: **[docs/IDENTITY.md](docs/IDENTITY.md)**. Stack map: **[docs/ECOSYSTEM.md](docs/ECOSYSTEM.md)**.
 
 ## Quick start
 

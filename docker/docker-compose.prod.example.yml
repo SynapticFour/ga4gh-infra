@@ -6,7 +6,7 @@
 #   docker compose -f docker/docker-compose.prod.example.yml --env-file config/production.env up -d
 #   # Terminate TLS with docker/reverse-proxy/ (Caddy/nginx) → 127.0.0.1:8080-8095
 #
-# Pin GA4GH_*_VERSION to a release newer than 0.1.0 (unsigned / pre-auth-fix).
+# Pin GA4GH_*_VERSION to the stack tag (0.2.2). Do not use 0.1.0.
 # See docs/production-deployment.md and docs/security.md.
 
 services:

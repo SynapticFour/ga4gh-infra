@@ -30,14 +30,14 @@ These changes always need a second reviewer (even if that reviewer is at your in
 
 ## Releases
 
-Do not run `scripts/install.sh` against `ga4gh-infra-v0.1.0`. Cut a new tag after this hardening lands:
+Do not run `scripts/install.sh` against `ga4gh-infra-v0.1.0`. Current stack tag:
 
 ```bash
-git tag ga4gh-infra-v0.2.0
-git push origin ga4gh-infra-v0.2.0
+git tag ga4gh-infra-v0.2.2
+git push origin ga4gh-infra-v0.2.2
 ```
 
-The `Release Binaries` workflow publishes tarballs **and** `.sha256` files. Docker release is a separate workflow — confirm both succeeded before pointing production pins at the version.
+That tag publishes checksummed binaries **and** (after the stack Docker Release) every Compose image as `:0.2.2`. Confirm both `Release Binaries` and `Docker Release` succeeded before pointing production pins at the version.
 
 ## Incident response
 

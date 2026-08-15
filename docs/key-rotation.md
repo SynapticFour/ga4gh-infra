@@ -9,7 +9,7 @@ Broker and visa-registry mint RS256 JWTs from a PKCS#8 PEM. Resource services tr
 | Broker Passport / access token | `broker.signing.private_key_pem` | `GET {broker}/jwks.json` | `server.external_url` |
 | Visa registry visas | `visa_registry.signing.private_key_pem` | `GET {visa-registry}/jwks.json` | visa-registry `external_url` |
 
-Dev PEMs in `docker/secrets/` must never be reused.
+Dev PEMs are generated under `docker/secrets/` and must never be copied into production. Keys that were previously committed in git are public — generate new ones.
 
 ## Zero-downtime rotation (overlap)
 

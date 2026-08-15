@@ -38,7 +38,7 @@ This codebase has **not** undergone an independent third-party security audit. D
 
 ### Dev secrets in the repository
 
-`docker/secrets/` and documented default env values are for **local development only**. Never use them outside CI/dev machines.
+`docker/secrets/*.pem` are **generated on this machine** (`make prepare-secrets`) and gitignored. Documented default env values (`dev-*-api-key`) are for local development only. Never use either outside CI/dev machines. Private keys that appeared in git history are public.
 
 ## GA4GH behaviour
 

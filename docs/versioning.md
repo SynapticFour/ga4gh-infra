@@ -46,29 +46,37 @@ Crates marked `publish = false` in `Cargo.toml` are excluded from `cargo publish
 
 ## Git tags
 
-Tags identify **one crate version**, not the whole monorepo:
+Two tag families exist:
+
+| Tag | Meaning | Docker images |
+|-----|---------|---------------|
+| `ga4gh-infra-vX.Y.Z` | **Stack release** (binaries + every service image) | `ghcr.io/<org>/<service>:X.Y.Z` |
+| `aai-broker-vA.B.C` (and siblings) | Optional **single-crate** release | that one image `:A.B.C` |
 
 ```text
 ga4gh-types-v0.1.0
 ga4gh-clearinghouse-v0.2.0
 aai-broker-v0.3.0
-visa-registry-v0.1.5
-ga4gh-infra-v0.4.0          # combined CLI / all-in-one binary
+ga4gh-infra-v0.2.2          # current stack: all service images :0.2.2
 ```
 
-Tag names are configured via `[package.metadata.release]` in each crate (see [`release.toml`](../release.toml) for workspace defaults).
+**Crate `version` in Cargo.toml is not the stack tag.** Application crates may remain `0.1.0` while the deploy tag is `0.2.2`. Library crates (`ga4gh-types`, `ga4gh-clearinghouse`) follow crates.io semver independently.
+
+Tag names for crate releases are configured via `[package.metadata.release]` (see [`release.toml`](../release.toml)).
 
 ## Docker image tags
 
-Docker image tags mirror **the crate version of that component**, not a workspace-wide release:
+A **stack** tag `ga4gh-infra-v0.2.2` publishes every Compose service at `:0.2.2` (see `.github/workflows/docker-release.yml`). That is what `docker/.env.example` pins.
 
 ```text
-ghcr.io/<org>/aai-broker:0.3.0
-ghcr.io/<org>/visa-registry:0.1.5
-ghcr.io/<org>/ga4gh-infra:0.4.0
+ghcr.io/<org>/aai-broker:0.2.2
+ghcr.io/<org>/visa-registry:0.2.2
+ghcr.io/<org>/ga4gh-infra:0.2.2
 ```
 
-A compose stack can mix versions via environment pins in `docker/.env.example` (copy to `docker/.env` locally): `AAI_BROKER_VERSION=0.3.0`, etc. Upgrading one service does not require bumping every other service.
+`make up` **builds locally** and applies the same tags; GHCR is optional. Per-crate tags still exist for mixed-version stacks (`AAI_BROKER_VERSION=0.3.0` next to `VISA_REGISTRY_VERSION=0.2.2`).
+
+Do not install **`ga4gh-infra-v0.1.0`** (unsigned, predates authentication fixes).
 
 GitHub release tag `ga4gh-infra-v*` also publishes prebuilt binaries via `.github/workflows/release-binaries.yml`:
 

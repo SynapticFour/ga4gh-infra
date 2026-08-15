@@ -17,7 +17,7 @@ Use a **hyphen** — `make up-local`, not `make up local`.
 
 What happens:
 
-1. Dev RSA keys are created under `docker/secrets/` if missing (`ga4gh-infra keygen`).
+1. Dev RSA keys are created under `docker/secrets/` if missing (`make prepare-secrets`). They are **not** in git.
 2. Rust crates are vendored for offline Docker builds (`make prepare-vendor`).
 3. Compose builds per-service images and starts PostgreSQL, mock IdP, broker, visa-registry, access-decision-service, duo-service, service-registry, agreement-registry, admin-ui, and sample-resource.
 4. Health checks wait until services respond.

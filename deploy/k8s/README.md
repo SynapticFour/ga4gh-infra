@@ -20,7 +20,7 @@ Do not use `/login` as a probe (it starts an OIDC flow and is rate-limited).
 ## What not to run
 
 - `mock-idp`
-- Committed `docker/secrets/*.pem`
+- Laptop-generated `docker/secrets/*.pem` (production: `ga4gh-infra keygen` onto a Kubernetes Secret)
 - A single replica of the broker if you need signing-key overlap ([key-rotation.md](../docs/key-rotation.md))
 
 ## Example broker Deployment (sketch)
