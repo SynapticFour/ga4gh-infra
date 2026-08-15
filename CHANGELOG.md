@@ -4,6 +4,7 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+- **Release Binaries:** install the 1.91.1 target (not `@stable` vs `rust-toolchain.toml`), cross-compile Intel macOS on `macos-latest`, and allow `workflow_dispatch` to attach assets to an existing `ga4gh-infra-v*` tag.
 - **`make prove`** — workspace tests without Docker (same command as CI unit tests). Live stack remains `make up`.
 - **CI:** `cargo-audit` uses rustc stable so the auditor can compile; product crates stay on 1.91.1. Dev PEMs are mode 644 so visa-registry can read Compose bind-mounts (uid 1000).
 
