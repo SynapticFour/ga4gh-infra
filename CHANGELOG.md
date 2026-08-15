@@ -1,12 +1,16 @@
 # Changelog (workspace)
 
-Identity-plane hardening for institute production. Application crates remain at `0.1.0` (crate/image tags); the **Git** release tag is `ga4gh-infra-v0.2.0`. **Do not install `ga4gh-infra-v0.1.0`.**
+Identity-plane hardening for institute production. Application crates remain at `0.1.0` (crate/image tags); the **Git** release tag is `ga4gh-infra-v0.2.2`. **Do not install `ga4gh-infra-v0.1.0`.**
 
 ## [Unreleased]
 
-## [ga4gh-infra-v0.2.0] - 2026-08-15
+## [ga4gh-infra-v0.2.2] - 2026-08-15
 
-Git tag on origin. Ferrum `VERSIONS.lock` pins `GA4GH_INFRA_REF=ga4gh-infra-v0.2.0`.
+- Docker Release vendors `docker/vendor` before `build-push` (`COPY docker/vendor` requires it; the tree is gitignored).
+
+## [ga4gh-infra-v0.2.1] - 2026-08-15
+
+Git tag on origin (changelog freeze of identity-plane work). Superseded by `ga4gh-infra-v0.2.2` for Docker Release.
 
 ### Security
 

@@ -26,6 +26,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Prepare Docker vendor tree
+        run: ./scripts/prepare-docker-vendor.sh
+
       - name: Parse release tag
         id: meta
         run: |
