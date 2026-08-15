@@ -263,8 +263,14 @@ pub enum AccessDecisionOutcome {
 pub struct DacActionRequest {
     /// Optional rationale recorded in the audit trail.
     pub reason: Option<String>,
-    /// DAC member identifier (defaults to API key name when omitted).
+    /// Ignored. ADS records the authenticated API-key name as actor.
+    #[serde(default)]
     pub actor: Option<String>,
+    /// Client-asserted DAC group scope for the shared admin-ui API key.
+    /// Omit only for break-glass automation. ADS allows the action only if the
+    /// request's `dac_group` is in this list (or the caller is unscoped).
+    #[serde(default)]
+    pub operator_groups: Option<Vec<String>>,
 }
 
 /// Origin of an authorization grant.

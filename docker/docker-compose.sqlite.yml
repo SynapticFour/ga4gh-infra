@@ -19,6 +19,7 @@ services:
       MOCK_IDP_SUBJECT: researcher@uni-heidelberg.de
       MOCK_IDP_CLIENT_ID: ga4gh-broker
       MOCK_IDP_CLIENT_SECRET: mock-client-secret
+      MOCK_IDP_GROUPS: ga4gh-infra-admins
       RUST_LOG: info
     ports:
       - "9100:9100"

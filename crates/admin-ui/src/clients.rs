@@ -34,7 +34,9 @@ pub struct UpstreamClients {
 impl UpstreamClients {
     pub fn new(config: Arc<AdminUiConfig>) -> Self {
         let http = Client::builder()
+            .use_rustls_tls()
             .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
             .build()
             .expect("reqwest client");
         Self { http, config }
@@ -246,8 +248,9 @@ impl UpstreamClients {
         &self,
         session: &UserSession,
         admin_claim: &str,
+        allowed_dac_groups: &[String],
     ) -> EventLabelContext {
-        let groups = operator_dac_groups(session, admin_claim);
+        let groups = operator_dac_groups(session, admin_claim, allowed_dac_groups);
         let dataset_groups = if session.is_admin {
             None
         } else {
@@ -348,24 +351,30 @@ impl UpstreamClients {
         &self,
         id: uuid::Uuid,
         reason: Option<String>,
+        operator_groups: Option<&[String]>,
     ) -> AdminResult<AccessRequest> {
-        self.ads_dac_action(id, "approve", reason).await
+        self.ads_dac_action(id, "approve", reason, operator_groups)
+            .await
     }
 
     pub async fn ads_reject(
         &self,
         id: uuid::Uuid,
         reason: Option<String>,
+        operator_groups: Option<&[String]>,
     ) -> AdminResult<AccessRequest> {
-        self.ads_dac_action(id, "reject", reason).await
+        self.ads_dac_action(id, "reject", reason, operator_groups)
+            .await
     }
 
     pub async fn ads_escalate(
         &self,
         id: uuid::Uuid,
         reason: Option<String>,
+        operator_groups: Option<&[String]>,
     ) -> AdminResult<AccessRequest> {
-        self.ads_dac_action(id, "escalate", reason).await
+        self.ads_dac_action(id, "escalate", reason, operator_groups)
+            .await
     }
 
     async fn ads_dac_action(
@@ -373,10 +382,12 @@ impl UpstreamClients {
         id: uuid::Uuid,
         action: &str,
         reason: Option<String>,
+        operator_groups: Option<&[String]>,
     ) -> AdminResult<AccessRequest> {
         let body = DacActionRequest {
             reason,
-            actor: Some("admin-ui".to_string()),
+            actor: None,
+            operator_groups: operator_groups.map(|groups| groups.to_vec()),
         };
         let resp = self
             .http

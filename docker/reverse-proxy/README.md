@@ -12,5 +12,6 @@ TLS termination configs for production deployments. Services in the Compose stac
 1. Set each service's `external_url` to the matching `https://` hostname (see [docs/production-deployment.md](../../docs/production-deployment.md)).
 2. Point `proxy_pass` / `reverse_proxy` at Compose ports (host) or Docker network service names (if the proxy runs inside Compose).
 3. Do not expose Postgres or the visa-registry DAC API to the public internet without additional access controls.
+4. Rate-limit broker `/login` and `/callback` (see the nginx example). Caddy's `rate_limit` is still experimental; use a WAF or nginx if you need strict limits.
 
 See the full guide: [docs/production-deployment.md](../../docs/production-deployment.md).

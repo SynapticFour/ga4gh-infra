@@ -3,6 +3,8 @@ host = "0.0.0.0"
 port = 8080
 external_url = "http://localhost:8080"
 environment = "development"
+allowed_return_url_origins = ["http://localhost:8095"]
+login_rate_limit_per_minute = 120
 
 [signing]
 private_key_pem = "/secrets/broker_rs256.pem"

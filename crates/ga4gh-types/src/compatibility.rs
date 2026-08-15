@@ -52,7 +52,7 @@ fn permission_ancestors(code: DuoCode) -> HashSet<DuoCode> {
 }
 
 /// Modifiers that imply human DAC / procedural steps even when DUO codes match.
-fn procedural_modifier(code: DuoCode) -> Option<&'static str> {
+pub fn procedural_modifier(code: DuoCode) -> Option<&'static str> {
     match code {
         DuoCode::Irb => Some("ethics approval (IRB) must be confirmed by DAC"),
         DuoCode::Col => Some("collaboration requirement must be confirmed by DAC"),
@@ -222,6 +222,109 @@ pub fn find_matching_template<'a>(
     })
 }
 
+/// Evaluate dataset vs project DUO codes for ADS auto-approval.
+///
+/// Uses the same permission hierarchy as [`check_compatibility`]. The OWL-backed
+/// HTTP matcher in `duo-service` remains the catalog-aware API for resource services.
+pub fn evaluate_duo_codes(
+    dataset_duo: &[DuoCode],
+    project_duo: &[DuoCode],
+    threshold: u8,
+) -> crate::ads::DuoEvaluationResult {
+    use crate::ads::DuoEvaluationResult;
+
+    if dataset_duo.is_empty() {
+        return DuoEvaluationResult {
+            compatible: false,
+            score: 0,
+            auto_approvable: false,
+            reason: "dataset has no DUO codes".to_string(),
+            matched_codes: vec![],
+            missing_codes: vec![],
+            procedural_modifiers: vec![],
+        };
+    }
+
+    if project_duo.is_empty() {
+        return DuoEvaluationResult {
+            compatible: false,
+            score: 0,
+            auto_approvable: false,
+            reason: "project has no intended-use DUO codes".to_string(),
+            matched_codes: vec![],
+            missing_codes: dataset_duo.to_vec(),
+            procedural_modifiers: vec![],
+        };
+    }
+
+    if dataset_duo.contains(&DuoCode::Nres) {
+        return DuoEvaluationResult {
+            compatible: true,
+            score: 100,
+            auto_approvable: threshold <= 100,
+            reason: "dataset has no restriction (NRES)".to_string(),
+            matched_codes: vec![DuoCode::Nres],
+            missing_codes: vec![],
+            procedural_modifiers: vec![],
+        };
+    }
+
+    let mut matched_codes = Vec::new();
+    let mut missing_codes = Vec::new();
+    let mut procedural_modifiers = Vec::new();
+
+    for required in dataset_duo {
+        if is_permission(*required) {
+            let satisfied = project_duo
+                .iter()
+                .any(|requester| permission_satisfies(*requester, *required));
+            if satisfied {
+                matched_codes.push(*required);
+            } else {
+                missing_codes.push(*required);
+            }
+        } else if project_duo.contains(required) {
+            matched_codes.push(*required);
+        } else {
+            missing_codes.push(*required);
+            if let Some(note) = procedural_modifier(*required) {
+                procedural_modifiers.push(note.to_string());
+            } else {
+                procedural_modifiers.push(format!("missing modifier {required}"));
+            }
+        }
+    }
+
+    let permission_total = dataset_duo
+        .iter()
+        .filter(|code| is_permission(**code))
+        .count()
+        .max(1);
+    let permission_matched = matched_codes
+        .iter()
+        .filter(|code| is_permission(**code))
+        .count();
+    let score = ((permission_matched as f32 / permission_total as f32) * 100.0).round() as u8;
+
+    let compatible = missing_codes.is_empty();
+    let auto_approvable = compatible && score >= threshold && procedural_modifiers.is_empty();
+    let reason = if compatible {
+        "project intended use satisfies dataset DUO policy".to_string()
+    } else {
+        format!("unsatisfied DUO codes: {missing_codes:?}")
+    };
+
+    DuoEvaluationResult {
+        compatible,
+        score,
+        auto_approvable,
+        reason,
+        matched_codes,
+        missing_codes,
+        procedural_modifiers,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -367,5 +470,18 @@ mod tests {
             find_matching_template(&templates, &allowed).map(|t| t.id.as_str()),
             Some("tmpl")
         );
+    }
+
+    #[test]
+    fn evaluate_duo_codes_hmb_satisfies_gru() {
+        let result = evaluate_duo_codes(&[DuoCode::Gru], &[DuoCode::Hmb], 100);
+        assert!(result.compatible);
+        assert!(result.auto_approvable);
+    }
+
+    #[test]
+    fn evaluate_duo_codes_gru_does_not_satisfy_hmb() {
+        let result = evaluate_duo_codes(&[DuoCode::Hmb], &[DuoCode::Gru], 100);
+        assert!(!result.compatible);
     }
 }

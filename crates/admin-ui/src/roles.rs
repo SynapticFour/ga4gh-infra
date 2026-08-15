@@ -4,11 +4,13 @@ pub fn is_admin(groups: &[String], admin_claim_value: &str) -> bool {
 }
 
 /// DAC groups for operator-scoped ADS queries.
-/// Admins receive `None` (unfiltered). Non-admins receive `Some(groups)`, including
-/// an empty vector when they have no DAC groups (never unrestricted).
+///
+/// Admins receive `None` (unfiltered). Non-admins receive the intersection of
+/// their IdP groups with the configured DAC allowlist (never unrestricted).
 pub fn operator_dac_groups(
     session: &crate::session::UserSession,
     admin_claim_value: &str,
+    allowed_dac_groups: &[String],
 ) -> Option<Vec<String>> {
     if session.is_admin {
         return None;
@@ -16,7 +18,9 @@ pub fn operator_dac_groups(
     let groups: Vec<String> = session
         .groups
         .iter()
-        .filter(|g| *g != admin_claim_value)
+        .filter(|g| {
+            *g != admin_claim_value && allowed_dac_groups.iter().any(|allowed| allowed == *g)
+        })
         .cloned()
         .collect();
     Some(groups)
@@ -54,15 +58,24 @@ mod tests {
     #[test]
     fn admin_has_no_dac_group_filter() {
         let s = session(&["ga4gh-infra-admins"], true);
-        assert!(operator_dac_groups(&s, "ga4gh-infra-admins").is_none());
+        assert!(operator_dac_groups(&s, "ga4gh-infra-admins", &["ega-dac".into()]).is_none());
     }
 
     #[test]
-    fn operator_dac_groups_exclude_admin_claim() {
-        let s = session(&["ega-dac", "ga4gh-infra-admins"], false);
+    fn operator_dac_groups_intersect_allowlist() {
+        let s = session(&["ega-dac", "staff", "ga4gh-infra-admins"], false);
         assert_eq!(
-            operator_dac_groups(&s, "ga4gh-infra-admins"),
+            operator_dac_groups(&s, "ga4gh-infra-admins", &["ega-dac".into()]),
             Some(vec!["ega-dac".into()])
+        );
+    }
+
+    #[test]
+    fn staff_group_is_not_a_dac_operator() {
+        let s = session(&["staff"], false);
+        assert_eq!(
+            operator_dac_groups(&s, "ga4gh-infra-admins", &["ega-dac".into()]),
+            Some(Vec::<String>::new())
         );
     }
 
@@ -70,7 +83,7 @@ mod tests {
     fn operator_without_groups_is_empty_filter_not_unrestricted() {
         let s = session(&[], false);
         assert_eq!(
-            operator_dac_groups(&s, "ga4gh-infra-admins"),
+            operator_dac_groups(&s, "ga4gh-infra-admins", &["ega-dac".into()]),
             Some(Vec::<String>::new())
         );
     }

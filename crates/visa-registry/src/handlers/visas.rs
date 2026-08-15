@@ -114,6 +114,8 @@ pub async fn create_visa(
         .await?;
 
     tracing::info!(
+        audit = true,
+        event = "visa.created",
         assertion_id = %assertion.id,
         sub = %assertion.sub,
         visa_type = %assertion.visa_type,
@@ -141,7 +143,12 @@ pub async fn delete_visa(
     require_api_key(&state, &headers).await?;
     state.store.revoke_assertion(id).await?;
     state.visa_jwts.write().await.remove(&id);
-    tracing::info!(assertion_id = %id, "visa assertion revoked");
+    tracing::info!(
+        audit = true,
+        event = "visa.revoked",
+        assertion_id = %id,
+        "visa assertion revoked"
+    );
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -180,6 +187,22 @@ pub async fn list_visas(
     }
 
     Ok(Json(ListVisasResponse { visas }))
+}
+
+/// Public revocation list consumed by clearinghouses (`jti` == assertion id).
+#[derive(Debug, Serialize)]
+pub struct RevokedJtisResponse {
+    /// Revoked visa JWT identifiers.
+    pub jtis: Vec<String>,
+}
+
+/// List revoked visa JTIs.
+#[instrument(skip(state))]
+pub async fn list_revoked_jtis(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<RevokedJtisResponse>, RegistryError> {
+    let jtis = state.store.list_revoked_jtis().await?;
+    Ok(Json(RevokedJtisResponse { jtis }))
 }
 
 async fn require_api_key(state: &AppState, headers: &HeaderMap) -> Result<(), RegistryError> {
@@ -264,6 +287,7 @@ mod tests {
                 },
                 signing: SigningConfig {
                     private_key_pem: "/unused".to_string(),
+                    previous_key_pems: vec![],
                     visa_lifetime_seconds: 3600,
                 },
                 database: DatabaseConfig {
@@ -274,6 +298,7 @@ mod tests {
                 },
                 auth: AuthConfig {
                     bootstrap_api_key_env: "REGISTRY_BOOTSTRAP_API_KEY".to_string(),
+                    api_key_pepper_env: "GA4GH_API_KEY_PEPPER".to_string(),
                 },
             },
             keys: crate::keys::SigningKeys::from_pem(crate::test_support::test_signing_key_pem())

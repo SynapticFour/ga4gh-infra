@@ -230,6 +230,8 @@ impl CoreClientBuilder {
 pub fn build_http_client() -> Result<Client, BrokerError> {
     Client::builder()
         .redirect(reqwest::redirect::Policy::none())
+        .timeout(std::time::Duration::from_secs(10))
+        .connect_timeout(std::time::Duration::from_secs(5))
         .build()
         .map_err(|err| BrokerError::Internal(format!("HTTP client: {err}")))
 }

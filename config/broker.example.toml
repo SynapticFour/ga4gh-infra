@@ -3,12 +3,16 @@ host = "0.0.0.0"
 port = 8080
 external_url = "https://aai.example.org"
 # Deployment environment: prod, test, dev, staging, or development
-environment = "dev"
+environment = "prod"
+# Origins allowed as OAuth return_url (scheme + host + port). Required outside development.
+allowed_return_url_origins = ["https://admin.example.org"]
+login_rate_limit_per_minute = 20
 
 [signing]
 private_key_pem = "/secrets/broker_rs256.pem"
-passport_lifetime_seconds = 3600
-token_lifetime_seconds = 3600
+# Keep Passport TTL short so visa revocation is observed without waiting a day.
+passport_lifetime_seconds = 900
+token_lifetime_seconds = 900
 
 [session]
 # Session store for the RP login flow (server-side, signed cookies)

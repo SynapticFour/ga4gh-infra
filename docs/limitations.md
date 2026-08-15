@@ -28,9 +28,9 @@ SQLite mode (visa-registry) suits demo, desktop, and single-node edge use (inclu
 
 ## Security and operations
 
-### No built-in rate limiting or WAF
+### Rate limits and request size
 
-Public endpoints have no rate limits, request size caps, or WAF rules. Deploy behind a reverse proxy (nginx, Caddy, Traefik, cloud WAF) for production.
+Login and callback are rate-limited in-process (`login_rate_limit_per_minute`, default 20). Request bodies are capped at 1 MiB. Still put a reverse proxy or WAF in front for TLS, extra rate limits, and IP blocking.
 
 ### No formal security audit
 
@@ -44,9 +44,9 @@ This codebase has **not** undergone an independent third-party security audit. D
 
 ### Visa revocation vs issued Passports
 
-Revoking a visa in the registry (`DELETE /visas/:id`) does not invalidate Passports already minted by the broker. Passports remain valid until **Passport JWT expiry**. Short Passport TTLs and re-login reduce exposure; there is no denylist.
+Revoking a visa in the registry (`DELETE /visas/:id`) publishes the assertion id on `GET /revoked-jtis`. Clearinghouses drop matching embedded visas on extract. **Already-minted Passport JWTs remain valid until expiry unless revoked** via broker `POST /revoke-passports` (then `GET /revoked-passports`). Keep `passport_lifetime_seconds` short (900s in production examples) and persist the ledger on a shared volume when running more than one broker replica.
 
-Revocation visibility at the broker depends on how often visa sources are queried during login (on each login today, not continuous polling). Already-issued Passports are unaffected until they expire.
+Revocation visibility at the broker depends on how often visa sources are queried during login (on each login today, not continuous polling).
 
 ### Limited demo visa/policy coverage
 
@@ -64,7 +64,7 @@ Docker and native quick starts use plain HTTP. Production requires TLS at a reve
 
 ### No Kubernetes / Helm charts
 
-Only Docker Compose and native binary paths are documented. Horizontal scaling, probes beyond `/service-info`, and Helm are left to deployers.
+A starter Helm chart lives in [`deploy/k8s/chart`](../deploy/k8s/chart). Institutes still own Ingress, secrets, Postgres, and TLS.
 
 ### Admin UI is English-only
 

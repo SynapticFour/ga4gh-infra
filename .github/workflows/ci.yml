@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main, master]
   schedule:
-    # Heavy jobs (coverage / docker e2e / ARM) run here + workflow_dispatch.
+    # Heavy jobs (coverage / ARM) run here + workflow_dispatch. Docker e2e runs on every PR.
     - cron: "40 5 * * 1"
   workflow_dispatch:
 
@@ -43,6 +43,19 @@ jobs:
 
       - name: Library tests (all features)
         run: cargo test -p ga4gh-types -p ga4gh-clearinghouse --all-features
+
+  audit:
+    name: cargo-audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   integration:
     name: Integration (testcontainers)
@@ -90,7 +103,6 @@ jobs:
 
   e2e:
     name: Docker E2E
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

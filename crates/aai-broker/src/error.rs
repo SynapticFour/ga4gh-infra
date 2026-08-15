@@ -35,6 +35,15 @@ pub enum BrokerError {
     /// Session cookie could not be parsed or has expired.
     #[error("invalid session")]
     InvalidSession,
+    /// Login or callback rate limit exceeded.
+    #[error("too many requests")]
+    TooManyRequests,
+    /// Missing or invalid admin API key.
+    #[error("unauthorized")]
+    Unauthorized,
+    /// Caller sent a malformed request.
+    #[error("bad request: {0}")]
+    BadRequest(String),
     /// Internal server error.
     #[error("internal error: {0}")]
     Internal(String),
@@ -44,9 +53,12 @@ impl BrokerError {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::UnknownIdp => StatusCode::NOT_FOUND,
-            Self::AuthenticationFailed | Self::InvalidAccessToken | Self::InvalidSession => {
-                StatusCode::UNAUTHORIZED
-            }
+            Self::AuthenticationFailed
+            | Self::InvalidAccessToken
+            | Self::InvalidSession
+            | Self::Unauthorized => StatusCode::UNAUTHORIZED,
+            Self::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,
+            Self::BadRequest(_) => StatusCode::BAD_REQUEST,
             Self::Config(_)
             | Self::UpstreamOidc(_)
             | Self::VisaSource(_)
@@ -59,6 +71,9 @@ impl BrokerError {
         match self {
             Self::UnknownIdp => "Unknown upstream identity provider",
             Self::AuthenticationFailed => "Authentication failed",
+            Self::TooManyRequests => "Too many requests",
+            Self::Unauthorized => "Unauthorized",
+            Self::BadRequest(_) => "Invalid request",
             Self::InvalidAccessToken => "Invalid or expired access token",
             Self::InvalidSession => "Invalid or expired login session",
             Self::Config(_)

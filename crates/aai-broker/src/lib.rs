@@ -10,6 +10,7 @@ pub mod handlers;
 pub mod identity;
 pub mod keys;
 pub mod passport;
+pub mod passport_ledger;
 pub mod profile;
 pub mod session;
 pub mod startup;

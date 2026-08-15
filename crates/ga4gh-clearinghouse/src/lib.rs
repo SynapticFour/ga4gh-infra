@@ -22,4 +22,4 @@ pub use config::{ClearinghouseConfig, TrustedBroker};
 pub use error::ClearinghouseError;
 pub use jwks::JwksCache;
 pub use policy::{PolicyCheck, PolicyResult};
-pub use token::{peek_expiry, peek_issuer};
+pub use token::{peek_expiry, peek_issuer, peek_jti};

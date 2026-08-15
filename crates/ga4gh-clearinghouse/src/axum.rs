@@ -55,6 +55,8 @@ impl IntoResponse for ClearinghouseError {
             | ClearinghouseError::InvalidSignature
             | ClearinghouseError::UntrustedIssuer
             | ClearinghouseError::VisaSubjectMismatch
+            | ClearinghouseError::RevokedVisa
+            | ClearinghouseError::RevokedPassport
             | ClearinghouseError::UnknownKeyId(_) => StatusCode::UNAUTHORIZED,
             ClearinghouseError::InvalidTokenFormat | ClearinghouseError::InvalidClaims(_) => {
                 StatusCode::BAD_REQUEST
@@ -72,6 +74,8 @@ impl IntoResponse for ClearinghouseError {
             ClearinghouseError::VisaSubjectMismatch => {
                 "Visa subject does not match passport subject".to_string()
             }
+            ClearinghouseError::RevokedVisa => "Visa has been revoked".to_string(),
+            ClearinghouseError::RevokedPassport => "Passport has been revoked".to_string(),
             ClearinghouseError::UnknownKeyId(_) => "Unknown signing key".to_string(),
             ClearinghouseError::InvalidTokenFormat => "Invalid passport token format".to_string(),
             ClearinghouseError::InvalidClaims(_) => "Invalid passport claims".to_string(),

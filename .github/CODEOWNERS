@@ -1,0 +1,13 @@
+# Identity, access, and supply-chain owner list (advisory until branch protection exists).
+# This file does not block pushes to main. Do not enable "require review from Code Owners"
+# on this repo while it is a one-person development tree (see docs/governance.md).
+# Institutes: append your GitHub team on your fork before production.
+* @SynapticFour
+/.github/ @SynapticFour
+/crates/aai-broker/ @SynapticFour
+/crates/access-decision-service/ @SynapticFour
+/crates/visa-registry/ @SynapticFour
+/crates/ga4gh-clearinghouse/ @SynapticFour
+/crates/admin-ui/ @SynapticFour
+/scripts/install.sh @SynapticFour
+/scripts/install.ps1 @SynapticFour

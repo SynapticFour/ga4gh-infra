@@ -52,6 +52,16 @@ pub fn peek_expiry(token: &str) -> Result<i64, ClearinghouseError> {
     Ok(peek_meta(token)?.exp)
 }
 
+/// Read the `jti` claim from a JWT payload without verifying the signature.
+pub fn peek_jti(token: &str) -> Result<String, ClearinghouseError> {
+    #[derive(Deserialize)]
+    struct JtiClaim {
+        jti: String,
+    }
+
+    Ok(peek_claims::<JtiClaim>(token)?.jti)
+}
+
 /// Deserialize JWT payload JSON without verifying the signature.
 pub fn peek_claims<T>(token: &str) -> Result<T, ClearinghouseError>
 where

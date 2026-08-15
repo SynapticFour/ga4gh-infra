@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use axum::extract::DefaultBodyLimit;
 use axum::routing::get;
 use axum::Router;
 use ga4gh_clearinghouse::{Clearinghouse, ClearinghouseConfig, TrustedBroker};
@@ -49,6 +50,8 @@ impl AppState {
 
         let http_client = Client::builder()
             .redirect(reqwest::redirect::Policy::none())
+            .timeout(std::time::Duration::from_secs(10))
+            .connect_timeout(std::time::Duration::from_secs(5))
             .build()
             .map_err(|err| SampleResourceError::Internal(format!("HTTP client: {err}")))?;
 
@@ -83,7 +86,9 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             get(handlers::get_dataset_summary),
         )
         .route("/service-info", get(handlers::service_info))
-        .route("/health", get(handlers::health))
+        .route("/health", get(ga4gh_http::health))
+        .layer(DefaultBodyLimit::max(1024 * 1024))
+        .layer(axum::middleware::from_fn(ga4gh_http::security_headers))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

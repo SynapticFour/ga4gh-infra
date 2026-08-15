@@ -9,8 +9,11 @@ service_registry_base_url = "http://localhost:8083"
 agreement_registry_base_url = "http://localhost:8086"
 session_secret = "dev-admin-ui-session-secret-min-32-chars"
 session_ttl_hours = 24
+environment = "development"
 admin_claim = "groups"
 admin_claim_value = "ga4gh-infra-admins"
+# IdP groups that may operate the DAC queue in addition to admins. Empty = admin only.
+# dac_operator_groups = ["ega-dac"]
 service_registry_registration_key = "dev-service-registry-key"
 broker_config_path = "docker/config/broker.toml"
 # Optional: ISO-8601 date to show signing-key rotation warning on dashboard (Admin)

@@ -17,14 +17,19 @@ File: `broker.toml` — see [`config/broker.example.toml`](../config/broker.exam
 | `host` | string | Bind address (e.g. `0.0.0.0`) |
 | `port` | u16 | Listen port (default stack: `8080`) |
 | `external_url` | string | Public base URL, no trailing slash; used as Passport JWT `iss` |
-| `environment` | string | `prod`, `test`, `dev`, `staging`, or `development` — controls trace logging policy |
+| `environment` | string | `prod`, `test`, `dev`, `staging`, or `development` — controls trace logging policy and whether documented bootstrap secrets are accepted |
+| `allowed_return_url_origins` | string[] | Origins (scheme + host + port) permitted as OAuth `return_url`. Empty rejects all `return_url` values outside development |
+| `login_rate_limit_per_minute` | u32 | Max `/login` and `/callback` attempts per client IP per minute (`0` disables; default `20`) |
+| `admin_api_key_env` | string | Env var for `POST /revoke-passports` (`X-API-Key`; default `BROKER_ADMIN_API_KEY`) |
+| `passport_ledger_path` | path | Optional JSON file for Passport issue/revoke persistence (shared volume when running replicas) |
 
 ### `[signing]`
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `private_key_pem` | path | RS256 PKCS#8 PEM for Passport signing |
-| `passport_lifetime_seconds` | u64 | Passport JWT `exp` offset from issuance |
+| `previous_key_pems` | path[] | Extra PEMs (public or private) published in JWKS during key rotation overlap |
+| `passport_lifetime_seconds` | u64 | Passport JWT `exp` offset from issuance (use `900` in production so revocation is observed promptly) |
 | `token_lifetime_seconds` | u64 | OAuth access token lifetime for `/userinfo` |
 
 ### `[session]`
@@ -114,6 +119,7 @@ auto_migrate = true
 | Field | Type | Description |
 |-------|------|-------------|
 | `bootstrap_api_key_env` | string | Env var; registered on first startup if no API keys exist |
+| `api_key_pepper_env` | string | Env var for HMAC pepper (default `GA4GH_API_KEY_PEPPER`). Empty in development keeps legacy SHA-256 hashes |
 
 DAC requests use header `X-API-Key`.
 
@@ -180,6 +186,7 @@ Same shape as visa-registry (`driver`, `url`, `url_env`, `auto_migrate`). Defaul
 | Field | Type | Description |
 |-------|------|-------------|
 | `bootstrap_api_key_env` | string | DAC/admin API key env (default: `ADS_DAC_API_KEY`) |
+| `api_key_pepper_env` | string | Env var for HMAC pepper (default `GA4GH_API_KEY_PEPPER`) |
 
 ### `[visas]`
 

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/ga4gh-types",
     "crates/ga4gh-clearinghouse",
+    "crates/ga4gh-http",
     "crates/aai-broker",
     "crates/visa-registry",
     "crates/duo-service",
@@ -52,3 +53,4 @@ toml = "0.8"
 
 ga4gh-types = { path = "crates/ga4gh-types", version = "0.1.0" }
 ga4gh-clearinghouse = { path = "crates/ga4gh-clearinghouse", version = "0.1.0" }
+ga4gh-http = { path = "crates/ga4gh-http", version = "0.1.0" }

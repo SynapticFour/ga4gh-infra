@@ -83,7 +83,7 @@ enum Commands {
         /// Path to combined all-in-one TOML configuration.
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
-        /// Enable Africa-mode: SQLite backends, embedded mock IdP, offline-first defaults.
+        /// Enable Africa-mode: SQLite backends, offline-first defaults (mock IdP only with allow_insecure_demo).
         #[arg(long)]
         africa: bool,
     },

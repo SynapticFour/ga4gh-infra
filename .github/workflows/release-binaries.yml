@@ -74,7 +74,13 @@ jobs:
           cp "target/${{ matrix.target }}/release/ga4gh-infra" "$name"
           chmod +x "$name"
           tar -czf "${name}.tar.gz" "$name"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "${name}.tar.gz" > "${name}.tar.gz.sha256"
+          else
+            shasum -a 256 "${name}.tar.gz" > "${name}.tar.gz.sha256"
+          fi
           echo "ASSET=${name}.tar.gz" >> "$GITHUB_ENV"
+          echo "ASSET_SUM=${name}.tar.gz.sha256" >> "$GITHUB_ENV"
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
@@ -83,9 +89,14 @@ jobs:
           $name = "ga4gh-infra-${{ matrix.target }}"
           Copy-Item "target/${{ matrix.target }}/release/ga4gh-infra.exe" "$name.exe"
           Compress-Archive -Path "$name.exe" -DestinationPath "$name.zip"
+          $hash = (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -Encoding ascii "$name.zip.sha256"
           "ASSET=$name.zip" >> $env:GITHUB_ENV
+          "ASSET_SUM=$name.zip.sha256" >> $env:GITHUB_ENV
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.ASSET }}
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET_SUM }}

@@ -23,6 +23,7 @@ Rust crates (crates.io)
 - sqlx — MIT OR Apache-2.0
 - thiserror — MIT OR Apache-2.0
 - anyhow — MIT OR Apache-2.0
+- clap — MIT OR Apache-2.0
 - openidconnect — MIT OR Apache-2.0
 - cookie — MIT OR Apache-2.0
 - hmac — MIT OR Apache-2.0
@@ -31,7 +32,17 @@ Rust crates (crates.io)
 - axum-extra — MIT
 - base64 — MIT OR Apache-2.0
 - time — MIT OR Apache-2.0
+- sha2 — MIT OR Apache-2.0
+- hmac — MIT OR Apache-2.0
+- rsa — MIT OR Apache-2.0
+- async-trait — MIT OR Apache-2.0
+- toml — MIT OR Apache-2.0
+- url — MIT OR Apache-2.0
+- chrono — MIT OR Apache-2.0
+- askama / askama_axum — MIT OR Apache-2.0
 - wiremock — MIT OR Apache-2.0 (development/testing only)
+
+The workspace `Cargo.lock` is the authoritative dependency graph. Generate a full license inventory with `cargo tree` / `cargo license` before redistribution.
 
 Standards and specifications referenced
 ---------------------------------------

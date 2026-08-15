@@ -19,7 +19,6 @@ use crate::app::AppState;
 use crate::error::BrokerError;
 use crate::identity::ResearcherIdentity;
 use crate::passport::mint_passport_jwt;
-use crate::session::unix_now;
 use crate::visas::collect_visas;
 
 /// Query parameters returned by the upstream IdP authorization callback.
@@ -42,6 +41,13 @@ pub async fn callback(
 ) -> Result<Response, BrokerError> {
     if query.error.is_some() || query.code.is_none() || query.state.is_none() {
         return Err(BrokerError::AuthenticationFailed);
+    }
+    if !state
+        .login_limiter
+        .allow(&ga4gh_http::client_key(&headers))
+        .await
+    {
+        return Err(BrokerError::TooManyRequests);
     }
 
     let session = headers
@@ -76,20 +82,49 @@ pub async fn callback(
         let mut signed = ads.fetch_signed_visas(&identity.sub).await?;
         visas.append(&mut signed);
     }
-    let passport_jwt = mint_passport_jwt(
+    let minted = mint_passport_jwt(
         &state.keys,
         state.config.issuer_url(),
         &identity,
         &visas,
         state.config.signing.passport_lifetime_seconds,
     )?;
-
-    let exp = unix_now() + state.config.signing.passport_lifetime_seconds as i64;
+    let visa_jtis: Vec<String> = visas
+        .iter()
+        .filter_map(|jwt| {
+            jwt_payload_value(jwt)?
+                .get("jti")
+                .and_then(|value| value.as_str())
+                .map(str::to_string)
+        })
+        .collect();
+    state
+        .passport_ledger
+        .record_issue(
+            minted.jti.clone(),
+            identity.sub.clone(),
+            minted.exp,
+            visa_jtis,
+        )
+        .await?;
+    let passport_jwt = minted.jwt;
+    let exp = minted.exp;
     state.profiles.insert(&identity, exp).await;
 
     let clear_cookie = state.sessions.clear_set_cookie();
     let return_url = session.return_url.clone();
     let expires_in = state.config.signing.passport_lifetime_seconds;
+    tracing::info!(
+        audit = true,
+        event = "passport.issued",
+        sub = %identity.sub,
+        idp = %session.idp_name,
+        visa_count = visas.len(),
+        expires_in,
+        return_url_set = session.return_url.is_some(),
+        client_ip = %ga4gh_http::client_key(&headers),
+        "passport issued"
+    );
     let body = serde_json::json!({
         "access_token": passport_jwt,
         "token_type": "Bearer",

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Passport JWT revocation list (`passport_revocation_uri`, default `{jwks origin}/revoked-passports`).
+- `peek_jti` helper for unverified JWT payloads.
+
 ## [0.1.0] - 2026-06-12
 
 ### Added

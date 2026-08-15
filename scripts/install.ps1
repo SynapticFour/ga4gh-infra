@@ -60,12 +60,25 @@ function Install-Binary {
 
     $asset = "ga4gh-infra-$Target.zip"
     $url = "https://github.com/$Repo/releases/download/$Tag/$asset"
+    if ($Tag -eq "ga4gh-infra-v0.1.0" -or $Tag -eq "v0.1.0") {
+        throw "Refusing $Tag : that release is unsigned and contains known authentication flaws. Install a later tagged release."
+    }
     $tmp = Join-Path $env:TEMP ("ga4gh-infra-" + [guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $tmp | Out-Null
 
     Write-Step "Downloading $asset from $Tag"
     $zipPath = Join-Path $tmp $asset
+    $sumPath = "$zipPath.sha256"
     Invoke-WebRequest -Uri $url -OutFile $zipPath
+    try {
+        Invoke-WebRequest -Uri "$url.sha256" -OutFile $sumPath
+    } catch {
+        throw "Release $Tag has no SHA-256 checksum asset; refusing unsigned install"
+    }
+    $expected = ((Get-Content $sumPath | Select-Object -First 1) -split '\s+')[0].ToLower()
+    $actual = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLower()
+    if (-not $expected) { throw "Checksum file for $Tag is empty" }
+    if ($expected -ne $actual) { throw "SHA-256 mismatch for $asset (expected $expected, got $actual)" }
     Expand-Archive -Path $zipPath -DestinationPath $tmp -Force
 
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null

@@ -44,7 +44,11 @@ pub struct HealthRow {
 }
 
 pub async fn dashboard(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let groups = operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    );
     let pending_count = state
         .clients
         .ads_dac_queue(groups.as_deref())
@@ -81,7 +85,11 @@ pub async fn dashboard(auth: RequireAuth, State(state): State<SharedState>) -> i
     let events_result = state.clients.ads_list_audit(10, groups.as_deref()).await;
     let label_ctx = state
         .clients
-        .event_label_context(&auth.0, &state.config.admin_claim_value)
+        .event_label_context(
+            &auth.0,
+            &state.config.admin_claim_value,
+            &state.config.dac_operator_groups,
+        )
         .await;
     let now = Utc::now();
     let recent_events: Vec<ActivityRow> = events_result

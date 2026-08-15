@@ -72,7 +72,11 @@ fn duo_display(eval: Option<&DuoEvaluationResult>) -> (String, bool) {
 }
 
 fn dac_groups_for(auth: &RequireAuth, state: &SharedState) -> Option<Vec<String>> {
-    operator_dac_groups(&auth.0, &state.config.admin_claim_value)
+    operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    )
 }
 
 async fn lookup_maps(
@@ -159,7 +163,7 @@ async fn render_queue_partial(
 }
 
 pub async fn queue_page(auth: RequireAuth, State(state): State<SharedState>) -> Response {
-    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+    if let Err(resp) = auth.require_dac_operator(&state.config.dac_operator_groups) {
         return resp;
     }
     let groups = dac_groups_for(&auth, &state);
@@ -181,7 +185,7 @@ pub async fn queue_page(auth: RequireAuth, State(state): State<SharedState>) -> 
 }
 
 pub async fn queue_partial(auth: RequireAuth, State(state): State<SharedState>) -> Response {
-    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+    if let Err(resp) = auth.require_dac_operator(&state.config.dac_operator_groups) {
         return resp;
     }
     let groups = dac_groups_for(&auth, &state);
@@ -206,6 +210,8 @@ async fn dac_action_response(
     match result {
         Ok(request) => {
             info!(
+                audit = true,
+                event = "dac.action",
                 request_id = %request.id,
                 status = ?request.status,
                 "dac action completed"
@@ -236,13 +242,16 @@ pub async fn approve(
     headers: HeaderMap,
     Form(form): Form<DacActionForm>,
 ) -> Response {
-    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+    if let Err(resp) = auth.require_dac_operator(&state.config.dac_operator_groups) {
         return resp;
     }
     let groups = dac_groups_for(&auth, &state);
     let reason = form.reason.filter(|s| !s.trim().is_empty());
     dac_action_response(
-        state.clients.ads_approve(id, reason).await,
+        state
+            .clients
+            .ads_approve(id, reason, groups.as_deref())
+            .await,
         &headers,
         &state,
         groups.as_deref(),
@@ -257,7 +266,7 @@ pub async fn reject(
     headers: HeaderMap,
     Form(form): Form<DacActionForm>,
 ) -> Response {
-    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+    if let Err(resp) = auth.require_dac_operator(&state.config.dac_operator_groups) {
         return resp;
     }
     let groups = dac_groups_for(&auth, &state);
@@ -266,7 +275,10 @@ pub async fn reject(
         return (StatusCode::BAD_REQUEST, "reason is required for reject").into_response();
     }
     dac_action_response(
-        state.clients.ads_reject(id, reason).await,
+        state
+            .clients
+            .ads_reject(id, reason, groups.as_deref())
+            .await,
         &headers,
         &state,
         groups.as_deref(),
@@ -281,7 +293,7 @@ pub async fn escalate(
     headers: HeaderMap,
     Form(form): Form<DacActionForm>,
 ) -> Response {
-    if let Err(resp) = auth.require_dac_operator(&state.config.admin_claim_value) {
+    if let Err(resp) = auth.require_dac_operator(&state.config.dac_operator_groups) {
         return resp;
     }
     let groups = dac_groups_for(&auth, &state);
@@ -290,7 +302,10 @@ pub async fn escalate(
         return (StatusCode::BAD_REQUEST, "reason is required for escalate").into_response();
     }
     dac_action_response(
-        state.clients.ads_escalate(id, reason).await,
+        state
+            .clients
+            .ads_escalate(id, reason, groups.as_deref())
+            .await,
         &headers,
         &state,
         groups.as_deref(),

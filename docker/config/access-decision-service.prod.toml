@@ -1,0 +1,33 @@
+# Production Access Decision Service.
+
+[server]
+host = "0.0.0.0"
+port = 8090
+external_url = "https://ads.example.org"
+environment = "prod"
+
+[database]
+driver = "postgres"
+url_env = "ADS_DATABASE_URL"
+auto_migrate = false
+
+[oidc]
+jwks_cache_ttl_seconds = 300
+
+[[oidc.trusted_brokers]]
+issuer = "https://aai.example.org"
+jwks_uri = "http://aai-broker:8080/jwks.json"
+
+[auth]
+bootstrap_api_key_env = "ADS_DAC_API_KEY"
+api_key_pepper_env = "GA4GH_API_KEY_PEPPER"
+
+[visas]
+default_source_url = "http://access-decision-service:8090"
+
+[visa_registry]
+url = "http://visa-registry:8081"
+api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+
+[webhooks]
+urls = []

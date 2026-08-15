@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 use axum::Router;
 use tower_http::trace::TraceLayer;
@@ -38,7 +39,9 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/terms/:code", get(handlers::get_term))
         .route("/match", post(handlers::match_duo))
         .route("/service-info", get(handlers::service_info))
-        .route("/health", get(handlers::health))
+        .route("/health", get(ga4gh_http::health))
+        .layer(DefaultBodyLimit::max(1024 * 1024))
+        .layer(axum::middleware::from_fn(ga4gh_http::security_headers))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

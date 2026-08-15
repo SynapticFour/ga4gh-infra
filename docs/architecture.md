@@ -161,7 +161,7 @@ Or manually:
 cargo test -p ga4gh-e2e -- --ignored --test-threads=1
 ```
 
-The stack includes **admin-ui** on port **8095**. The `stack_admin_ui_approves_dac_request_via_htmx` test logs in via the broker (mock IdP issues `groups: ["ga4gh-infra-admins"]`), establishes an admin-ui session after JWKS verification of the Passport JWT, approves a pending DAC request through the htmx endpoint, and verifies the grant via ADS.
+The stack includes **admin-ui** on port **8095**. The `stack_admin_ui_approves_dac_request_via_htmx` test logs in via the broker (Compose sets `MOCK_IDP_GROUPS=ga4gh-infra-admins`), establishes an admin-ui session after JWKS verification of the Passport JWT, approves a pending DAC request through the htmx endpoint, and verifies the grant via ADS. The mock IdP issues **no groups** unless `MOCK_IDP_GROUPS` is set.
 
 ### Environment defaults (development)
 

@@ -20,4 +20,4 @@ Include steps to reproduce, affected components, and impact. We will acknowledge
 
 This repository provides GA4GH identity and access services (AAI broker, visa registry, ADS, service registry). Production deployments must rotate all bootstrap API keys and signing keys; committed `docker/secrets/*.pem` files are **development-only**.
 
-See [docs/production-deployment.md](docs/production-deployment.md) and [docs/security.md](docs/security.md) if present in this repo.
+See [docs/production-deployment.md](docs/production-deployment.md) and [docs/security.md](docs/security.md).

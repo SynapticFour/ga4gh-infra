@@ -38,6 +38,7 @@ config = { workspace = true }
 sqlx = { workspace = true, features = ["json", "migrate"] }
 thiserror = { workspace = true }
 tower-http = { workspace = true }
+ga4gh-http = { workspace = true }
 sha2 = { workspace = true }
 
 [dev-dependencies]

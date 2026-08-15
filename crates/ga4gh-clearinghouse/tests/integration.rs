@@ -198,3 +198,97 @@ async fn rejects_expired_visa() {
         .expect_err("expired visa");
     assert!(matches!(err, ClearinghouseError::ExpiredVisa));
 }
+
+#[tokio::test]
+async fn drops_revoked_embedded_visas() {
+    let issuer = TestIssuer::new();
+    let broker_mock = MockServer::start().await;
+    let visa_mock = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/broker/jwks.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(issuer.broker_jwks_json()))
+        .mount(&broker_mock)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/visa/jwks.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(issuer.visa_jwks_json()))
+        .mount(&visa_mock)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/visa/revoked-jtis"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "jtis": ["visa-controlled-access"]
+        })))
+        .mount(&visa_mock)
+        .await;
+
+    let subject = "researcher@uni-heidelberg.de";
+    let visa_jwts = issuer.elixir_shaped_visas(subject);
+    let passport_jwt = issuer.mint_passport_jwt(subject, visa_jwts);
+
+    let clearinghouse = Clearinghouse::new(ClearinghouseConfig::new(
+        vec![
+            TrustedBroker::new(
+                BROKER_ISSUER,
+                format!("{}/broker/jwks.json", broker_mock.uri()),
+            ),
+            TrustedBroker::new(VISA_ISSUER, format!("{}/visa/jwks.json", visa_mock.uri())),
+        ],
+        Duration::from_secs(300),
+    ))
+    .await
+    .expect("clearinghouse");
+
+    let passport = clearinghouse
+        .validate_passport(&passport_jwt)
+        .await
+        .expect("validate passport");
+    let visas = clearinghouse
+        .extract_visas(&passport)
+        .await
+        .expect("extract visas");
+    assert_eq!(visas.len(), 2);
+    assert!(visas
+        .iter()
+        .all(|visa| visa.claim.r#type != VisaType::ControlledAccessGrants));
+}
+
+#[tokio::test]
+async fn rejects_revoked_passport_jti() {
+    let issuer = TestIssuer::new();
+    let broker_mock = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/broker/jwks.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(issuer.broker_jwks_json()))
+        .mount(&broker_mock)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/broker/revoked-passports"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "jtis": ["test-passport-jti"]
+        })))
+        .mount(&broker_mock)
+        .await;
+
+    let passport_jwt = issuer.mint_passport_jwt("researcher@example.org", vec![]);
+    let clearinghouse = Clearinghouse::new(ClearinghouseConfig::new(
+        vec![TrustedBroker::new(
+            BROKER_ISSUER,
+            format!("{}/broker/jwks.json", broker_mock.uri()),
+        )],
+        Duration::from_secs(300),
+    ))
+    .await
+    .expect("clearinghouse");
+
+    let err = clearinghouse
+        .validate_passport(&passport_jwt)
+        .await
+        .expect_err("revoked passport");
+    assert!(matches!(err, ClearinghouseError::RevokedPassport));
+}

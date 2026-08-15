@@ -29,6 +29,8 @@ pub struct MockIdpConfig {
     pub client_id: String,
     /// OAuth client secret accepted by the token endpoint.
     pub client_secret: String,
+    /// Groups claim issued on ID tokens and userinfo.
+    pub groups: Vec<String>,
 }
 
 impl Default for MockIdpConfig {
@@ -42,6 +44,7 @@ impl Default for MockIdpConfig {
             subject: "researcher@uni-heidelberg.de".to_string(),
             client_id: "ga4gh-broker".to_string(),
             client_secret: "mock-client-secret".to_string(),
+            groups: Vec::new(),
         }
     }
 }
@@ -66,6 +69,16 @@ impl MockIdpConfig {
                 .unwrap_or_else(|_| "ga4gh-broker".to_string()),
             client_secret: std::env::var("MOCK_IDP_CLIENT_SECRET")
                 .unwrap_or_else(|_| "mock-client-secret".to_string()),
+            groups: std::env::var("MOCK_IDP_GROUPS")
+                .map(|value| {
+                    value
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|part| !part.is_empty())
+                        .map(str::to_string)
+                        .collect()
+                })
+                .unwrap_or_default(),
         }
     }
 }
@@ -86,6 +99,7 @@ pub fn build_router(config: &MockIdpConfig) -> anyhow::Result<Router> {
         public_base_url,
         &config.signing_key_pem,
         config.subject.clone(),
+        config.groups.clone(),
     )?);
 
     Ok(Router::new()

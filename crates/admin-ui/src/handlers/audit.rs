@@ -98,11 +98,19 @@ pub async fn list_page(
     State(state): State<SharedState>,
     Query(query): Query<AuditFilterQuery>,
 ) -> impl IntoResponse {
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let groups = operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    );
     let result = state.clients.ads_list_audit(500, groups.as_deref()).await;
     let label_ctx = state
         .clients
-        .event_label_context(&auth.0, &state.config.admin_claim_value)
+        .event_label_context(
+            &auth.0,
+            &state.config.admin_claim_value,
+            &state.config.dac_operator_groups,
+        )
         .await;
     let filtered = result
         .as_ref()
@@ -129,14 +137,22 @@ pub async fn export_csv(
     State(state): State<SharedState>,
     Query(query): Query<AuditFilterQuery>,
 ) -> Response {
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let groups = operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    );
     let events = match state.clients.ads_list_audit(500, groups.as_deref()).await {
         Ok(events) => filter_events(events, &query),
         Err(err) => return (StatusCode::SERVICE_UNAVAILABLE, err.to_string()).into_response(),
     };
     let label_ctx = state
         .clients
-        .event_label_context(&auth.0, &state.config.admin_claim_value)
+        .event_label_context(
+            &auth.0,
+            &state.config.admin_claim_value,
+            &state.config.dac_operator_groups,
+        )
         .await;
 
     let mut body = csv::row(&["id", "event_type", "occurred_at", "summary"]);

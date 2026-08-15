@@ -26,6 +26,16 @@ pub struct AdminUiConfig {
     pub admin_claim: String,
     #[serde(default = "default_admin_claim_value")]
     pub admin_claim_value: String,
+    /// IdP groups that may operate the DAC queue (in addition to admins).
+    /// Empty means only the admin claim may approve or reject requests.
+    #[serde(default)]
+    pub dac_operator_groups: Vec<String>,
+    /// Deployment environment (`development`, `dev`, `prod`, …).
+    #[serde(default = "default_environment")]
+    pub environment: String,
+    /// When unset, derived from `public_base_url` (`https` → true).
+    #[serde(default)]
+    pub secure_cookies: Option<bool>,
     #[serde(default)]
     pub static_dir: Option<PathBuf>,
     /// Service registry registration key (Admin service management).
@@ -55,6 +65,10 @@ fn default_admin_claim_value() -> String {
     "ga4gh-infra-admins".to_string()
 }
 
+fn default_environment() -> String {
+    "development".to_string()
+}
+
 fn default_agreement_registry_base_url() -> String {
     "http://localhost:8086".to_string()
 }
@@ -71,7 +85,34 @@ impl AdminUiConfig {
         if self.session_secret.len() < 32 {
             anyhow::bail!("session_secret must be at least 32 characters");
         }
+        if !self.is_development() && std::env::var("GA4GH_ALLOW_DEV_SECRETS").is_err() {
+            const BLOCKED: &[&str] = &[
+                "dev-admin-ui-session-secret-min-32-chars",
+                "dev-ads-api-key",
+                "dev-service-registry-key",
+            ];
+            if BLOCKED
+                .iter()
+                .any(|blocked| self.session_secret == *blocked)
+                || BLOCKED
+                    .iter()
+                    .any(|blocked| self.ads_dac_api_key == *blocked)
+            {
+                anyhow::bail!(
+                    "admin-ui is using a documented development secret; set unique session_secret and ads_dac_api_key"
+                );
+            }
+        }
         Ok(())
+    }
+
+    pub fn is_development(&self) -> bool {
+        matches!(self.environment.as_str(), "development" | "dev" | "local")
+    }
+
+    pub fn secure_cookies(&self) -> bool {
+        self.secure_cookies
+            .unwrap_or_else(|| self.public_base_url.starts_with("https://"))
     }
 
     pub fn session_ttl(&self) -> Duration {

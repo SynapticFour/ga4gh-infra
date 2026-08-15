@@ -2,7 +2,7 @@
 
 This guide consolidates TLS termination, secrets, URL configuration, upstream IdP wiring, and PostgreSQL operations for a single-institute production deployment. It builds on [deployment-scenarios.md](deployment-scenarios.md) and [configuration.md](configuration.md).
 
-**Prerequisites:** Docker Compose (or equivalent orchestration), a public DNS name, TLS certificates, PostgreSQL 16+, and an OIDC-capable institute IdP (Keycloak, Microsoft Entra ID, ELIXIR AAI, etc.). SAML-only IdPs require an OIDC front (e.g. Keycloak) — see [limitations.md](limitations.md).
+**Prerequisites:** Docker Compose (or equivalent orchestration), a public DNS name, TLS certificates, PostgreSQL 16+, and an OIDC-capable institute IdP. Step-by-step IdP wiring (Keycloak groups mapper, Entra, ELIXIR, Shibboleth): [idp-integration.md](idp-integration.md). SAML-only IdPs require an OIDC front — see [limitations.md](limitations.md).
 
 ---
 
@@ -52,7 +52,9 @@ proxy_set_header X-Forwarded-Proto https;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 ```
 
-The broker sets `Secure` cookies; browsers require HTTPS on the public URL.
+The broker sets `Secure` cookies when `external_url` is `https://` (or `session.secure_cookies = true`). Browsers require HTTPS on the public URL.
+
+Configure rate limits on `/login` and `/callback` at the proxy. Example nginx zones are in [`docker/reverse-proxy/nginx.conf.example`](../docker/reverse-proxy/nginx.conf.example). In-process request bodies are capped at 1 MiB.
 
 ---
 
@@ -63,6 +65,7 @@ Every service's `server.external_url` must be the **public HTTPS base URL** (no 
 | Setting | Wrong (breaks validation) | Correct |
 |---------|---------------------------|---------|
 | Broker `external_url` | `http://aai-broker:8080` | `https://aai.example.org` |
+| Broker `allowed_return_url_origins` | unset / any HTTPS URL | `https://admin.example.org` (admin-ui origin only) |
 | Passport JWT `iss` | mismatched host/scheme | same as broker `external_url` |
 | Clearinghouse `trusted_issuers[].issuer` | internal Docker hostname | `https://aai.example.org` |
 | Clearinghouse `jwks_uri` | `https://aai.example.org/jwks.json` via public URL **or** internal `http://aai-broker:8080/jwks.json` | Either works if issuer string matches JWT `iss` |
@@ -236,12 +239,14 @@ Changes from dev stack:
 |-----|------------|
 | `mock-idp` | Remove; use real IdP |
 | `environment = "development"` | `environment = "prod"` |
+| `passport_lifetime_seconds = 3600` | `900` (so visa revocation is observed quickly) |
+| empty `dac_operator_groups` | institute DAC group names from the real IdP |
 | Published ports on all services | Only reverse proxy on 443; internal network for services |
 | `read_only = false` on service-registry | `read_only = true`; register via internal CI/job |
 | Dev API keys in compose | Secrets from env file / secret manager |
 | `external_url = http://localhost:...` | Public `https://...` URLs |
 
-Pin image versions in `.env`:
+Pin image versions in `.env` to a release **newer than `ga4gh-infra-v0.1.0`** (that tag is unsigned and predates authentication fixes):
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
@@ -288,6 +293,9 @@ Structured audit logging on Passport issuance is **not** yet implemented — see
 
 ## Step 9 — Pre-go-live checklist
 
+- [ ] `allowed_return_url_origins` lists only the admin-ui (and other first-party) origins
+- [ ] `dac_operator_groups` matches IdP groups; ADS API key stored as a secret
+- [ ] Passport TTL is short (900s recommended)
 - [ ] TLS on all public hostnames; HSTS enabled at proxy
 - [ ] Production RS256 keys generated and dev keys removed
 - [ ] All `external_url` values are public HTTPS URLs
@@ -297,13 +305,15 @@ Structured audit logging on Passport issuance is **not** yet implemented — see
 - [ ] `read_only = true` on service-registry (or proxy blocks writes)
 - [ ] DAC API (`visa-registry`) not exposed to internet without auth
 - [ ] Image versions pinned; `mock-idp` not deployed
-- [ ] Security review: [limitations.md](limitations.md) — no formal third-party audit yet
+- [ ] Installer/binary checksums verified; do not use `ga4gh-infra-v0.1.0`
+- [ ] Security review: [security.md](security.md) and [limitations.md](limitations.md) — no formal third-party audit yet
 
 ---
 
 ## Related documents
 
 - [getting-started.md](getting-started.md) — local demo paths
+- [security.md](security.md) — production security contract
 - [deployment-scenarios.md](deployment-scenarios.md) — scenario overview
 - [configuration.md](configuration.md) — all config fields
 - [architecture.md](architecture.md) — component interactions

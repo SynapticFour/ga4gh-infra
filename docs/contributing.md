@@ -44,7 +44,7 @@ Optional: install [just](https://github.com/casey/just) for Docker workflows (`j
 | Docker e2e | `just e2e` / `./scripts/e2e.sh` | Yes |
 | Ignored stack test | `cargo test -p ga4gh-e2e -- --ignored` | Yes (stack running) |
 
-**Coverage expectations:** CI uploads workspace coverage to Codecov. Target **>80%** for `ga4gh-types` and `ga4gh-clearinghouse`; service crates rely more on integration and e2e tests and have a lower unit-test bar.
+**Coverage expectations:** Scheduled CI uploads workspace coverage to Codecov. Target **>80%** for `ga4gh-types` and `ga4gh-clearinghouse`; service crates rely more on integration and e2e tests and have a lower unit-test bar.
 
 Shared fixtures live under [`tests/fixtures/`](../tests/fixtures/) at the workspace root. Integration tests are in [`tests/integration/`](../tests/integration/) (`ga4gh-integration` crate). Mark Docker-dependent tests with `#[ignore]` and run them via `just test-integration`.
 
@@ -61,7 +61,8 @@ When adding tests:
 1. One logical change per PR when possible.
 2. Include tests for behaviour changes.
 3. Update relevant docs (`configuration.md`, `architecture.md`, etc.).
-4. CI must pass: fmt, clippy, workspace unit tests, library all-features tests, integration job (testcontainers), coverage upload, Docker e2e on PRs.
+4. CI must pass: fmt, clippy, workspace unit tests, library all-features tests, `cargo-audit`, integration job (testcontainers), Docker e2e. Coverage is scheduled, not required on every PR.
+5. Direct pushes to `main` are the development workflow. A second reviewer for identity/DAC/installer changes is required at institutes in production (`.github/CODEOWNERS`), not as a GitHub gate on this repo.
 
 ## Releases
 

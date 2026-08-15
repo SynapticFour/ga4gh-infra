@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aai-broker
+  labels:
+    app: aai-broker
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: aai-broker
+  template:
+    metadata:
+      labels:
+        app: aai-broker
+    spec:
+      containers:
+        - name: aai-broker
+          image: "{{ .Values.image.prefix }}/aai-broker:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["/config/broker.toml"]
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - secretRef:
+                name: ga4gh-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+            - name: ledger
+              mountPath: /var/lib/ga4gh
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /service-info
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: aai-broker
+        - name: secrets
+          secret:
+            secretName: ga4gh-signing-keys
+        - name: ledger
+          persistentVolumeClaim:
+            claimName: broker-passport-ledger
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aai-broker
+spec:
+  selector:
+    app: aai-broker
+  ports:
+    - port: 8080
+      targetPort: http

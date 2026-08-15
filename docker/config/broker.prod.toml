@@ -1,0 +1,44 @@
+# Production aai-broker — mount from docker-compose.prod.example.yml
+# Set external_url and allowed_return_url_origins to your public HTTPS hostnames.
+
+[server]
+host = "0.0.0.0"
+port = 8080
+external_url = "https://aai.example.org"
+environment = "prod"
+allowed_return_url_origins = ["https://admin.example.org"]
+login_rate_limit_per_minute = 20
+admin_api_key_env = "BROKER_ADMIN_API_KEY"
+passport_ledger_path = "/var/lib/ga4gh/passport-ledger.json"
+
+[signing]
+private_key_pem = "/secrets/broker_rs256.pem"
+previous_key_pems = []
+passport_lifetime_seconds = 900
+token_lifetime_seconds = 900
+
+[session]
+cookie_secret_env = "BROKER_COOKIE_SECRET"
+session_lifetime_seconds = 600
+
+[[upstream_idps]]
+name = "keycloak"
+issuer = "https://idp.example.org/realms/your-realm"
+client_id = "ga4gh-broker"
+client_secret_env = "MY_INSTITUTE_CLIENT_SECRET"
+scopes = ["openid", "profile", "email"]
+
+[upstream_idps.claim_mapping]
+sub = "sub"
+email = "email"
+affiliation = "eduperson_scoped_affiliation"
+
+[[visa_sources]]
+name = "local-registry"
+url = "http://visa-registry:8081"
+api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+required = true
+
+[ads]
+url = "http://access-decision-service:8090"
+sync_api_key_env = "ADS_DAC_API_KEY"

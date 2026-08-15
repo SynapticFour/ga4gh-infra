@@ -45,6 +45,9 @@ Copy from `config/admin-ui.example.toml` for local development.
 | `session_ttl_hours` | no | Session lifetime (default `24`) |
 | `admin_claim` | no | OIDC claim for group list (default `groups`) |
 | `admin_claim_value` | no | Group value for Admin role (default `ga4gh-infra-admins`) |
+| `dac_operator_groups` | no | IdP groups allowed to operate the DAC queue (empty = admin only) |
+| `environment` | no | `development` / `dev` / `prod` — documented bootstrap secrets are rejected outside development |
+| `secure_cookies` | no | Override; defaults to true when `public_base_url` is `https://` |
 | `static_dir` | no | Override path to static assets (default: crate `static/`) |
 
 ## Environment
@@ -68,6 +71,7 @@ Docker Compose mounts `docker/config/admin-ui.toml` at `/config/admin-ui.toml`. 
 
 ## Security notes
 
-- Use HTTPS in production; set `public_base_url` to the TLS URL.
+- Use HTTPS in production; set `public_base_url` to the TLS URL so session cookies get the `Secure` flag.
 - Rotate `session_secret` and `ads_dac_api_key` independently.
+- List admin-ui's origin on the broker `allowed_return_url_origins`.
 - The callback flow reads the access token from the URL **fragment** (not logged server-side by the broker redirect).

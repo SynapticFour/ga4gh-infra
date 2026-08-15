@@ -9,7 +9,6 @@ mod dac;
 mod datasets;
 mod duo;
 mod grants;
-mod health;
 mod introspect;
 mod me;
 mod permissions;
@@ -25,7 +24,6 @@ pub use dac::{dac_approve, dac_escalate, dac_reject, list_dac_requests};
 pub use datasets::{create_dataset, get_dataset, list_datasets, update_dataset};
 pub use duo::evaluate_duo;
 pub use grants::{get_grant, list_grants, revoke_grant};
-pub use health::health;
 pub use introspect::introspect;
 pub use me::{list_my_access_requests, list_my_grants, list_my_projects};
 pub use permissions::{

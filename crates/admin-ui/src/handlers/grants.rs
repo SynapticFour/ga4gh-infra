@@ -62,7 +62,11 @@ async fn load_grants(
     auth: &RequireAuth,
     state: &SharedState,
 ) -> Result<Vec<Grant>, crate::error::AdminUiError> {
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let groups = operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    );
     if auth.0.is_admin {
         state.clients.ads_list_grants(None, None).await
     } else {
@@ -78,7 +82,11 @@ async fn load_grant_rows(
     state: &SharedState,
 ) -> Result<Vec<GrantRow>, crate::error::AdminUiError> {
     let grants = load_grants(auth, state).await?;
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let groups = operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    );
     let dataset_groups = if auth.0.is_admin {
         None
     } else {

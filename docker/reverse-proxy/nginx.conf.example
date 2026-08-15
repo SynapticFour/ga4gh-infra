@@ -15,6 +15,10 @@ http {
 	# TLS settings — adjust cipher suites to your policy
 	ssl_protocols TLSv1.2 TLSv1.3;
 	ssl_prefer_server_ciphers on;
+	client_max_body_size 1m;
+
+	# Public login/callback abuse control (tune to institute traffic).
+	limit_req_zone $binary_remote_addr zone=aai_login:10m rate=10r/m;
 
 	upstream aai_broker {
 		server 127.0.0.1:8080;
@@ -42,6 +46,24 @@ http {
 
 		ssl_certificate     /etc/ssl/certs/aai.example.org/fullchain.pem;
 		ssl_certificate_key /etc/ssl/certs/aai.example.org/privkey.pem;
+
+		location /login {
+			limit_req zone=aai_login burst=5 nodelay;
+			proxy_pass http://aai_broker;
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		}
+
+		location /callback {
+			limit_req zone=aai_login burst=5 nodelay;
+			proxy_pass http://aai_broker;
+			proxy_http_version 1.1;
+			proxy_set_header Host $host;
+			proxy_set_header X-Forwarded-Proto https;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		}
 
 		location / {
 			proxy_pass http://aai_broker;

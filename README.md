@@ -25,7 +25,7 @@ make up
 **Native binary** (all-in-one; ARM builds for Raspberry Pi 64-bit and 32-bit):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
 source ~/.config/ga4gh-infra/env
 ga4gh-infra all-in-one --config ~/.config/ga4gh-infra/all-in-one.toml
 ```
@@ -83,7 +83,7 @@ just e2e    # Docker stack integration test
 
 ## Security
 
-Report vulnerabilities privately — see [SECURITY.md](SECURITY.md). Questions: [contact@synapticfour.com](mailto:contact@synapticfour.com).
+Operator contract: [docs/security.md](docs/security.md). Report vulnerabilities privately — see [SECURITY.md](SECURITY.md). Questions: [contact@synapticfour.com](mailto:contact@synapticfour.com).
 
 ## License
 

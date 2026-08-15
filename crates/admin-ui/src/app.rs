@@ -88,6 +88,7 @@ pub fn build_router(state: AppState) -> Router {
         )
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(DefaultBodyLimit::max(1024 * 1024))
+        .layer(axum::middleware::from_fn(ga4gh_http::security_headers))
         .layer(TraceLayer::new_for_http())
         .with_state(Arc::new(state))
 }

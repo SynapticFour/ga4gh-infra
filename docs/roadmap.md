@@ -6,6 +6,7 @@ Related docs:
 
 - [architecture.md](architecture.md) — component layout, auth flow, docker/e2e instructions
 - [README.md](../README.md) — quick start and crate overview
+- [security.md](security.md) — production security contract
 
 ---
 
@@ -42,7 +43,7 @@ just test-integration   # testcontainers (ignored tests)
 ./scripts/e2e.sh
 ```
 
-CI (`.github/workflows/ci.yml`) runs fmt, clippy, workspace unit tests, library all-features tests, testcontainers integration job, coverage upload, and Docker e2e on push/PR.
+CI (`.github/workflows/ci.yml`) runs fmt, clippy, workspace unit tests, library all-features tests, `cargo-audit`, testcontainers integration, and Docker e2e on push/PR. Coverage and ARM cross-build remain scheduled.
 
 ---
 
@@ -125,12 +126,13 @@ See `docker/config/*.toml` and `docs/architecture.md` for the current dev layout
 |-----|----------|-------------|
 | **TLS termination** | High | Docker stack uses plain HTTP. Production needs reverse proxy (nginx, Caddy, Traefik) or ingress TLS, plus docs for `external_url` vs internal service URLs. |
 | **Secrets management** | High | Dev keys live in `docker/secrets/` with documented “do not use in production.” Need guidance for PEM storage (KMS, mounted secrets, rotation). |
-| **Structured audit logging** | Medium | Original broker spec: “Audit log every token issuance as structured JSON via tracing.” Today: general `tracing` on handlers; no dedicated audit event schema (subject, visa count, upstream IdP, client IP, etc.). |
+| **Structured audit logging** | Done | JSON tracing (`audit=true`) on Passport issuance, visa create/revoke, and DAC approve/reject/escalate |
 | **Automatic service registration** | Medium | `docker/scripts/register-service.sh` and e2e registration exist. Binaries do not self-register with `service-registry` on startup. |
-| **Kubernetes / Helm** | Medium | Single Compose stack only. No manifests, health probe conventions beyond `/service-info`, or horizontal scaling guidance. |
-| **Operational hardening** | Medium | Not implemented: rate limiting, CORS policy, security headers, request size limits, graceful shutdown docs, backup/restore for PostgreSQL. |
-| **Key rotation runbooks** | Medium | Broker and visa-registry sign with RS256 PEM files. No documented zero-downtime key rotation (multi-key JWKS, overlap period). |
+| **Kubernetes / Helm** | Done | Starter chart: [deploy/k8s/chart](../deploy/k8s/chart) |
+| **Operational hardening** | Done | 1 MiB body limits, in-process login rate limit, security headers, reverse-proxy examples |
+| **Key rotation runbooks** | Done | [key-rotation.md](key-rotation.md) (overlap via replicas; multi-key JWKS in one process still open) |
 | **CI PostgreSQL integration tests** | Done | `tests/integration` (`ga4gh-integration`) runs Postgres CRUD via testcontainers; `just test-integration` |
+| **Visa revocation list** | Done | Visa-registry `GET /revoked-jtis`; broker `GET /revoked-passports` + `POST /revoke-passports`; clearinghouse rejects revoked Passport JTIs |
 
 ---
 
@@ -138,11 +140,11 @@ See `docker/config/*.toml` and `docs/architecture.md` for the current dev layout
 
 | Gap | Priority | Description |
 |-----|----------|-------------|
-| **Real IdP integration guide** | High | No step-by-step for Keycloak, Microsoft Entra ID, Shibboleth OIDC, ELIXIR AAI, etc. Only `config/broker.example.toml` and docker mock-idp. |
+| **Real IdP integration guide** | Done | [idp-integration.md](idp-integration.md) (Keycloak groups mapper, Entra, ELIXIR, Shibboleth OIDC) |
 | **Passport refresh / renewal** | Medium | No refresh token or silent re-auth flow. Expired Passports require full upstream login again. |
-| **Visa revocation propagation** | Medium | DAC can `DELETE /visas/:id`, but already-issued Passports remain valid until expiry. No short Passport TTL + re-fetch pattern documented; no denylist. |
+| **Visa revocation propagation** | Medium | DAC can `DELETE /visas/:id`; clearinghouses consult `/revoked-jtis`. Already-issued Passports remain valid until expiry — keep TTL short (900s in production examples). |
 | **Broader visa/policy coverage in demos** | Low | E2e and `sample-resource` demonstrate `ControlledAccessGrants` and DUO matching. Not demonstrated: `HasAffiliation`, `AcceptedTermsAndPolicies`, `ResearcherStatus`, `LinkedIdentities`, `HasDuoPermission` in a live flow. |
-| **GA4GH compliance audit** | Low | Types and flows align with specs, but no formal checklist pass against AAI OIDC Profile v1.2, Passport v1.2, Service Info, Service Registry, and DUO integration expectations. |
+| **GA4GH compliance audit** | Low | Self-assessment: [ga4gh-compliance.md](ga4gh-compliance.md). No formal third-party certification. |
 | **Multi-upstream IdP selection UX** | Low | Config supports `[[upstream_idps]]` and `/login/:idp_name`, but no UI or documented institute onboarding for multiple IdPs. |
 
 ---
@@ -177,14 +179,13 @@ Ordered by impact for “real institute deployment”:
 
 ### Phase 13 — Audit and hardening
 
-- Structured JSON audit events on Passport issuance (and optionally visa grant/revoke).
-- Rate limits on public broker endpoints.
-- Optional Passport TTL tuning and refresh documentation.
+Done in-tree: structured `audit=true` JSON events, login rate limits, security headers, short Passport TTL guidance.
 
 ### Phase 14 — Operational automation
 
-- Self-registration hook in each binary (optional, config-gated).
-- Helm chart or Compose production profile with `read_only` registry and no mock-idp.
+- Self-registration hook in each binary (optional, config-gated) — still open.
+- Compose production profile without mock-idp: [docker/docker-compose.prod.example.yml](../docker/docker-compose.prod.example.yml).
+- Starter Helm chart: [deploy/k8s/chart](../deploy/k8s/chart).
 
 ---
 
@@ -228,4 +229,4 @@ Never use these outside local development.
 
 ---
 
-*Last updated: June 2026 — after Phase 10 (production deployment guide).*
+*Last updated: August 2026 — authentication hardening (return_url allowlist, DAC group enforcement, signed installs, visa revocation list).*

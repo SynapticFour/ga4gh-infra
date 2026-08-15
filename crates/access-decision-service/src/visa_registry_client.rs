@@ -5,6 +5,7 @@
 use ga4gh_types::VisaClaim;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use tracing::instrument;
 
 use crate::config::VisaRegistryConfig;
@@ -43,6 +44,8 @@ impl VisaRegistryClient {
     pub fn new(config: &VisaRegistryConfig, api_key: String) -> Result<Self, AdsError> {
         let http = Client::builder()
             .use_rustls_tls()
+            .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
             .build()
             .map_err(|err| AdsError::Internal(err.to_string()))?;
         Ok(Self {

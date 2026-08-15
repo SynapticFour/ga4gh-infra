@@ -107,17 +107,21 @@ pub fn decode_session(cookie_value: &str, secret: &str) -> Option<UserSession> {
     .map(|data| data.claims)
 }
 
-pub fn set_session_cookie(headers: &mut HeaderMap, token: &str, max_age_secs: u64) {
-    let cookie =
-        format!("{SESSION_COOKIE}={token}; HttpOnly; Path=/; SameSite=Lax; Max-Age={max_age_secs}");
+pub fn set_session_cookie(headers: &mut HeaderMap, token: &str, max_age_secs: u64, secure: bool) {
+    let secure_attr = if secure { "; Secure" } else { "" };
+    let cookie = format!(
+        "{SESSION_COOKIE}={token}; HttpOnly{secure_attr}; Path=/; SameSite=Lax; Max-Age={max_age_secs}"
+    );
     headers.insert(
         axum::http::header::SET_COOKIE,
         cookie.parse().expect("valid cookie"),
     );
 }
 
-pub fn clear_session_cookie(headers: &mut HeaderMap) {
-    let cookie = format!("{SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0");
+pub fn clear_session_cookie(headers: &mut HeaderMap, secure: bool) {
+    let secure_attr = if secure { "; Secure" } else { "" };
+    let cookie =
+        format!("{SESSION_COOKIE}=; HttpOnly{secure_attr}; Path=/; SameSite=Lax; Max-Age=0");
     headers.insert(
         axum::http::header::SET_COOKIE,
         cookie.parse().expect("valid cookie"),
@@ -136,13 +140,16 @@ impl RequireAuth {
         }
     }
 
-    /// Admins and users with at least one non-admin group may operate the DAC queue.
+    /// Admins, or users who hold at least one configured DAC operator group.
     #[allow(clippy::result_large_err)]
-    pub fn require_dac_operator(&self, admin_claim_value: &str) -> Result<(), Response> {
+    pub fn require_dac_operator(&self, allowed_dac_groups: &[String]) -> Result<(), Response> {
         if self.0.is_admin {
             return Ok(());
         }
-        if self.0.groups.iter().any(|group| group != admin_claim_value) {
+        if allowed_dac_groups
+            .iter()
+            .any(|allowed| self.0.groups.iter().any(|group| group == allowed))
+        {
             Ok(())
         } else {
             Err((StatusCode::FORBIDDEN, "DAC operator role required").into_response())

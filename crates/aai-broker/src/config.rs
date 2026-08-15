@@ -38,6 +38,27 @@ pub struct ServerConfig {
     /// Deployment environment label (`prod`, `test`, `dev`, `staging`, `development`).
     #[serde(default = "default_environment")]
     pub environment: String,
+    /// Exact origins (scheme + host + port) allowed as OAuth `return_url`.
+    /// Empty in non-development rejects all `return_url` values.
+    #[serde(default)]
+    pub allowed_return_url_origins: Vec<String>,
+    /// Max `/login` and `/callback` attempts per client IP per minute. `0` disables.
+    #[serde(default = "default_login_rate_limit")]
+    pub login_rate_limit_per_minute: u32,
+    /// Optional JSON file for Passport issue/revoke persistence (shared volume in multi-replica).
+    #[serde(default)]
+    pub passport_ledger_path: Option<String>,
+    /// Environment variable for `POST /revoke-passports` (`X-API-Key`).
+    #[serde(default = "default_admin_api_key_env")]
+    pub admin_api_key_env: String,
+}
+
+fn default_login_rate_limit() -> u32 {
+    20
+}
+
+fn default_admin_api_key_env() -> String {
+    "BROKER_ADMIN_API_KEY".to_string()
 }
 
 fn default_environment() -> String {
@@ -49,6 +70,9 @@ fn default_environment() -> String {
 pub struct SigningConfig {
     /// Path to a PEM-encoded RS256 private key.
     pub private_key_pem: String,
+    /// Additional PEMs (public or private) published in JWKS during rotation overlap.
+    #[serde(default)]
+    pub previous_key_pems: Vec<String>,
     /// Lifetime of minted Passport JWTs in seconds.
     pub passport_lifetime_seconds: u64,
     /// Lifetime of broker access tokens in seconds.
@@ -155,6 +179,11 @@ impl BrokerConfig {
         self.server.external_url.trim_end_matches('/')
     }
 
+    /// Admin API key used for `POST /revoke-passports`.
+    pub fn admin_api_key(&self) -> Result<String, std::env::VarError> {
+        std::env::var(&self.server.admin_api_key_env)
+    }
+
     /// Callback URL registered with upstream IdPs for the authorization code flow.
     pub fn callback_url(&self) -> String {
         format!("{}/callback", self.issuer_url())
@@ -166,6 +195,29 @@ impl BrokerConfig {
             self.server.environment.as_str(),
             "development" | "dev" | "local"
         )
+    }
+
+    /// Known-insecure bootstrap secrets that must never run outside development.
+    pub fn reject_insecure_bootstrap_secrets(&self) -> Result<(), String> {
+        if self.is_development() || std::env::var("GA4GH_ALLOW_DEV_SECRETS").is_ok() {
+            return Ok(());
+        }
+        let Ok(secret) = self.cookie_secret() else {
+            return Ok(());
+        };
+        const BLOCKED: &[&str] = &[
+            "dev-broker-cookie-secret",
+            "change-me",
+            "secret",
+            "password",
+        ];
+        if BLOCKED.iter().any(|blocked| secret == *blocked) {
+            return Err(
+                "BROKER_COOKIE_SECRET is a documented development value; set a unique secret before production use"
+                    .to_string(),
+            );
+        }
+        Ok(())
     }
 }
 

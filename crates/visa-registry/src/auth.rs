@@ -2,28 +2,12 @@
 
 //! DAC API key hashing and verification.
 
-use sha2::{Digest, Sha256};
-
-/// Hash a raw API key for storage in PostgreSQL.
 pub fn hash_api_key(raw: &str) -> String {
-    let digest = Sha256::digest(raw.as_bytes());
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    ga4gh_http::hash_api_key(raw, "")
 }
 
-/// Compare a raw API key against a stored SHA-256 hex hash.
 pub fn verify_api_key(raw: &str, stored_hash: &str) -> bool {
-    let candidate = hash_api_key(raw);
-    constant_time_eq(candidate.as_bytes(), stored_hash.as_bytes())
-}
-
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
-    }
-    left.iter()
-        .zip(right.iter())
-        .fold(0u8, |acc, (a, b)| acc | (a ^ b))
-        == 0
+    ga4gh_http::verify_api_key(raw, stored_hash, "")
 }
 
 #[cfg(test)]
@@ -46,5 +30,12 @@ mod tests {
     fn verify_rejects_wrong_key() {
         let hash = hash_api_key("correct-key");
         assert!(!verify_api_key("wrong-key", &hash));
+    }
+
+    #[test]
+    fn peppered_hash_does_not_match_empty_pepper_verify() {
+        let hash = ga4gh_http::hash_api_key("secret-key", "pepper");
+        assert!(!verify_api_key("secret-key", &hash));
+        assert!(ga4gh_http::verify_api_key("secret-key", &hash, "pepper"));
     }
 }

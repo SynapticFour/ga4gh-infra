@@ -4,6 +4,7 @@
 
 use reqwest::Client;
 use serde::Deserialize;
+use std::time::Duration;
 use tracing::{instrument, warn};
 
 use crate::config::VisaSourceConfig;
@@ -30,6 +31,8 @@ impl VisaSourceClient {
         })?;
         let http = Client::builder()
             .use_rustls_tls()
+            .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
             .build()
             .map_err(|err| BrokerError::Internal(format!("visa HTTP client: {err}")))?;
         Ok(Self {

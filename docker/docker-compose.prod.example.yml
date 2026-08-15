@@ -1,12 +1,13 @@
-# Production-oriented Compose reference — no mock-idp, pinned secrets via env file.
+# Production-oriented Compose reference — no mock-idp, secrets via env file.
 # NOT a drop-in replacement for docker-compose.yml; adapt paths, networks, and volumes.
 #
 # Usage (from repo root):
 #   cp config/production.env.example config/production.env   # edit secrets
 #   docker compose -f docker/docker-compose.prod.example.yml --env-file config/production.env up -d
-#   # Terminate TLS with docker/reverse-proxy/ (Caddy/nginx) → localhost:8080-8084
+#   # Terminate TLS with docker/reverse-proxy/ (Caddy/nginx) → 127.0.0.1:8080-8095
 #
-# See docs/production-deployment.md for full checklist.
+# Pin GA4GH_*_VERSION to a release newer than 0.1.0 (unsigned / pre-auth-fix).
+# See docs/production-deployment.md and docs/security.md.
 
 services:
   postgres:
@@ -24,7 +25,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    # Do not publish 5432 to the host in production unless required for admin VPN
 
   visa-registry:
     image: ${GA4GH_IMAGE_PREFIX}/visa-registry:${VISA_REGISTRY_VERSION}
@@ -32,6 +32,7 @@ services:
     environment:
       REGISTRY_DATABASE_URL: ${REGISTRY_DATABASE_URL}
       REGISTRY_BOOTSTRAP_API_KEY: ${REGISTRY_BOOTSTRAP_API_KEY}
+      GA4GH_API_KEY_PEPPER: ${GA4GH_API_KEY_PEPPER}
       RUST_LOG: info
     ports:
       - "127.0.0.1:8081:8081"
@@ -70,23 +71,65 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  access-decision-service:
+    image: ${GA4GH_IMAGE_PREFIX}/access-decision-service:${ACCESS_DECISION_SERVICE_VERSION}
+    command: ["/config/access-decision-service.toml"]
+    environment:
+      ADS_DATABASE_URL: ${ADS_DATABASE_URL}
+      ADS_DAC_API_KEY: ${ADS_DAC_API_KEY}
+      REGISTRY_BOOTSTRAP_API_KEY: ${REGISTRY_BOOTSTRAP_API_KEY}
+      GA4GH_API_KEY_PEPPER: ${GA4GH_API_KEY_PEPPER}
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - ./config/access-decision-service.prod.toml:/config/access-decision-service.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      visa-registry:
+        condition: service_started
+    restart: unless-stopped
+
   aai-broker:
     image: ${GA4GH_IMAGE_PREFIX}/aai-broker:${AAI_BROKER_VERSION}
     command: ["/config/broker.toml"]
     environment:
       BROKER_COOKIE_SECRET: ${BROKER_COOKIE_SECRET}
+      BROKER_ADMIN_API_KEY: ${BROKER_ADMIN_API_KEY}
       MY_INSTITUTE_CLIENT_SECRET: ${MY_INSTITUTE_CLIENT_SECRET}
       REGISTRY_BOOTSTRAP_API_KEY: ${REGISTRY_BOOTSTRAP_API_KEY}
+      ADS_DAC_API_KEY: ${ADS_DAC_API_KEY}
       RUST_LOG: info
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
-      - ../config/broker.keycloak.example.toml:/config/broker.toml:ro
+      - ./config/broker.prod.toml:/config/broker.toml:ro
       - /etc/ga4gh/secrets:/secrets:ro
+      - broker_passport_ledger:/var/lib/ga4gh
     depends_on:
       visa-registry:
+        condition: service_started
+      access-decision-service:
+        condition: service_started
+    restart: unless-stopped
+
+  admin-ui:
+    image: ${GA4GH_IMAGE_PREFIX}/admin-ui:${ADMIN_UI_VERSION}
+    environment:
+      RUST_LOG: info
+    ports:
+      - "127.0.0.1:8095:8095"
+    volumes:
+      # Generate this file from a secret store; do not commit real session_secret / API keys.
+      - ./config/admin-ui.prod.toml:/config/admin-ui.toml:ro
+    depends_on:
+      aai-broker:
+        condition: service_started
+      access-decision-service:
         condition: service_started
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  broker_passport_ledger:

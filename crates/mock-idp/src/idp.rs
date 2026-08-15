@@ -28,6 +28,7 @@ pub struct MockIdpState {
     /// Browser-facing base URL for the authorization endpoint.
     public_base_url: String,
     subject: String,
+    groups: Vec<String>,
     client_id: String,
     client_secret: String,
     encoding_key: EncodingKey,
@@ -44,6 +45,7 @@ impl MockIdpState {
         public_base_url: &str,
         key_path: &str,
         subject: String,
+        groups: Vec<String>,
     ) -> anyhow::Result<Self> {
         let pem = fs::read_to_string(key_path)
             .map_err(|err| anyhow::anyhow!("reading mock IdP key `{key_path}`: {err}"))?;
@@ -66,6 +68,7 @@ impl MockIdpState {
             issuer: issuer.to_string(),
             public_base_url: public_base_url.to_string(),
             subject,
+            groups,
             client_id: std::env::var("MOCK_IDP_CLIENT_ID")
                 .unwrap_or_else(|_| "ga4gh-broker".to_string()),
             client_secret: std::env::var("MOCK_IDP_CLIENT_SECRET")
@@ -189,7 +192,7 @@ pub async fn token(
             nonce,
             email: Some(state.subject.clone()),
             name: Some("Test Researcher".to_string()),
-            groups: vec!["ga4gh-infra-admins".to_string()],
+            groups: state.groups.clone(),
         },
         &state.encoding_key,
     )
@@ -211,7 +214,7 @@ pub async fn userinfo(State(state): State<Arc<MockIdpState>>) -> Json<Value> {
         "email": state.subject,
         "name": "Test Researcher",
         "preferred_username": state.subject,
-        "groups": ["ga4gh-infra-admins"],
+        "groups": state.groups,
     }))
 }
 

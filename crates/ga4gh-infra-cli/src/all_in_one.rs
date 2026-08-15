@@ -62,7 +62,7 @@ impl AllInOneConfig {
 pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> anyhow::Result<()> {
     if africa_mode {
         let profile = config.africa.clone().unwrap_or_else(|| AfricaProfile {
-            embedded_mock_idp: true,
+            embedded_mock_idp: false,
             offline_first: true,
             ..AfricaProfile::default()
         });
@@ -89,6 +89,17 @@ pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> an
 
     let mock_idp = if embedded_mock {
         let profile = config.africa.clone().unwrap_or_default();
+        if !profile.allow_insecure_demo {
+            anyhow::bail!(
+                "embedded mock IdP requires [africa] allow_insecure_demo = true; it is not a production identity provider"
+            );
+        }
+        if !config.broker.is_development() {
+            anyhow::bail!("embedded mock IdP is not permitted outside development environments");
+        }
+        tracing::warn!(
+            "embedded mock IdP is enabled; every token is issued for the configured demo subject — not for production"
+        );
         let signing_key = config
             .broker
             .signing
@@ -101,6 +112,7 @@ pub async fn run_all_in_one(mut config: AllInOneConfig, africa_mode: bool) -> an
                 signing_key_pem: signing_key,
                 host: profile.mock_idp_host,
                 port: profile.mock_idp_port,
+                groups: MockIdpConfig::from_env().groups,
                 ..MockIdpConfig::default()
             })
             .await

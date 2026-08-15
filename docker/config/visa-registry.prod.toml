@@ -10,11 +10,13 @@ environment = "prod"
 [database]
 driver = "postgres"
 url_env = "REGISTRY_DATABASE_URL"
-auto_migrate = true
+auto_migrate = false
 
 [signing]
 private_key_pem = "/secrets/registry_rs256.pem"
+previous_key_pems = []
 visa_lifetime_seconds = 86400
 
 [auth]
 bootstrap_api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
+api_key_pepper_env = "GA4GH_API_KEY_PEPPER"

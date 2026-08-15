@@ -35,6 +35,13 @@ impl Clearinghouse {
         raw_passport_jwt: &str,
     ) -> Result<Passport, ClearinghouseError> {
         let claims: PassportClaims = self.jwks.verify_and_decode(raw_passport_jwt).await?;
+        if self
+            .jwks
+            .is_passport_revoked(&claims.iss, &claims.jti)
+            .await?
+        {
+            return Err(ClearinghouseError::RevokedPassport);
+        }
         Ok(Passport::from_claims(claims))
     }
 
@@ -56,6 +63,10 @@ impl Clearinghouse {
                     })?;
             if claims.sub != passport.sub {
                 return Err(ClearinghouseError::VisaSubjectMismatch);
+            }
+            if self.jwks.is_revoked(&claims.iss, &claims.jti).await? {
+                tracing::info!(jti = %claims.jti, iss = %claims.iss, "dropping revoked visa");
+                continue;
             }
             visas.push(Visa::from_claims(claims));
         }

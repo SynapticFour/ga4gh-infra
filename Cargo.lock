@@ -10,6 +10,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "config",
+ "ga4gh-http",
  "ga4gh-types",
  "hmac",
  "jsonwebtoken",
@@ -43,6 +44,7 @@ dependencies = [
  "chrono",
  "config",
  "ga4gh-clearinghouse",
+ "ga4gh-http",
  "ga4gh-types",
  "jsonwebtoken",
  "reqwest",
@@ -72,6 +74,7 @@ dependencies = [
  "chrono",
  "clap",
  "ga4gh-clearinghouse",
+ "ga4gh-http",
  "ga4gh-types",
  "jsonwebtoken",
  "reqwest",
@@ -95,6 +98,7 @@ dependencies = [
  "axum",
  "chrono",
  "config",
+ "ga4gh-http",
  "ga4gh-types",
  "serde",
  "serde_json",
@@ -873,6 +877,7 @@ dependencies = [
  "anyhow",
  "axum",
  "config",
+ "ga4gh-http",
  "ga4gh-types",
  "quick-xml",
  "reqwest",
@@ -1227,6 +1232,18 @@ dependencies = [
  "serde_json",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "ga4gh-http"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "hmac",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
 ]
 
 [[package]]
@@ -2861,6 +2878,7 @@ dependencies = [
  "axum",
  "config",
  "ga4gh-clearinghouse",
+ "ga4gh-http",
  "ga4gh-types",
  "reqwest",
  "serde",
@@ -3100,6 +3118,7 @@ dependencies = [
  "anyhow",
  "axum",
  "config",
+ "ga4gh-http",
  "ga4gh-types",
  "serde",
  "serde_json",
@@ -4066,6 +4085,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "config",
+ "ga4gh-http",
  "ga4gh-types",
  "jsonwebtoken",
  "rand 0.8.6",

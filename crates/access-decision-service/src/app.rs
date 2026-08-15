@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{delete, get, post};
 use axum::Router;
 use ga4gh_clearinghouse::{JwksCache, TrustedBroker};
@@ -28,10 +29,11 @@ impl AppState {
         let database_url = config
             .database_url()
             .map_err(|err| AdsError::Config(format!("missing database URL: {err}")))?;
-        let store = AdsStore::connect(
+        let store = AdsStore::connect_with_pepper(
             &config.database,
             &database_url,
             config.webhooks.urls.clone(),
+            config.api_key_pepper(),
         )
         .await?;
         let jwks = Arc::new(
@@ -145,7 +147,9 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
         .nest("/ads/v1", api)
         .route("/service-info", get(handlers::service_info))
-        .route("/health", get(handlers::health))
+        .route("/health", get(ga4gh_http::health))
+        .layer(DefaultBodyLimit::max(1024 * 1024))
+        .layer(axum::middleware::from_fn(ga4gh_http::security_headers))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

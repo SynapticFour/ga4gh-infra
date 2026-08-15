@@ -9,7 +9,6 @@ use sqlx::{Row, SqlitePool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::auth::hash_api_key;
 use crate::config::{DatabaseConfig, DatabaseDriver};
 use crate::error::RegistryError;
 
@@ -28,6 +27,7 @@ enum DbPool {
 #[derive(Clone)]
 pub struct VisaStore {
     pool: DbPool,
+    api_key_pepper: String,
 }
 
 macro_rules! with_pool {
@@ -92,6 +92,15 @@ pub struct NewVisaAssertion {
 impl VisaStore {
     /// Connect using the configured driver and run migrations when enabled.
     pub async fn connect(database: &DatabaseConfig, url: &str) -> Result<Self, RegistryError> {
+        Self::connect_with_pepper(database, url, String::new()).await
+    }
+
+    /// Connect and hash new API keys with `pepper` (empty = legacy SHA-256).
+    pub async fn connect_with_pepper(
+        database: &DatabaseConfig,
+        url: &str,
+        api_key_pepper: String,
+    ) -> Result<Self, RegistryError> {
         match database.driver {
             #[cfg(feature = "postgres")]
             DatabaseDriver::Postgres => {
@@ -106,10 +115,11 @@ impl VisaStore {
                 }
                 Ok(Self {
                     pool: DbPool::Postgres(pool),
+                    api_key_pepper,
                 })
             }
             #[cfg(feature = "sqlite")]
-            DatabaseDriver::Sqlite => Self::connect_sqlite(url).await,
+            DatabaseDriver::Sqlite => Self::connect_sqlite(url, api_key_pepper).await,
             #[cfg(not(feature = "postgres"))]
             DatabaseDriver::Postgres => Err(RegistryError::Config(
                 "visa-registry was built without the `postgres` feature".to_string(),
@@ -122,7 +132,7 @@ impl VisaStore {
     }
 
     #[cfg(feature = "sqlite")]
-    async fn connect_sqlite(url: &str) -> Result<Self, RegistryError> {
+    async fn connect_sqlite(url: &str, api_key_pepper: String) -> Result<Self, RegistryError> {
         use std::str::FromStr;
 
         use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -156,6 +166,7 @@ impl VisaStore {
 
         Ok(Self {
             pool: DbPool::Sqlite(pool),
+            api_key_pepper,
         })
     }
 
@@ -176,7 +187,7 @@ impl VisaStore {
     pub async fn insert_api_key(&self, name: &str, raw_key: &str) -> Result<(), RegistryError> {
         let now = unix_now();
         let id = Uuid::new_v4().to_string();
-        let key_hash = hash_api_key(raw_key);
+        let key_hash = ga4gh_http::hash_api_key(raw_key, &self.api_key_pepper);
         let sql = "INSERT INTO api_keys (id, name, key_hash, created_at) VALUES ($1, $2, $3, $4)";
 
         with_pool!(self, pool, {
@@ -197,21 +208,20 @@ impl VisaStore {
     /// Verify a raw API key against active hashed keys in the database.
     #[instrument(skip(self, raw_key))]
     pub async fn verify_api_key(&self, raw_key: &str) -> Result<(), RegistryError> {
-        let key_hash = hash_api_key(raw_key);
-        let found = with_pool!(self, pool, {
-            sqlx::query("SELECT 1 FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL")
-                .bind(&key_hash)
-                .fetch_optional(pool)
-                .await
-                .map_err(|err| RegistryError::Database(err.to_string()))
-                .map(|row| row.is_some())
-        })?;
-
-        if found {
-            Ok(())
-        } else {
-            Err(RegistryError::Unauthorized)
+        for key_hash in ga4gh_http::lookup_hashes(raw_key, &self.api_key_pepper) {
+            let found = with_pool!(self, pool, {
+                sqlx::query("SELECT 1 FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL")
+                    .bind(&key_hash)
+                    .fetch_optional(pool)
+                    .await
+                    .map_err(|err| RegistryError::Database(err.to_string()))
+                    .map(|row| row.is_some())
+            })?;
+            if found {
+                return Ok(());
+            }
         }
+        Err(RegistryError::Unauthorized)
     }
 
     /// Create a new unsigned visa assertion.
@@ -290,6 +300,23 @@ impl VisaStore {
             return Err(RegistryError::NotFound);
         }
         Ok(())
+    }
+
+    /// List JTIs of revoked assertions (visa JWT `jti` equals assertion id).
+    #[instrument(skip(self))]
+    pub async fn list_revoked_jtis(&self) -> Result<Vec<String>, RegistryError> {
+        let ids = with_pool!(self, pool, {
+            sqlx::query("SELECT id FROM visa_assertions WHERE revoked_at IS NOT NULL")
+                .fetch_all(pool)
+                .await
+                .map_err(|err| RegistryError::Database(err.to_string()))
+                .map(|rows| {
+                    rows.iter()
+                        .filter_map(|row| row.try_get::<String, _>("id").ok())
+                        .collect::<Vec<_>>()
+                })
+        })?;
+        Ok(ids)
     }
 
     /// List active visa assertions for a researcher subject.

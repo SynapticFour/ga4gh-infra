@@ -153,7 +153,11 @@ async fn find_policy_profile(state: &SharedState, dataset: &Dataset) -> Option<S
 }
 
 pub async fn list_page(auth: RequireAuth, State(state): State<SharedState>) -> impl IntoResponse {
-    let groups = operator_dac_groups(&auth.0, &state.config.admin_claim_value);
+    let groups = operator_dac_groups(
+        &auth.0,
+        &state.config.admin_claim_value,
+        &state.config.dac_operator_groups,
+    );
     let datasets_result = state.clients.ads_list_datasets(groups.as_deref()).await;
     let duo_terms = state.clients.duo_terms().await.unwrap_or_default();
     let grants = state

@@ -25,6 +25,12 @@ pub enum ClearinghouseError {
     /// An embedded visa JWT `sub` does not match the Passport `sub`.
     #[error("visa subject does not match passport subject")]
     VisaSubjectMismatch,
+    /// A visa JWT `jti` appears on the issuer revocation list.
+    #[error("visa has been revoked")]
+    RevokedVisa,
+    /// A Passport JWT `jti` appears on the broker revocation list.
+    #[error("passport has been revoked")]
+    RevokedPassport,
     /// JWKS could not be fetched or parsed.
     #[error("JWKS fetch failed: {0}")]
     JwksFetchFailed(String),

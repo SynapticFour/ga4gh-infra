@@ -3,6 +3,7 @@
 //! Access Decision Service (ADS) integration for researcher sync and signed visas.
 
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 use ga4gh_types::{ResearcherSyncRequest, SignedVisasResponse};
 use reqwest::Client;
@@ -32,6 +33,8 @@ impl AdsClient {
         })?;
         let http = Client::builder()
             .use_rustls_tls()
+            .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
             .build()
             .map_err(|err| BrokerError::Internal(format!("ADS HTTP client: {err}")))?;
         Ok(Self {

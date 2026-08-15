@@ -1,0 +1,21 @@
+# Production admin-ui — HTTPS public URL, institute DAC groups, unique secrets via env.
+
+listen_addr = "0.0.0.0:8095"
+public_base_url = "https://admin.example.org"
+broker_base_url = "http://aai-broker:8080"
+broker_public_url = "https://aai.example.org"
+ads_base_url = "http://access-decision-service:8090"
+ads_dac_api_key = "SET_VIA_SECRET_NOT_THIS_FILE"
+duo_base_url = "http://duo-service:8082"
+visa_registry_base_url = "http://visa-registry:8081"
+service_registry_base_url = "http://service-registry:8083"
+agreement_registry_base_url = "http://agreement-registry:8086"
+session_secret = "SET_VIA_SECRET_MIN_32_CHARS____________"
+session_ttl_hours = 8
+environment = "prod"
+admin_claim = "groups"
+admin_claim_value = "ga4gh-infra-admins"
+dac_operator_groups = ["institute-dac"]
+service_registry_registration_key = "SET_VIA_SECRET"
+broker_config_path = "/config/broker.toml"
+static_dir = "/app/static"

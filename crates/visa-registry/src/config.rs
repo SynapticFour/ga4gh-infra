@@ -42,6 +42,9 @@ fn default_environment() -> String {
 pub struct SigningConfig {
     /// Path to a PEM-encoded RS256 private key.
     pub private_key_pem: String,
+    /// Additional PEMs (public or private) published in JWKS during rotation overlap.
+    #[serde(default)]
+    pub previous_key_pems: Vec<String>,
     /// Lifetime of minted visa JWTs in seconds.
     pub visa_lifetime_seconds: u64,
 }
@@ -78,11 +81,18 @@ fn default_url_env() -> String {
     "REGISTRY_DATABASE_URL".to_string()
 }
 
+fn default_api_key_pepper_env() -> String {
+    "GA4GH_API_KEY_PEPPER".to_string()
+}
+
 /// DAC API key authentication configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// Environment variable for a bootstrap API key registered on first startup.
     pub bootstrap_api_key_env: String,
+    /// Environment variable for HMAC pepper applied to stored API-key hashes.
+    #[serde(default = "default_api_key_pepper_env")]
+    pub api_key_pepper_env: String,
 }
 
 impl RegistryConfig {
@@ -118,6 +128,11 @@ impl RegistryConfig {
     /// Resolve the optional bootstrap API key from the configured environment variable.
     pub fn bootstrap_api_key(&self) -> Result<String, std::env::VarError> {
         std::env::var(&self.auth.bootstrap_api_key_env)
+    }
+
+    /// HMAC pepper for API-key hashes (empty when unset — legacy SHA-256).
+    pub fn api_key_pepper(&self) -> String {
+        std::env::var(&self.auth.api_key_pepper_env).unwrap_or_default()
     }
 
     /// Public issuer URL for visa JWTs (same as `server.external_url`).

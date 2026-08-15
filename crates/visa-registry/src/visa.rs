@@ -68,6 +68,7 @@ mod tests {
             },
             signing: SigningConfig {
                 private_key_pem: "/unused".to_string(),
+                previous_key_pems: vec![],
                 visa_lifetime_seconds: 3600,
             },
             database: DatabaseConfig {
@@ -78,6 +79,7 @@ mod tests {
             },
             auth: AuthConfig {
                 bootstrap_api_key_env: "REGISTRY_BOOTSTRAP_API_KEY".to_string(),
+                api_key_pepper_env: "GA4GH_API_KEY_PEPPER".to_string(),
             },
         }
     }

@@ -82,7 +82,7 @@ See [admin-ui/overview.md](admin-ui/overview.md) for roles and pages.
 ### Linux / macOS
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
 ```
 
 ### Windows
@@ -93,7 +93,7 @@ irm https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/inst
 
 What happens:
 
-1. The script detects your OS/CPU and downloads the matching `ga4gh-infra` release binary.
+1. The script detects your OS/CPU, downloads the matching `ga4gh-infra` release tarball, and **verifies its SHA-256 checksum** (installs without checksums, including `v0.1.0`, are refused).
 2. Config is written to `~/.config/ga4gh-infra/` (SQLite for visa-registry).
 3. RS256 signing keys are generated under `secrets/` when missing.
 4. An `env` file is created with bootstrap secrets and database URLs.
@@ -121,7 +121,7 @@ Prebuilt release binaries include ARM Linux targets:
 On the Pi:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
 ```
 
 The install script selects the correct asset automatically. Prefer **64-bit Raspberry Pi OS** for best performance.

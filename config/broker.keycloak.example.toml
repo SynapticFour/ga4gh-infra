@@ -7,11 +7,14 @@ host = "0.0.0.0"
 port = 8080
 external_url = "https://aai.example.org"
 environment = "prod"
+allowed_return_url_origins = ["https://admin.example.org"]
+login_rate_limit_per_minute = 20
 
 [signing]
 private_key_pem = "/secrets/broker_rs256.pem"
-passport_lifetime_seconds = 3600
-token_lifetime_seconds = 3600
+previous_key_pems = []
+passport_lifetime_seconds = 900
+token_lifetime_seconds = 900
 
 [session]
 cookie_secret_env = "BROKER_COOKIE_SECRET"
@@ -33,6 +36,7 @@ sub = "sub"
 email = "email"
 # eduPerson / VO attributes — names depend on IdP mappers:
 affiliation = "eduperson_scoped_affiliation"
+groups = "groups"
 # name = "name"
 # preferred_username = "preferred_username"
 

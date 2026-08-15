@@ -2,7 +2,7 @@
 
 //! JWKS fetching and caching for trusted issuers.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -30,6 +30,13 @@ pub struct JwksCache {
     brokers_by_issuer: HashMap<String, TrustedBroker>,
     cache: RwLock<HashMap<String, CachedJwks>>,
     inflight: Mutex<HashMap<String, Arc<Mutex<()>>>>,
+    revocations: RwLock<HashMap<String, CachedRevocations>>,
+}
+
+#[derive(Clone)]
+struct CachedRevocations {
+    jtis: HashSet<String>,
+    fetched_at: Instant,
 }
 
 impl JwksCache {
@@ -40,6 +47,8 @@ impl JwksCache {
     ) -> Result<Self, ClearinghouseError> {
         let http = Client::builder()
             .use_rustls_tls()
+            .timeout(Duration::from_secs(10))
+            .connect_timeout(Duration::from_secs(5))
             .build()
             .map_err(|err| ClearinghouseError::Internal(err.to_string()))?;
 
@@ -54,6 +63,7 @@ impl JwksCache {
             brokers_by_issuer,
             cache: RwLock::new(HashMap::new()),
             inflight: Mutex::new(HashMap::new()),
+            revocations: RwLock::new(HashMap::new()),
         })
     }
 
@@ -85,11 +95,96 @@ impl JwksCache {
 
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_issuer(&[meta.iss.as_str()]);
+        // GA4GH Passports are presented to many resource services; `aud` is optional
+        // and omitted at mint time. Enforce `iss` + signature + expiry instead.
         validation.validate_aud = false;
 
         decode::<T>(token, key.as_ref(), &validation)
             .map(|data| data.claims)
             .map_err(map_decode_error)
+    }
+
+    /// Return whether a visa `jti` is listed as revoked by the issuer.
+    pub async fn is_revoked(&self, issuer: &str, jti: &str) -> Result<bool, ClearinghouseError> {
+        let Some(broker) = self.trusted_broker(issuer) else {
+            return Ok(false);
+        };
+        self.jti_on_list(broker.revocation_uri.as_deref(), jti)
+            .await
+    }
+
+    /// Return whether a Passport `jti` is listed as revoked by the broker.
+    pub async fn is_passport_revoked(
+        &self,
+        issuer: &str,
+        jti: &str,
+    ) -> Result<bool, ClearinghouseError> {
+        let Some(broker) = self.trusted_broker(issuer) else {
+            return Ok(false);
+        };
+        self.jti_on_list(broker.passport_revocation_uri.as_deref(), jti)
+            .await
+    }
+
+    async fn jti_on_list(&self, uri: Option<&str>, jti: &str) -> Result<bool, ClearinghouseError> {
+        let Some(uri) = uri else {
+            return Ok(false);
+        };
+        let jtis = self.revoked_jtis(uri).await?;
+        Ok(jtis.contains(jti))
+    }
+
+    async fn revoked_jtis(&self, uri: &str) -> Result<HashSet<String>, ClearinghouseError> {
+        if let Some(cached) = self.cached_revocations(uri).await {
+            return Ok(cached);
+        }
+        let response = self
+            .http
+            .get(uri)
+            .send()
+            .await
+            .map_err(|err| ClearinghouseError::JwksFetchFailed(err.to_string()))?;
+        if response.status().as_u16() == 404 {
+            let empty = HashSet::new();
+            let mut cache = self.revocations.write().await;
+            cache.insert(
+                uri.to_string(),
+                CachedRevocations {
+                    jtis: empty.clone(),
+                    fetched_at: Instant::now(),
+                },
+            );
+            return Ok(empty);
+        }
+        if !response.status().is_success() {
+            return Err(ClearinghouseError::JwksFetchFailed(format!(
+                "revocation list HTTP {}",
+                response.status()
+            )));
+        }
+        let document = response
+            .json::<RevocationDocument>()
+            .await
+            .map_err(|err| ClearinghouseError::JwksFetchFailed(err.to_string()))?;
+        let jtis: HashSet<String> = document.jtis.into_iter().collect();
+        let mut cache = self.revocations.write().await;
+        cache.insert(
+            uri.to_string(),
+            CachedRevocations {
+                jtis: jtis.clone(),
+                fetched_at: Instant::now(),
+            },
+        );
+        Ok(jtis)
+    }
+
+    async fn cached_revocations(&self, uri: &str) -> Option<HashSet<String>> {
+        let cache = self.revocations.read().await;
+        let entry = cache.get(uri)?;
+        if self.ttl > Duration::ZERO && entry.fetched_at.elapsed() > self.ttl {
+            return None;
+        }
+        Some(entry.jtis.clone())
     }
 
     async fn decoding_key_for(
@@ -230,6 +325,12 @@ fn map_decode_error(err: jsonwebtoken::errors::Error) -> ClearinghouseError {
 }
 
 #[derive(Debug, Deserialize)]
+struct RevocationDocument {
+    #[serde(default)]
+    jtis: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct JwksDocument {
     keys: Vec<JwkEntry>,
 }
@@ -255,10 +356,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn test_broker(jwks_uri: String) -> TrustedBroker {
-        TrustedBroker {
-            issuer: "https://broker.example.org".to_string(),
-            jwks_uri,
-        }
+        TrustedBroker::new("https://broker.example.org", jwks_uri)
     }
 
     #[tokio::test]

@@ -35,14 +35,18 @@ See [limitations.md](limitations.md). Passport/visa flows may involve identifiab
 
 ## Operator checklist (co-deploy)
 
-1. Disable mock-IdP in production.
-2. Protect visa signing material; rotate on staff change.
-3. TLS on all public ports (8180–8190 class).
-4. Align Ferrum JWKS/issuer with infra.
+1. Disable mock-IdP in production (`docker-compose.prod.example.yml` has none).
+2. Protect visa signing material; rotate with [key-rotation.md](key-rotation.md).
+3. TLS on all public ports; rate-limit `/login` and `/callback`.
+4. Align Ferrum JWKS/issuer with infra; set `allowed_return_url_origins` and `dac_operator_groups`.
 5. Include infra hosts in the same IR / backup plan as Ferrum.
+6. Add institute CODEOWNERS ([governance.md](governance.md)); do not depend on a single upstream maintainer.
+7. Install a signed release newer than `ga4gh-infra-v0.1.0`.
 
 ---
 
 ## Residual risks
 
-Identity-plane bugs or misconfiguration are **high impact** (they unlock Ferrum). Prefer HelixTest `ferrum+infra` profiles before production cutover; optional HelixTest auth-on live remains **backlog-only** under the spine freeze unless a pilot requires it.
+Identity-plane bugs or misconfiguration are **high impact** (they unlock Ferrum). Prefer HelixTest `ferrum+infra` profiles before production cutover.
+
+This document is an internal STRIDE-lite addendum, not a third-party audit. Controls now in code: return_url allowlist, DAC group enforcement, visa `jti` revocation list, Passport denylist (`/revoked-passports`), multi-key JWKS (`previous_key_pems`), login rate limit, security headers, `audit=true` JSON events, checksummed installs. Remaining: bus factor 1 upstream; no third-party audit.

@@ -1,0 +1,30 @@
+image:
+  prefix: ghcr.io/synapticfour
+  tag: REPLACE_WITH_RELEASE
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+broker:
+  externalUrl: https://aai.example.org
+  allowedReturnUrlOrigins:
+    - https://admin.example.org
+  adminApiKeyEnv: BROKER_ADMIN_API_KEY
+  passportLedgerPath: /var/lib/ga4gh/passport-ledger.json
+
+adminUi:
+  publicBaseUrl: https://admin.example.org
+  dacOperatorGroups:
+    - institute-dac
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    broker: aai.example.org
+    admin: admin.example.org
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi

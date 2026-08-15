@@ -7,9 +7,9 @@ use std::fs;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use rsa::pkcs8::DecodePrivateKey;
+use rsa::pkcs8::{DecodePrivateKey, DecodePublicKey};
 use rsa::traits::PublicKeyParts;
-use rsa::RsaPrivateKey;
+use rsa::{RsaPrivateKey, RsaPublicKey};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -77,6 +77,47 @@ impl SigningKeys {
     pub fn jwks(&self) -> &Value {
         &self.jwks
     }
+
+    /// Publish additional keys in JWKS without using them for signing.
+    pub fn merge_previous_pems(&mut self, paths: &[String]) -> Result<(), RegistryError> {
+        if paths.is_empty() {
+            return Ok(());
+        }
+        let Some(keys) = self
+            .jwks
+            .get_mut("keys")
+            .and_then(|value| value.as_array_mut())
+        else {
+            return Err(RegistryError::Config("jwks missing keys array".to_string()));
+        };
+        for path in paths {
+            let pem = fs::read_to_string(path).map_err(|err| {
+                RegistryError::Config(format!("reading previous signing key {path}: {err}"))
+            })?;
+            keys.push(jwk_from_pem(&pem).map_err(RegistryError::Config)?);
+        }
+        Ok(())
+    }
+}
+
+fn jwk_from_pem(pem: &str) -> Result<Value, String> {
+    let public_key = if let Ok(private_key) = RsaPrivateKey::from_pkcs8_pem(pem) {
+        private_key.to_public_key()
+    } else {
+        RsaPublicKey::from_public_key_pem(pem)
+            .map_err(|err| format!("parsing previous signing key: {err}"))?
+    };
+    let n = URL_SAFE_NO_PAD.encode(public_key.n().to_bytes_be());
+    let e = URL_SAFE_NO_PAD.encode(public_key.e().to_bytes_be());
+    let kid = URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_bytes_be()));
+    Ok(json!({
+        "kty": "RSA",
+        "kid": kid,
+        "use": "sig",
+        "alg": "RS256",
+        "n": n,
+        "e": e,
+    }))
 }
 
 #[cfg(test)]

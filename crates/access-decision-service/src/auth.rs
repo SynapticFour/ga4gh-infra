@@ -9,7 +9,6 @@ use axum::http::{header, HeaderMap};
 use ga4gh_clearinghouse::JwksCache;
 use ga4gh_types::PassportClaims;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
 use crate::app::AppState;
@@ -40,23 +39,11 @@ pub struct DacOperator {
 }
 
 pub fn hash_api_key(raw: &str) -> String {
-    let digest = Sha256::digest(raw.as_bytes());
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    ga4gh_http::hash_api_key(raw, "")
 }
 
 pub fn verify_api_key(raw: &str, stored_hash: &str) -> bool {
-    let candidate = hash_api_key(raw);
-    constant_time_eq(candidate.as_bytes(), stored_hash.as_bytes())
-}
-
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
-    }
-    left.iter()
-        .zip(right.iter())
-        .fold(0u8, |acc, (a, b)| acc | (a ^ b))
-        == 0
+    ga4gh_http::verify_api_key(raw, stored_hash, "")
 }
 
 pub fn extract_bearer(headers: &HeaderMap) -> Result<&str, AdsError> {

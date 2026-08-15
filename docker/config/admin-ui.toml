@@ -11,8 +11,11 @@ service_registry_base_url = "http://service-registry:8083"
 agreement_registry_base_url = "http://agreement-registry:8086"
 session_secret = "dev-admin-ui-session-secret-min-32-chars"
 session_ttl_hours = 24
+environment = "development"
 static_dir = "/app/static"
 admin_claim = "groups"
 admin_claim_value = "ga4gh-infra-admins"
+# Empty: only the admin claim may operate the DAC queue (docker mock IdP is an admin).
+dac_operator_groups = []
 service_registry_registration_key = "dev-service-registry-key"
 broker_config_path = "docker/config/broker.toml"

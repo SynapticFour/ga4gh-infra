@@ -41,16 +41,18 @@ Admin-only sections appear under a distinct **Admin** nav heading so operators a
 ```toml
 admin_claim = "groups"
 admin_claim_value = "ga4gh-infra-admins"
+# dac_operator_groups = ["ega-dac"]
 ```
 
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `admin_claim` | `groups` | JWT claim holding group strings (array or single string) |
 | `admin_claim_value` | `ga4gh-infra-admins` | Value that grants Admin role |
+| `dac_operator_groups` | empty | IdP groups allowed to operate the DAC queue. Empty means **admin only** |
 
 ## ADS authorization
 
-DAC API calls from admin-ui use the service **`ads_dac_api_key`**. End-user JWT roles gate browser-facing pages only; ADS enforces its own API key and researcher scoping on grant endpoints.
+DAC API calls from admin-ui use the service **`ads_dac_api_key`**. Admin-ui sends the operator's allowed DAC groups with each approve/reject/escalate call. ADS authorizes scoped operators against the request's `dac_group`; an unrestricted API key (`operator_groups` omitted) is break-glass only.
 
 ## Phase 10+ ideas
 
@@ -62,8 +64,8 @@ The following are intentionally **read-only or file-based in Phase 9**:
 
 ## Mock IdP / development
 
-The bundled mock IdP issues `"groups": ["ga4gh-infra-admins"]` on ID tokens and userinfo so the docker e2e admin-ui flow can exercise Admin actions. Production IdPs must issue the configured admin group (or DAC operator groups) explicitly.
+The bundled mock IdP issues **no groups by default**. Docker Compose sets `MOCK_IDP_GROUPS=ga4gh-infra-admins` so e2e can exercise Admin actions. Production IdPs must issue the configured admin group (or entries in `dac_operator_groups`) explicitly.
 
-DAC approve/reject/escalate require Admin **or** at least one non-admin group. Users with an empty group list receive **403**. Empty operator groups are treated as an empty DAC filter (no unrestricted ADS queries).
+DAC approve/reject/escalate require Admin **or** membership in `dac_operator_groups` (intersected with the user's IdP groups). Users outside that set receive **403**. An empty `dac_operator_groups` list is admin-only.
 
 Admin-ui `POST /auth/session` verifies the broker Passport JWT against the broker JWKS (`broker_base_url/jwks.json`, expected `iss` = `broker_public_url()`). Forged or unsigned tokens are rejected.

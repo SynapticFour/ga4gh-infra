@@ -36,7 +36,8 @@ pub use agreement::{
     PolicyProfile,
 };
 pub use compatibility::{
-    check_compatibility, find_matching_template, is_permission, permission_satisfies,
+    check_compatibility, evaluate_duo_codes, find_matching_template, is_permission,
+    permission_satisfies, procedural_modifier,
 };
 pub use duo::{DuoCode, DuoCodeError};
 pub use health::HealthResponse;

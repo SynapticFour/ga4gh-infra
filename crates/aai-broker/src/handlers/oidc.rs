@@ -143,7 +143,7 @@ mod tests {
             affiliation: None,
             groups: vec![],
         };
-        let token = mint_passport_jwt(
+        let minted = mint_passport_jwt(
             keys,
             "https://broker.example.org",
             &identity,
@@ -151,6 +151,7 @@ mod tests {
             3600,
         )
         .expect("mint");
+        let token = minted.jwt;
 
         let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
         validation.set_issuer(&["https://broker.example.org"]);

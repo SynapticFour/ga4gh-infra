@@ -24,8 +24,12 @@ pub struct AfricaProfile {
     #[serde(default)]
     pub max_memory_mb: Option<u32>,
     /// Spawn an embedded mock OIDC IdP alongside core services.
+    /// Requires `allow_insecure_demo = true` and a development environment.
     #[serde(default)]
     pub embedded_mock_idp: bool,
+    /// Explicit acknowledgement that the embedded mock IdP is not an institute IdP.
+    #[serde(default)]
+    pub allow_insecure_demo: bool,
     /// Host for embedded mock IdP.
     #[serde(default = "default_mock_idp_host")]
     pub mock_idp_host: String,
@@ -159,6 +163,7 @@ mod tests {
         let profile = AfricaProfile {
             data_dir: "/tmp/ga4gh-africa-test".to_string(),
             embedded_mock_idp: true,
+            allow_insecure_demo: true,
             ..AfricaProfile::default()
         };
 

@@ -488,6 +488,12 @@ components:
           type: string
         actor:
           type: string
+          description: Ignored for authorization; ADS records the API-key name
+        operator_groups:
+          type: array
+          items:
+            type: string
+          description: When present, the request's dac_group must be in this list
     IntrospectRequest:
       type: object
       required: [token, resource]

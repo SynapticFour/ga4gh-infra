@@ -106,10 +106,17 @@ pub struct AuthConfig {
     /// Environment variable for bootstrap DAC API key (hashed at startup).
     #[serde(default = "default_api_key_env")]
     pub bootstrap_api_key_env: String,
+    /// Environment variable for HMAC pepper applied to stored API-key hashes.
+    #[serde(default = "default_api_key_pepper_env")]
+    pub api_key_pepper_env: String,
 }
 
 fn default_api_key_env() -> String {
     "ADS_DAC_API_KEY".to_string()
+}
+
+fn default_api_key_pepper_env() -> String {
+    "GA4GH_API_KEY_PEPPER".to_string()
 }
 
 /// Visa export configuration.
@@ -181,6 +188,11 @@ impl AdsConfig {
         std::env::var(&self.auth.bootstrap_api_key_env)
     }
 
+    /// HMAC pepper for API-key hashes (empty when unset — legacy SHA-256).
+    pub fn api_key_pepper(&self) -> String {
+        std::env::var(&self.auth.api_key_pepper_env).unwrap_or_default()
+    }
+
     /// Visa registry API key when signing integration is configured.
     pub fn visa_registry_api_key(&self) -> Result<Option<String>, std::env::VarError> {
         match &self.visa_registry {
@@ -223,6 +235,7 @@ mod tests {
             },
             auth: AuthConfig {
                 bootstrap_api_key_env: "ADS_DAC_API_KEY".to_string(),
+                api_key_pepper_env: "GA4GH_API_KEY_PEPPER".to_string(),
             },
             visas: VisaExportConfig::default(),
             visa_registry: None,

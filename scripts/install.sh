@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the ga4gh-infra all-in-one binary and default native configuration.
 #
-#   curl -sSL https://raw.githubusercontent.com/<org>/ga4gh-infra/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/<org>/ga4gh-infra/main/scripts/install.sh | sh
 #
 # Environment:
 #   GA4GH_INFRA_REPO   GitHub repo (default: SynapticFour/ga4gh-infra)
@@ -28,6 +28,16 @@ err() {
 
 need_cmd() {
     command -v "$1" >/dev/null 2>&1 || err "required command not found: $1"
+}
+
+file_sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    else
+        err "required command not found: sha256sum or shasum"
+    fi
 }
 
 detect_target() {
@@ -68,12 +78,28 @@ download_binary() {
     local target="$2"
     local asset="ga4gh-infra-${target}"
     local url="https://github.com/${REPO}/releases/download/${tag}/${asset}.tar.gz"
-    local tmp
+    local checksum_url="${url}.sha256"
+    local tmp expected actual
     tmp="$(mktemp -d)"
     trap 'rm -rf "${tmp}"' EXIT
 
+    case "${tag}" in
+        ga4gh-infra-v0.1.0 | v0.1.0)
+            err "refusing ${tag}: that release is unsigned and contains known authentication flaws. Install a later tagged release."
+            ;;
+    esac
+
     log "Downloading ${asset} from ${tag}"
     curl -fsSL "${url}" -o "${tmp}/archive.tar.gz"
+    if ! curl -fsSL "${checksum_url}" -o "${tmp}/archive.tar.gz.sha256"; then
+        err "release ${tag} has no SHA-256 checksum asset; refusing unsigned install"
+    fi
+
+    expected="$(awk '{print $1}' "${tmp}/archive.tar.gz.sha256" | head -n1 | tr 'A-F' 'a-f')"
+    actual="$(file_sha256 "${tmp}/archive.tar.gz" | tr 'A-F' 'a-f')"
+    [ -n "${expected}" ] || err "checksum file for ${tag} is empty"
+    [ "${expected}" = "${actual}" ] || err "SHA-256 mismatch for ${asset} (expected ${expected}, got ${actual})"
+
     tar -xzf "${tmp}/archive.tar.gz" -C "${tmp}"
     mkdir -p "${INSTALL_DIR}"
     install -m 755 "${tmp}/${asset}" "${INSTALL_DIR}/ga4gh-infra"

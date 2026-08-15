@@ -8,14 +8,14 @@ Resource-constrained and offline-first deployment profile for the GA4GH **identi
 |---------|-------------|
 | **Zero PostgreSQL** | SQLite for visa-registry, service-registry, and ADS |
 | **Single binary** | `ga4gh-infra all-in-one --africa` runs all five services |
-| **Embedded mock IdP** | Field labs without an external OIDC provider |
+| **Embedded mock IdP** | Demo-only, gated by `allow_insecure_demo` + development environment |
 | **Co-deploy ports** | 8180–8190 block avoids clash with Ferrum on 8080 |
 | **`GA4GH_OFFLINE=1`** | Shortcut equivalent to Ferrum's `FERRUM_OFFLINE=1` |
 
 ## Quick start (Raspberry Pi / laptop)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
 source ~/.config/ga4gh-infra/env
 ga4gh-infra keygen --output-dir ~/.config/ga4gh-infra/secrets
 cp config/all-in-one.africa.toml.example ~/.config/ga4gh-infra/all-in-one.toml
@@ -49,6 +49,7 @@ This stack uses SQLite for all registries, includes ADS, and binds to **8180–8
 offline_first = true
 max_memory_mb = 512
 embedded_mock_idp = true
+allow_insecure_demo = true
 data_dir = "~/.config/ga4gh-infra/data"
 jwks_cache_ttl_seconds = 600
 ```
