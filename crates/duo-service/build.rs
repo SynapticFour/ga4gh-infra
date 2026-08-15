@@ -7,6 +7,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use quick_xml::escape::unescape;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::Serialize;
@@ -112,7 +113,10 @@ fn parse_owl_classes(owl: &str) -> Vec<RawClass> {
             }
             Ok(Event::Text(text)) => {
                 if let Some(class) = current.as_mut() {
-                    let value = text.unescape().unwrap_or_default().trim().to_string();
+                    let Ok(decoded) = text.decode() else {
+                        continue;
+                    };
+                    let value = unescape(&decoded).unwrap_or_default().trim().to_string();
                     if value.is_empty() {
                         continue;
                     }
