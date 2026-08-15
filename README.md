@@ -14,6 +14,12 @@ ga4gh-infra is the **identity plane**. Who it is for and how it composes: **[doc
 
 ## Quick start
 
+**Zero-risk proof** (no Docker):
+
+```bash
+make prove
+```
+
 **Docker** (full stack):
 
 ```bash

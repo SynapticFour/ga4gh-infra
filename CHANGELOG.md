@@ -4,6 +4,7 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+- **`make prove`** — workspace tests without Docker (same command as CI unit tests). Live stack remains `make up`.
 - **CI:** `cargo-audit` uses rustc stable so the auditor can compile; product crates stay on 1.91.1. Dev PEMs are mode 644 so visa-registry can read Compose bind-mounts (uid 1000).
 
 ## [ga4gh-infra-v0.2.3] - 2026-08-15

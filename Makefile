@@ -17,7 +17,7 @@ ifeq ($(filter up sqlite,$(MAKECMDGOALS)),up sqlite)
 $(error Typo: use "make up-sqlite" (with a hyphen), not "make up sqlite")
 endif
 
-.PHONY: help up up-local up-sqlite down destroy logs test seed seed-sqlite prepare-secrets prepare-vendor prepare-admin-ui-static print-urls print-urls-sqlite local uplocal up_local upsqlite up_sqlite
+.PHONY: help up up-local up-sqlite down destroy logs test prove seed seed-sqlite prepare-secrets prepare-vendor prepare-admin-ui-static print-urls print-urls-sqlite local uplocal up_local upsqlite up_sqlite
 
 help:
 	@echo "ga4gh-infra — local Docker stack"
@@ -33,6 +33,7 @@ help:
 	@echo "  make seed       Load demo data into running postgres stack"
 	@echo "  make seed-sqlite  Load demo data into running sqlite stack"
 	@echo "  make test       cargo test --workspace"
+	@echo "  make prove      Zero-risk proof: workspace tests (no Docker)"
 	@echo ""
 	@echo "Requires: Docker + Docker Compose"
 	@echo ""
@@ -141,3 +142,6 @@ logs:
 
 test:
 	cargo test --workspace
+
+prove: test
+	@echo "ga4gh-infra prove OK. Live stack: make up"

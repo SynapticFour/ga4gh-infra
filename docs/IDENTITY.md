@@ -14,7 +14,8 @@ AAI operators, federation architects, institutes that already have (or want) GA4
 
 ```bash
 git clone https://github.com/SynapticFour/ga4gh-infra.git && cd ga4gh-infra
-make up
+make prove       # workspace tests, no Docker
+make up          # local identity stack (generates gitignored PEMs)
 ```
 
 Compose defaults **generate** RSA PEMs under `docker/secrets/` (gitignored). Rotate / replace before any network that is not a laptop. Historical committed keys are public. See [docker/secrets/README.md](../docker/secrets/README.md) and [key-rotation.md](key-rotation.md).
