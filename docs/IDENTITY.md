@@ -18,7 +18,11 @@ make prove       # workspace tests, no Docker
 make up          # local identity stack (generates gitignored PEMs)
 ```
 
-Compose defaults **generate** RSA PEMs under `docker/secrets/` (gitignored). Rotate / replace before any network that is not a laptop. Historical committed keys are public. See [docker/secrets/README.md](../docker/secrets/README.md) and [key-rotation.md](key-rotation.md).
+Compose defaults **generate** RSA PEMs under `docker/secrets/` (gitignored). Laptop `docker-compose.yml` hardcodes **dev-only** passwords and API keys (`ga4gh` / `dev-*-api-key`). Do not copy that file to a network. Production: [docker-compose.prod.example.yml](../docker/docker-compose.prod.example.yml) with env-injected secrets.
+
+## License (open-core)
+
+This repo is **Apache-2.0**. That is intentional: an institute can run Passports/DUO/ADS without buying a proprietary identity stack, and can stand this plane **against** Ferrum (or another implementer). What Synaptic Four sells is Ferrum / Solum / BRA licenses and optional support — not a closed ga4gh-infra SKU.
 
 ## Optional composition
 

@@ -1,18 +1,21 @@
-# SynapticFour GA4GH stack
+# Synaptic Four — this repo in the portfolio
 
-Five repositories implement a coherent on-premises GA4GH platform. This file is **mirrored** in each repo so readers can navigate between projects without relearning structure.
+Four **products**, two free **ambassadors**, Ferrum **companions**, and **proof** repos. Glue is GA4GH; Solum extends into clinical data. **Not a bundle SKU.** Canonical map: [Ferrum PORTFOLIO.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/PORTFOLIO.md).
 
-**You are here:** [ga4gh-infra](https://github.com/SynapticFour/ga4gh-infra) — identity plane (broker, visas, DUO, ADS, service registry).
+**You are here:** [ga4gh-infra](https://github.com/SynapticFour/ga4gh-infra) — identity plane (broker, visas, DUO, ADS, service registry). Apache-2.0 **open-core**: software is free; commercial motion is Ferrum/Solum/BRA licenses plus optional support.
 
 ## Repositories
 
-| Repository | Role | License |
-|------------|------|---------|
-| **ga4gh-infra** | OIDC broker, visa registry, DUO, ADS, service registry (this repo) | Apache-2.0 |
-| [Ferrum](https://github.com/SynapticFour/Ferrum) | DRS, WES, TES, TRS, Beacon, htsget, Crypt4GH gateway | BUSL-1.1 |
-| [Ferrum-Lab-Kit](https://github.com/SynapticFour/Ferrum-Lab-Kit) | `lab-kit` profiles, compose generation, edge install | BUSL-1.1 |
-| [Ferrum-GA4GH-Demo](https://github.com/SynapticFour/Ferrum-GA4GH-Demo) | `./run` benchmark and co-deploy scenarios | Apache-2.0 |
-| [HelixTest](https://github.com/SynapticFour/HelixTest) | `helixtest` conformance suite | Apache-2.0 |
+| Kind | Repository | Role | License |
+|------|------------|------|---------|
+| Product | **ga4gh-infra** (this repo) | Identity plane | Apache-2.0 |
+| Product | [Ferrum](https://github.com/SynapticFour/Ferrum) | GA4GH data/compute | BUSL-1.1 |
+| Product | [Solum](https://github.com/SynapticFour/Solum) | Clinical overlay | BUSL-1.1 |
+| Product | [BioResearch Assistant](https://github.com/SynapticFour/bioresearch-assistant) | Researcher workbench | BUSL-1.1 |
+| Ambassador | [HelixTest](https://github.com/SynapticFour/HelixTest) | GA4GH conformance CLI | Apache-2.0 |
+| Ambassador | [HELIOS](https://github.com/SynapticFour/HELIOS) | Pipeline audit (file ingest) | Apache-2.0 |
+| With Ferrum | [Ferrum-Lab-Kit](https://github.com/SynapticFour/Ferrum-Lab-Kit) | Subset install | BUSL-1.1 |
+| Proof | [Ferrum-GA4GH-Demo](https://github.com/SynapticFour/Ferrum-GA4GH-Demo) | Local `./run` smoke | Apache-2.0 |
 
 ## Ownership boundaries
 

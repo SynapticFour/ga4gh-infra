@@ -1,4 +1,9 @@
 # Full stack with PostgreSQL for visa-registry and service-registry.
+# DEV-ONLY defaults: POSTGRES_PASSWORD=ga4gh, MOCK_IDP_CLIENT_SECRET, REGISTRY_BOOTSTRAP_API_KEY,
+# ADS_DAC_API_KEY, BROKER_COOKIE_SECRET, SERVICE_REGISTRY_REGISTRATION_KEY below are laptop
+# fixtures. Do not copy this file to a shared network. Production: docker-compose.prod.example.yml
+# (secrets via env, no fallbacks).
+#
 # Per-service images are built from docker/Dockerfile.* (see docker/README.md).
 #
 # Usage (from repo root):
