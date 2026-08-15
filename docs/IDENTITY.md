@@ -24,6 +24,8 @@ Compose defaults **generate** RSA PEMs under `docker/secrets/` (gitignored). Lap
 
 This repo is **Apache-2.0**. That is intentional: an institute can run Passports/DUO/ADS without buying a proprietary identity stack, and can stand this plane **against** Ferrum (or another implementer). What Synaptic Four sells is Ferrum / Solum / BRA licenses and optional support — not a closed ga4gh-infra SKU.
 
+Crate `Cargo.toml` versions stay **0.1.0**; the product/stack SemVer is the git tag **`ga4gh-infra-v*`** (images `:0.2.3`). See [versioning.md](versioning.md). That split is deliberate, not drift.
+
 ## Optional composition
 
 | Join | What you gain | Contract |
