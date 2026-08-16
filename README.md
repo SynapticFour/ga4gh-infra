@@ -1,4 +1,4 @@
-# ga4gh-infra
+# ga4gh-infra (GA4GH Infra)
 
 [![CI](https://github.com/SynapticFour/ga4gh-infra/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/ga4gh-infra/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/SynapticFour/ga4gh-infra/graph/badge.svg)](https://codecov.io/gh/SynapticFour/ga4gh-infra)
@@ -20,13 +20,13 @@ ga4gh-infra is the **identity plane**. Who it is for and how it composes: **[doc
 make prove
 ```
 
-**Docker** (full stack):
+**Docker** (full stack — **supported deploy**):
 
 ```bash
 make up
-# or: just up
-# or: docker compose -f docker/docker-compose.yml --env-file docker/.env.example up --build --wait
 ```
+
+Helm under `deploy/k8s/chart` is a **broker sketch**, not the supported production path. See [docs/limitations.md](docs/limitations.md).
 
 **Native binary** (all-in-one; ARM builds for Raspberry Pi 64-bit and 32-bit):
 
@@ -94,3 +94,7 @@ Operator contract: [docs/security.md](docs/security.md). Report vulnerabilities 
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+---
+
+**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · Apache-2.0 (free)

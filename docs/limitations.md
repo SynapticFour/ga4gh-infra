@@ -62,9 +62,9 @@ Expired Passports require a full upstream IdP login. Refresh tokens and silent r
 
 Docker and native quick starts use plain HTTP. Production requires TLS at a reverse proxy or ingress; `external_url` in configs must match the public HTTPS URL used in JWT `iss` claims.
 
-### No Kubernetes / Helm charts
+### Kubernetes / Helm is a broker sketch
 
-A starter Helm chart lives in [`deploy/k8s/chart`](../deploy/k8s/chart). Institutes still own Ingress, secrets, Postgres, and TLS.
+**Supported deploy is Compose** (`make up` / `docker/docker-compose.yml`). A starter Helm chart lives in [`deploy/k8s/chart`](../deploy/k8s/chart) — broker-shaped, not a full identity-plane production chart. Institutes still own Ingress, secrets, Postgres, and TLS. Do not read the chart as Kubernetes-ready GA4GH Infra.
 
 ### Admin UI is English-only
 

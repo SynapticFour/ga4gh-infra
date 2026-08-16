@@ -1,0 +1,9 @@
+# ga4gh-infra — optional companion pins (this product does not vendor Ferrum).
+#
+# Stack/deploy image tags follow ga4gh-infra-v* (currently 0.2.3).
+# Crate Cargo.toml may stay 0.1.0 — see docs/IDENTITY.md and docs/versioning.md.
+
+FERRUM_REF=v0.3.0
+FERRUM_SHA=6444469ac488af9dd6f62f584b99be87ff2d7180
+HELIXTEST_REF=v0.1.1
+HELIXTEST_SHA=a8aabf30fa8a8963ca95a4e8c1e6c04cddf34a12
