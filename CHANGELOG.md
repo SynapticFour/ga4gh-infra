@@ -5,6 +5,7 @@ Identity-plane hardening for institute production. Application crates remain at 
 ## [Unreleased]
 
 - HelixTest pin **`4a10e126c219`** (suite canonical SHA; not tag v0.1.1). Helm chart labelled **SKETCH**.
+- Historical `docker/secrets/*.pem` remain in git objects. **History rewrite is not planned** (accepted residual risk, 2026-08-17). `make prepare-secrets` per clone; never reuse old PEMs.
 - **Release Binaries:** install the 1.91.1 target (not `@stable` vs `rust-toolchain.toml`), cross-compile Intel macOS on `macos-latest`, and allow `workflow_dispatch` to attach assets to an existing `ga4gh-infra-v*` tag.
 - **`make prove`** — workspace tests without Docker (same command as CI unit tests). Live stack remains `make up`.
 - **CI:** `cargo-audit` uses rustc stable so the auditor can compile; product crates stay on 1.91.1. Dev PEMs are mode 644 so visa-registry can read Compose bind-mounts (uid 1000).
