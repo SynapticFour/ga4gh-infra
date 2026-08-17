@@ -1,4 +1,5 @@
-# ga4gh-infra Helm chart
+# SKETCH — not a production Kubernetes chart
+
 
 Minimal Kubernetes chart for the identity plane. Terminate TLS at Ingress. Do not run `mock-idp`.
 
