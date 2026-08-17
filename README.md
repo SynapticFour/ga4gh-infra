@@ -4,97 +4,34 @@
 [![codecov](https://codecov.io/gh/SynapticFour/ga4gh-infra/graph/badge.svg)](https://codecov.io/gh/SynapticFour/ga4gh-infra)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Self-hostable Rust implementation of GA4GH infrastructure: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, and a Service Registry.
+Self-hostable Rust identity plane: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, and a Service Registry. The broker is an OIDC Relying Party — it does not replace an institute IdP.
 
-> **Legal notice:** This repository documents technical capabilities and operating guidance. It is not legal advice and does not by itself provide regulatory certification or compliance guarantees. Compliance outcomes depend on operator configuration, contracts, and organisational controls. Passport and visa flows may involve identifiable researcher data — assess your legal basis before production use. See [docs/limitations.md](docs/limitations.md).
+**Maturity: Active (beta) — Compose path.** Helm under `deploy/k8s/chart` is a **sketch**, not the supported production path. No third-party security audit. Not GA4GH certification.
 
-## SynapticFour GA4GH stack
+> This README describes technical capabilities, not legal advice. Passport and visa flows may involve identifiable researcher data. See [docs/limitations.md](docs/limitations.md).
 
-ga4gh-infra is the **identity plane**. Who it is for and how it composes: **[docs/IDENTITY.md](docs/IDENTITY.md)**. Stack map: **[docs/ECOSYSTEM.md](docs/ECOSYSTEM.md)**.
+## Ferrum / GA4GH suite
+
+These ten public repositories are from the same organisation and can be composed. They are not a fifth product and not a bundle SKU. Each repository keeps its own version and license. Roles, maturity, and who consumes whom: [SUITE-OVERVIEW](https://github.com/SynapticFour/Ferrum/blob/main/docs/SUITE-OVERVIEW.md).
 
 ## Quick start
 
-**Zero-risk proof** (no Docker):
-
 ```bash
-make prove
+make prove    # workspace tests (no Docker)
+make up       # Compose stack (supported deploy). Alias: make up-local
 ```
 
-**Docker** (full stack — **supported deploy**):
-
-```bash
-make up
-```
-
-Helm under `deploy/k8s/chart` is a **broker sketch**, not the supported production path. See [docs/limitations.md](docs/limitations.md).
-
-**Native binary** (all-in-one; ARM builds for Raspberry Pi 64-bit and 32-bit):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
-source ~/.config/ga4gh-infra/env
-ga4gh-infra all-in-one --config ~/.config/ga4gh-infra/all-in-one.toml
-```
-
-See **[docs/getting-started.md](docs/getting-started.md)** for both paths, Pi/ARM notes, and what each command does.
-
-### Stop / tear down
-
-| Goal | Command |
-|------|---------|
-| Stop containers, **keep data** | `make down` or `just down` |
-| Remove volumes (fresh start) | `make destroy` or `just destroy` |
-
-Lighter SQLite stack: `just up-sqlite` — stop with `docker compose -f docker/docker-compose.sqlite.yml down`.
+Stop: `make down` (keep volumes) or `make destroy` (remove volumes). Lighter SQLite stack: `make up-sqlite`.
 
 ## Documentation
 
-| Topic | Link |
-|-------|------|
-| Getting started | [docs/getting-started.md](docs/getting-started.md) |
-| Architecture | [docs/architecture.md](docs/architecture.md) |
-| Configuration | [docs/configuration.md](docs/configuration.md) |
-| Deployment | [docs/deployment-scenarios.md](docs/deployment-scenarios.md) |
-| Production | [docs/production-deployment.md](docs/production-deployment.md) |
-| Limitations | [docs/limitations.md](docs/limitations.md) |
-| Contributing | [docs/contributing.md](docs/contributing.md) |
-| Full index | [docs/README.md](docs/README.md) |
-| **Stack overview (all five repos)** | [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) |
+- [Getting started](docs/GETTING-STARTED.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [For evaluators](docs/FOR-EVALUATORS.md)
+- [Limitations](docs/limitations.md) · [Documentation index](docs/README.md)
 
-## Crates
-
-| Crate | Role |
-|-------|------|
-| [`ga4gh-types`](crates/ga4gh-types) | Shared GA4GH types (crates.io) |
-| [`ga4gh-clearinghouse`](crates/ga4gh-clearinghouse) | Passport/Visa validation library (crates.io) |
-| [`aai-broker`](crates/aai-broker) | OIDC Relying Party; mints Passports |
-| [`visa-registry`](crates/visa-registry) | Visa store + DAC API (Postgres or SQLite) |
-| [`duo-service`](crates/duo-service) | DUO catalog and `/match` |
-| [`service-registry`](crates/service-registry) | GA4GH Service Registry |
-| [`access-decision-service`](crates/access-decision-service) | Access Decision Service (ADS) |
-| [`ga4gh-infra-cli`](crates/ga4gh-infra-cli) | Combined `ga4gh-infra` binary |
-
-The broker is an **OIDC Relying Party** — it does not replace your institute IdP. Resource services validate Passports with `ga4gh-clearinghouse`.
-
-Related SynapticFour projects: [Ferrum](https://github.com/SynapticFour/Ferrum) (data/compute), [Ferrum-Lab-Kit](https://github.com/SynapticFour/Ferrum-Lab-Kit) (deploy), [Ferrum-GA4GH-Demo](https://github.com/SynapticFour/Ferrum-GA4GH-Demo) (benchmark), [HelixTest](https://github.com/SynapticFour/HelixTest) (conformance) — see [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md).
-
-## Development
-
-```bash
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-just test-integration   # Docker + testcontainers (ignored tests)
-just e2e    # Docker stack integration test
-```
-
-## Security
-
-Operator contract: [docs/security.md](docs/security.md). Report vulnerabilities privately — see [SECURITY.md](SECURITY.md). Questions: [contact@synapticfour.com](mailto:contact@synapticfour.com).
+Crate versions in this workspace are **0.1.0**. Stack tags are `ga4gh-infra-v*`.
 
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
-
----
-
-**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · Apache-2.0 (free)

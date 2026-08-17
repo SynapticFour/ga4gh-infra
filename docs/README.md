@@ -2,8 +2,11 @@
 
 | Document | Description |
 |----------|-------------|
+| [GETTING-STARTED.md](GETTING-STARTED.md) | Public entry (points at the detailed walkthrough) |
 | [getting-started.md](getting-started.md) | Single-command Docker and native install paths |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Public entry (points at the detailed architecture doc) |
 | [architecture.md](architecture.md) | Components, auth flow, broker-as-RP design |
+| [FOR-EVALUATORS.md](FOR-EVALUATORS.md) | Maturity, license, tested vs not |
 | [configuration.md](configuration.md) | Full config reference for all services |
 | [deployment-scenarios.md](deployment-scenarios.md) | Desktop, production, Raspberry Pi, federation notes |
 | [production-deployment.md](production-deployment.md) | TLS, Keycloak, secrets, Postgres ops, go-live checklist |
@@ -13,7 +16,7 @@
 | [limitations.md](limitations.md) | Honest list of non-goals and gaps |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Identity-plane threat addendum |
 | [contributing.md](contributing.md) | Development, testing, PR expectations |
-| [ECOSYSTEM.md](ECOSYSTEM.md) | Five-repo SynapticFour GA4GH stack overview |
+| [ECOSYSTEM.md](ECOSYSTEM.md) | Stack map — keep aligned with [Ferrum SUITE-OVERVIEW](https://github.com/SynapticFour/Ferrum/blob/main/docs/SUITE-OVERVIEW.md) |
 | [versioning.md](versioning.md) | Releases, semver, Docker tags, ARM binaries |
 | [roadmap.md](roadmap.md) | Project status and suggested phases |
 | [security.md](security.md) | Production security contract |
