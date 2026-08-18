@@ -16,7 +16,7 @@
 | [limitations.md](limitations.md) | Honest list of non-goals and gaps |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Identity-plane threat addendum |
 | [contributing.md](contributing.md) | Development, testing, PR expectations |
-| [ECOSYSTEM.md](ECOSYSTEM.md) | Stack map — keep aligned with [Ferrum SUITE-OVERVIEW](https://github.com/SynapticFour/Ferrum/blob/main/docs/SUITE-OVERVIEW.md) |
+| [ECOSYSTEM.md](ECOSYSTEM.md) | Stack map — keep aligned with [organisation SUITE-OVERVIEW](https://github.com/SynapticFour/.github/blob/main/profile/SUITE-OVERVIEW.md) |
 | [versioning.md](versioning.md) | Releases, semver, Docker tags, ARM binaries |
 | [roadmap.md](roadmap.md) | Project status and suggested phases |
 | [security.md](security.md) | Production security contract |
