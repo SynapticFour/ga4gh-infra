@@ -33,3 +33,5 @@ Crate versions in this workspace are **0.1.0**. Stack tags are `ga4gh-infra-v*`.
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com)
