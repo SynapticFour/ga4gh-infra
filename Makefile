@@ -75,7 +75,9 @@ prepare-secrets:
 			chmod 644 "$$path" 2>/dev/null || true; \
 		fi; \
 	done
-	@echo "Dev PEMs in $(SECRETS_DIR) (gitignored). Do not copy them off this machine."
+	@chmod +x scripts/check-burned-pems.sh
+	@./scripts/check-burned-pems.sh
+	@echo "Dev PEMs in $(SECRETS_DIR) (gitignored). Do not copy them off this machine. Never reuse historical git PEMs."
 
 # Vendor crates on the host so Docker builds do not hit crates.io (avoids SSL flakes).
 prepare-vendor:

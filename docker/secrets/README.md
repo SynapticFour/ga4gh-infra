@@ -9,8 +9,10 @@
 | `mock_idp_rs256.pem` | Mock IdP (Compose only; omit in production) |
 
 These files are gitignored. Keys that once lived in this directory are **public**
-(git history). Do not reuse them. Treat any clone older than the removal commit
-as having leaked those private keys. Mode **644** is required so Compose
+(git history, commit `e669a58`). **Never reuse them.** `scripts/check-burned-pems.sh`
+(run from `make prepare-secrets`) refuses a local PEM whose SHA-256 matches that
+historical object. Treat any clone older than the removal commit as having leaked
+those private keys. Mode **644** is required so Compose
 bind-mounts are readable by the non-root container user (uid 1000). Production
 keys stay off this path.
 
