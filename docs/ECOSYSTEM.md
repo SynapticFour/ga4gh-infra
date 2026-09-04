@@ -1,6 +1,6 @@
 # Synaptic Four — this repo in the portfolio
 
-Four **products**, two free **ambassadors**, Ferrum **companions**, and **proof** repos. Glue is GA4GH; Solum extends into clinical data. **Not a bundle SKU.** Canonical map: [Ferrum PORTFOLIO.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/PORTFOLIO.md).
+Four **products**, two ambassador lines (**Helix / HelixTest**, **HELIOS**), Ferrum **companions**, and **proof** repos. Glue is GA4GH; Solum extends into clinical data. **Not a bundle SKU.** Canonical map: [Ferrum PORTFOLIO.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/PORTFOLIO.md).
 
 **You are here:** [ga4gh-infra](https://github.com/SynapticFour/ga4gh-infra) — identity plane (broker, visas, DUO, ADS, service registry). Apache-2.0 **open-core**: software is free; commercial motion is Ferrum/Solum/BRA licenses plus optional support.
 
@@ -13,6 +13,7 @@ Four **products**, two free **ambassadors**, Ferrum **companions**, and **proof*
 | Product | [Solum](https://github.com/SynapticFour/Solum) | Clinical overlay | BUSL-1.1 |
 | Product | [BioResearch Assistant](https://github.com/SynapticFour/bioresearch-assistant) | Researcher workbench | BUSL-1.1 |
 | Ambassador | [HelixTest](https://github.com/SynapticFour/HelixTest) | GA4GH conformance CLI | Apache-2.0 |
+| Ambassador | [Helix](https://github.com/SynapticFour/Helix) | VERIFY brand around HelixTest | Apache-2.0 |
 | Ambassador | [HELIOS](https://github.com/SynapticFour/HELIOS) | Pipeline audit (file ingest) | Apache-2.0 |
 | With Ferrum | [Ferrum-Lab-Kit](https://github.com/SynapticFour/Ferrum-Lab-Kit) | Subset install | BUSL-1.1 |
 | Proof | [Ferrum-GA4GH-Demo](https://github.com/SynapticFour/Ferrum-GA4GH-Demo) | Local `./run` smoke | Apache-2.0 |
