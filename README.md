@@ -1,5 +1,8 @@
 # ga4gh-infra (GA4GH Infra)
 
+Freeze status (2026-09): [STATUS.md](STATUS.md).
+
+
 [![CI](https://github.com/SynapticFour/ga4gh-infra/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/ga4gh-infra/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/SynapticFour/ga4gh-infra/graph/badge.svg)](https://codecov.io/gh/SynapticFour/ga4gh-infra)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
