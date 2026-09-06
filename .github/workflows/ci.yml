@@ -5,7 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
-  # Paused 2026-09 for development freeze; re-enable after pause; do not bump Ferrum Lab Kit to main.
+  # Weekly schedule off. workflow_dispatch / push / PR still run. Do not bump Lab Kit to Ferrum main.
   # schedule:
   #   # Heavy jobs (coverage / ARM) run here + workflow_dispatch. Docker e2e runs on every PR.
   #   - cron: "40 5 * * 1"
