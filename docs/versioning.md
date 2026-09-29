@@ -83,8 +83,8 @@ GitHub release tag `ga4gh-infra-v*` also publishes prebuilt binaries via `.githu
 | Target | Typical hardware |
 |--------|------------------|
 | `x86_64-unknown-linux-gnu` | Linux PCs, servers |
-| `aarch64-unknown-linux-gnu` | Raspberry Pi 4/5 (64-bit OS), ARM64 SBCs |
-| `armv7-unknown-linux-gnueabihf` | Raspberry Pi 2/3/4 (32-bit OS) |
+| `aarch64-unknown-linux-gnu` | Field board: Raspberry Pi 5, 8 GB, 64-bit OS. Also other ARM64 machines |
+| `armv7-unknown-linux-gnueabihf` | Compile target for 32-bit Pi 2/3/4. Not the field board |
 | `x86_64-apple-darwin` / `aarch64-apple-darwin` | macOS |
 | `x86_64-pc-windows-msvc` | Windows |
 

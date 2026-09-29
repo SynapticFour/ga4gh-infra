@@ -20,7 +20,7 @@ DUO terms are compiled into `duo-service` at **build time**. Live OWL updates fr
 
 ### SQLite is single-writer
 
-SQLite mode (visa-registry) suits demo, desktop, and single-node edge use (including Raspberry Pi). It is **not** recommended for multi-writer production clusters. Use PostgreSQL for concurrent DAC/API load.
+SQLite mode (visa-registry) suits demo, desktop, and the field edge board (Raspberry Pi 5, 8 GB, 64-bit, next to Ferrum). It is **not** recommended for multi-writer production clusters. Use PostgreSQL for concurrent DAC/API load.
 
 ### Service-registry SQLite mode
 

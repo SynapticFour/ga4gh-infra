@@ -18,7 +18,7 @@ How to run `ga4gh-infra` in common environments.
 
 Optionally add an `[admin_ui]` section to the all-in-one TOML to co-start the dashboard on port **8095** — see [admin-ui/configuration.md](admin-ui/configuration.md).
 
-**Raspberry Pi:** Same flow on 64-bit or 32-bit Raspberry Pi OS using prebuilt ARM binaries (see [getting-started.md](getting-started.md)).
+**Field board:** Raspberry Pi 5, 8 GB, 64-bit OS (Ferrum ADR-026). Prebuilt `aarch64` binaries: [getting-started.md](getting-started.md). The `armv7` binary is a compile target for older 32-bit boards and is not the field board.
 
 **Limitations:** Service-registry still needs PostgreSQL unless you use Docker `just up-sqlite` instead. Not suitable for multi-user production load on SQLite.
 
@@ -98,8 +98,8 @@ Mismatch between `external_url` and what clients use breaks JWT validation in cl
 
 | Method | Notes |
 |--------|-------|
-| Native binary | `install.sh` on Pi OS; prefer 64-bit OS |
-| Docker | Build or pull `linux/arm64` / `linux/arm/v7` images when publishing multi-arch (see [docker/README.md](../docker/README.md)) |
-| Source build | `cargo build --release -p ga4gh-infra-cli` on the Pi directly (slow but simple) |
+| Native binary | `install.sh` on the field board: Raspberry Pi OS 64-bit or Ubuntu 24.04 ARM64 |
+| Docker | `linux/arm64` image for that board (see [docker/README.md](../docker/README.md)) |
+| Source build | `cargo build --release -p ga4gh-infra-cli` on the Pi (slow) |
 
 Release binaries: `aarch64-unknown-linux-gnu`, `armv7-unknown-linux-gnueabihf` ([versioning.md](versioning.md)).

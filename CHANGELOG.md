@@ -4,6 +4,7 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+- **Field board** — Africa and ARM docs name the same board as Ferrum ADR-026: Raspberry Pi 5, 8 GB, 64-bit. The `armv7` binary stays a compile target, not that board.
 - **cargo-audit:** `h2` 0.4.19 (RUSTSEC-2026-0258), `event-listener` 5.4.2 (RUSTSEC-2026-0221). `rustls-pemfile` unmaintained (RUSTSEC-2025-0134) is transitive via bollard → testcontainers (dev/integration only); ignored like tokio-tar.
 - HelixTest pin **v0.1.3** (suite tag; SHA in `VERSIONS.lock`). Helix is the VERIFY brand around that CLI (not a third SKU). Helm chart labelled **SKETCH**.
 - Historical `docker/secrets/*.pem` remain in git objects. **History rewrite is not planned** (accepted residual risk, 2026-08-17). `make prepare-secrets` per clone; never reuse old PEMs.

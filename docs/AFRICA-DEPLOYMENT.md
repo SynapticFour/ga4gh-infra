@@ -12,7 +12,9 @@ Resource-constrained and offline-first deployment profile for the GA4GH **identi
 | **Co-deploy ports** | 8180–8190 block avoids clash with Ferrum on 8080 |
 | **`GA4GH_OFFLINE=1`** | Shortcut equivalent to Ferrum's `FERRUM_OFFLINE=1` |
 
-## Quick start (Raspberry Pi / laptop)
+## Quick start (field board or laptop)
+
+The field board, when this plane sits next to Ferrum, is a Raspberry Pi 5, 8 GB, 64-bit, data on USB SSD or NVMe (Ferrum ADR-026). The all-in-one process itself is small. The board is still that Pi, because Ferrum’s share of the 8 GB is 3072 MB.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SynapticFour/ga4gh-infra/main/scripts/install.sh | sh
@@ -66,11 +68,11 @@ See [Ferrum-Lab-Kit co-deploy profiles](https://github.com/SynapticFour/Ferrum-L
 
 ## Resource guidance
 
-| Profile | RAM | Notes |
-|---------|-----|-------|
-| Minimum | 512 MB | Broker + SQLite registries only |
-| Recommended (Pi 4/5) | 1 GB | All-in-one with embedded mock IdP |
-| With Ferrum co-deploy | 4 GB+ | Ferrum laptop + ga4gh-infra africa |
+| Profile | Process size | Board |
+|---------|---------------|-------|
+| Broker + SQLite registries | about 512 MB | Same field board when co-deployed: Pi 5, 8 GB, 64-bit |
+| All-in-one with embedded mock IdP | about 1 GB | Same board |
+| With Ferrum | Ferrum capped at 3072 MB, this plane beside it | Raspberry Pi 5, 8 GB, 64-bit, USB SSD or NVMe |
 
 ## Preflight
 
