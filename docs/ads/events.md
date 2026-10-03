@@ -1,6 +1,6 @@
 # ADS event model
 
-ADS emits immutable audit events to the `audit_events` table and structured logs.
+ADS emits audit events to the `audit_events` SQL table and structured logs. `GET /audit/events` returns those rows. This is not a hash chain.
 
 ## Event types
 

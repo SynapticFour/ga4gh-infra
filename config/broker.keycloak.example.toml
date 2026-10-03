@@ -20,6 +20,11 @@ token_lifetime_seconds = 900
 cookie_secret_env = "BROKER_COOKIE_SECRET"
 session_lifetime_seconds = 600
 
+# Optional. PEM CA added to bundled webpki roots for upstream OIDC.
+# Unset keeps webpki roots only. SSL_CERT_FILE is not read. ADR-003.
+# [tls]
+# extra_ca_bundle = "/secrets/idp-ca.pem"
+
 # Keycloak confidential client — Authorization Code + PKCE (broker default).
 [[upstream_idps]]
 name = "keycloak"

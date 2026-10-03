@@ -37,7 +37,7 @@ Compose reads `--env-file docker/.env.example` by default in CI; use `docker/.en
 | Compose file | Database | Use case |
 |--------------|----------|----------|
 | `docker-compose.yml` | PostgreSQL for visa-registry, service-registry, and ADS | Full stack (CI, e2e, dev) |
-| `docker-compose.sqlite.yml` | SQLite volume for visa-registry; PostgreSQL for service-registry only | Lighter local deployment |
+| `docker-compose.sqlite.yml` | SQLite for visa-registry, service-registry, and ADS (`driver = "sqlite"` in the `*.sqlite.toml` files). No Postgres service in this file. | Lighter local deployment |
 | `docker-compose.prod.example.yml` | PostgreSQL; no mock-idp | Production reference (see [docs/production-deployment.md](../docs/production-deployment.md)) |
 
 TLS termination examples: [`reverse-proxy/`](reverse-proxy/README.md).
@@ -49,6 +49,10 @@ just up
 # or
 docker compose -f docker/docker-compose.yml --env-file docker/.env.example up --build --wait
 ```
+
+Minimal SQLite set, when the rest of the Compose file is not required: aai-broker, visa-registry, and service-registry, using `docker/config/broker.sqlite.toml`, `visa-registry.sqlite.toml`, and `service-registry.sqlite.toml`. Published host ports on the sqlite Compose file are **8180** (broker), **8181** (visa-registry), and **8183** (service-registry). Container ports stay 8080, 8081, and 8083. The sqlite Compose file also starts mock-idp, duo, ADS, sample-resource, agreement-registry, and admin-ui. Those are not part of that three-service set.
+
+RSS for those three processes was not measured here. A planning estimate of about 128 MB per idle process (about 384 MB together, before the OS) is an estimate, not a measurement.
 
 SQLite variant:
 

@@ -24,8 +24,20 @@ Full broker TOML: [`config/broker.keycloak.example.toml`](../config/broker.keycl
 5. Create groups `ga4gh-infra-admins` and your DAC group names; assign users.
 6. Client secret → `MY_INSTITUTE_CLIENT_SECRET`.
 7. Issuer must match realm URL exactly: `https://idp.example.org/realms/your-realm`.
+8. `claim_mapping.sub = "sub"`. Passport `sub` is that mapped claim. The example client is confidential, scopes are `openid`, `profile`, and `email`.
 
 Optional: mapper for `eduperson_scoped_affiliation` if you populate `claim_mapping.affiliation`.
+
+### Private CA
+
+OIDC discovery and the JWKS fetch use the broker's reqwest client. That client is rustls with bundled webpki roots (`rustls-tls` → `rustls-tls-webpki-roots`). It does not use `rustls-native-certs` and it does not read `SSL_CERT_FILE`.
+
+```toml
+[tls]
+extra_ca_bundle = "/secrets/idp-ca.pem"
+```
+
+Unset keeps webpki roots only. A path that is missing or has no `CERTIFICATE` block refuses to start. ADR-003. Visa-source and ADS clients are separate and do not load this file.
 
 ## Microsoft Entra ID
 

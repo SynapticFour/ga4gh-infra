@@ -215,7 +215,9 @@ email = "email"
 affiliation = "eduperson_scoped_affiliation"
 ```
 
-Adjust `claim_mapping` to match attributes your IdP releases (eduPerson, VO entitlements, etc.). The broker maps upstream claims to `ResearcherIdentity` before collecting visas.
+Adjust `claim_mapping` to match attributes your IdP releases (eduPerson, VO entitlements, etc.). The broker maps upstream claims to `ResearcherIdentity` before collecting visas. Passport `sub` is that mapped `sub` claim (`claim_mapping.sub = "sub"` in the Keycloak example). There is no separate broker subject.
+
+An on-prem IdP signed by a private CA needs `tls.extra_ca_bundle` (ADR-003). The broker HTTP client uses bundled webpki roots. It does not read `SSL_CERT_FILE` or the operating-system store. Leave the field unset for a public IdP.
 
 ### Microsoft Entra ID (brief)
 
@@ -287,7 +289,7 @@ Register services from an internal network only (CI job, `register-service.sh` b
 
 Monitor: HTTP 5xx rates, Postgres connection errors, JWKS fetch failures in resource service logs, disk usage on Postgres volumes.
 
-Structured audit logging on Passport issuance is **not** yet implemented — see [roadmap.md](roadmap.md) Phase 13.
+Passport issuance writes structured JSON logs with `audit=true`. That matches [roadmap.md](roadmap.md) Phase 13. Those log lines, and ADS `audit_events` rows from `GET /audit/events`, are SQL and JSON. They are not a hash chain.
 
 ---
 
