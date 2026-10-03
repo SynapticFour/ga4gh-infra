@@ -88,6 +88,8 @@ pub async fn callback(
         &identity,
         &visas,
         state.config.signing.passport_lifetime_seconds,
+        &state.config.token_claims,
+        state.visa_verifier.as_ref(),
     )?;
     let visa_jtis: Vec<String> = visas
         .iter()

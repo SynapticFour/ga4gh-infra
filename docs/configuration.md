@@ -71,6 +71,22 @@ Maps upstream JWT claim names to GA4GH identity fields (`sub`, `email`, `affilia
 
 When configured, the broker calls `POST /ads/v1/researchers/sync` after upstream login and merges signed visas from `GET /ads/v1/researchers/:id/signed-visas` into the Passport.
 
+### `[token_claims]` (optional)
+
+Default off. Off leaves passport bytes as they are today: `groups` comes from the verified upstream ID token, `aud` is omitted, and visa JWTs are embedded without a signature check. See [ADR-004](DECISIONS.md).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `enabled` | bool | Default `false`. When `true`, `claim_name` is filled only from signature-checked visas |
+| `claim_name` | string | Passport claim for those values. Default `groups` |
+| `visa_type` | string | `ga4gh_visa_v1.type` to copy. Default `AffiliationAndRole` |
+| `audiences` | string[] | At most one. Empty omits `aud`. Written only when `enabled` is true. More than one refuses startup even when `enabled` is false |
+| `jwks_file` | path | Visa-issuer JWKS. Required when `enabled` or `verify_embedded_visas` is true, unless `jwks_url` is set |
+| `jwks_url` | URL | Same JWKS fetched at startup. A down URL fails startup. Not fetched when both switches are off |
+| `verify_embedded_visas` | bool | Default `false`. When `true`, visas that fail the same check are dropped before embedding. Example configs leave this off |
+
+One audience is shared by every resource server that accepts it. A token valid for one of them is valid for the others. The check is RS256 against that JWKS. The visa `jku` header is ignored. A visa whose `sub` is not the passport subject contributes nothing. Upstream ID token groups are not copied into the flat claim while `enabled` is true.
+
 ---
 
 ## visa-registry

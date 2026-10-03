@@ -15,6 +15,7 @@ pub mod profile;
 pub mod session;
 pub mod startup;
 pub mod upstream;
+pub mod visa_verify;
 pub mod visas;
 
 #[cfg(test)]

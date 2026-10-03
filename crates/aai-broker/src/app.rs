@@ -45,6 +45,8 @@ pub struct AppState {
     pub login_limiter: SlidingWindowLimiter,
     /// Issued and revoked Passport JTIs.
     pub passport_ledger: PassportLedger,
+    /// Visa-issuer keys. Present only when a token-claims switch is on.
+    pub visa_verifier: Option<crate::visa_verify::VisaVerifier>,
 }
 
 impl AppState {
@@ -55,6 +57,9 @@ impl AppState {
         })?;
         config
             .reject_insecure_bootstrap_secrets()
+            .map_err(crate::error::BrokerError::Config)?;
+        config
+            .validate_token_claims()
             .map_err(crate::error::BrokerError::Config)?;
         let keys = SigningKeys::from_pem_file(&config.signing.private_key_pem)?;
         let mut keys = keys;
@@ -97,6 +102,18 @@ impl AppState {
                 .as_ref()
                 .map(std::path::PathBuf::from),
         );
+        let visa_verifier = if config.token_claims.needs_verifier() {
+            Some(
+                crate::visa_verify::VisaVerifier::load(
+                    config.token_claims.jwks_file.as_deref(),
+                    config.token_claims.jwks_url.as_deref(),
+                    &http_client,
+                )
+                .await?,
+            )
+        } else {
+            None
+        };
 
         Ok(Arc::new(Self {
             sessions: SessionManager::new(
@@ -113,6 +130,7 @@ impl AppState {
             http_client,
             login_limiter,
             passport_ledger,
+            visa_verifier,
         }))
     }
 }

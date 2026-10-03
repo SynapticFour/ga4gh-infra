@@ -149,6 +149,8 @@ mod tests {
             &identity,
             &["visa-jwt".to_string()],
             3600,
+            &crate::config::TokenClaimsConfig::default(),
+            None,
         )
         .expect("mint");
         let token = minted.jwt;

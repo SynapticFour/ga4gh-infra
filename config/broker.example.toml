@@ -39,6 +39,19 @@ url = "http://visa-registry:8081"
 api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
 required = true
 
+# Flat claim from signature-checked visas. Off keeps today's passport:
+# groups come from the upstream ID token, aud is omitted, and visas are
+# embedded without a signature check. One audience is shared by every
+# resource server that accepts it, so a token valid for one is valid for
+# the others. verify_embedded_visas stays off.
+[token_claims]
+enabled = false
+verify_embedded_visas = false
+# claim_name = "groups"
+# visa_type = "AffiliationAndRole"
+# audiences = ["https://resources.example.org"]
+# jwks_file = "/secrets/visa-issuer.jwks.json"
+
 # Optional ADS integration (researcher sync + signed visa export).
 # [ads]
 # url = "http://access-decision-service:8090"

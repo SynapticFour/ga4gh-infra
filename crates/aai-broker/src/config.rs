@@ -27,6 +27,9 @@ pub struct BrokerConfig {
     /// Upstream TLS trust. Absent means bundled webpki roots only.
     #[serde(default)]
     pub tls: TlsConfig,
+    /// Optional flat claim and audience. Absent leaves passport bytes unchanged.
+    #[serde(default)]
+    pub token_claims: TokenClaimsConfig,
 }
 
 /// Extra trust anchors for upstream OIDC HTTP.
@@ -161,6 +164,119 @@ fn default_ads_api_key_env() -> String {
     "ADS_DAC_API_KEY".to_string()
 }
 
+fn default_claim_name() -> String {
+    "groups".to_string()
+}
+
+fn default_visa_type() -> String {
+    "AffiliationAndRole".to_string()
+}
+
+/// Flat claim taken from signature-checked visas, plus the shared audience.
+///
+/// Both switches default off. Off keeps today's passport: upstream `groups`,
+/// no `aud`, and visa strings embedded without a signature check.
+#[derive(Debug, Clone, Deserialize)]
+pub struct TokenClaimsConfig {
+    /// When true, fill `claim_name` only from checked visas of `visa_type`.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Passport claim that receives the visa values. Default `groups`.
+    #[serde(default = "default_claim_name")]
+    pub claim_name: String,
+    /// `ga4gh_visa_v1.type` whose `value` is copied into the flat claim.
+    #[serde(default = "default_visa_type")]
+    pub visa_type: String,
+    /// At most one audience. Empty omits `aud`. Written only when `enabled`.
+    #[serde(default)]
+    pub audiences: Vec<String>,
+    /// When true, drop visa JWTs that fail the signature check before embedding.
+    /// Default off. Example configs leave it off.
+    #[serde(default)]
+    pub verify_embedded_visas: bool,
+    /// Visa-issuer JWKS file. Mutually exclusive with `jwks_url`.
+    #[serde(default)]
+    pub jwks_file: Option<String>,
+    /// Visa-issuer JWKS URL, fetched at startup. Mutually exclusive with `jwks_file`.
+    #[serde(default)]
+    pub jwks_url: Option<String>,
+}
+
+impl Default for TokenClaimsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            claim_name: default_claim_name(),
+            visa_type: default_visa_type(),
+            audiences: Vec::new(),
+            verify_embedded_visas: false,
+            jwks_file: None,
+            jwks_url: None,
+        }
+    }
+}
+
+impl TokenClaimsConfig {
+    /// True when startup must load the visa-issuer JWKS.
+    pub fn needs_verifier(&self) -> bool {
+        self.enabled || self.verify_embedded_visas
+    }
+
+    /// Reject a config that would mint an ambiguous or unchecked token.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.audiences.len() > 1 {
+            return Err(
+                "token_claims.audiences accepts at most one audience; that audience is shared by every resource server that accepts it, so a token valid for one is valid for the others"
+                    .to_string(),
+            );
+        }
+        if self.audiences.iter().any(|aud| aud.trim().is_empty()) {
+            return Err("token_claims.audiences contains an empty audience".to_string());
+        }
+        if self.claim_name.trim().is_empty() {
+            return Err("token_claims.claim_name is empty".to_string());
+        }
+        const RESERVED: &[&str] = &[
+            "sub",
+            "iss",
+            "aud",
+            "exp",
+            "iat",
+            "jti",
+            "nbf",
+            "scope",
+            "email",
+            "name",
+            "ga4gh_passport_v1",
+        ];
+        if RESERVED.contains(&self.claim_name.as_str()) {
+            return Err(format!(
+                "token_claims.claim_name {} collides with a passport claim",
+                self.claim_name
+            ));
+        }
+        if self.visa_type.trim().is_empty() {
+            return Err("token_claims.visa_type is empty".to_string());
+        }
+        if self.needs_verifier() {
+            match (self.jwks_file.as_deref(), self.jwks_url.as_deref()) {
+                (Some(file), None) if !file.trim().is_empty() => {}
+                (None, Some(url)) if !url.trim().is_empty() => {}
+                (Some(_), Some(_)) => {
+                    return Err("token_claims accepts jwks_file or jwks_url, not both".to_string());
+                }
+                _ => {
+                    return Err(
+                        "token_claims.enabled or verify_embedded_visas requires jwks_file or jwks_url"
+                            .to_string(),
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl BrokerConfig {
     /// Load configuration from a TOML file, resolving `*_env` fields from the environment.
     pub fn load_from_file(path: impl AsRef<Path>) -> Result<Self, config::ConfigError> {
@@ -234,6 +350,11 @@ impl BrokerConfig {
         }
         Ok(())
     }
+
+    /// Audience and visa-verifier rules from ADR-004. Runs even when the feature is off.
+    pub fn validate_token_claims(&self) -> Result<(), String> {
+        self.token_claims.validate()
+    }
 }
 
 #[cfg(test)]
@@ -289,5 +410,51 @@ mod tests {
             "REGISTRY_BOOTSTRAP_API_KEY"
         );
         assert!(config.visa_sources[0].required);
+        assert!(!config.token_claims.enabled);
+        assert!(!config.token_claims.verify_embedded_visas);
+        assert!(config.token_claims.audiences.is_empty());
+        assert!(config.validate_token_claims().is_ok());
+    }
+
+    #[test]
+    fn two_audiences_fail_even_when_the_feature_is_off() {
+        let claims = TokenClaimsConfig {
+            audiences: vec![
+                "https://a.example".to_string(),
+                "https://b.example".to_string(),
+            ],
+            ..TokenClaimsConfig::default()
+        };
+        assert!(claims.validate().is_err());
+    }
+
+    #[test]
+    fn one_audience_is_accepted_and_a_missing_jwks_is_rejected_only_when_needed() {
+        let claims = TokenClaimsConfig {
+            audiences: vec!["https://resources.example".to_string()],
+            ..TokenClaimsConfig::default()
+        };
+        assert!(claims.validate().is_ok());
+        let claims = TokenClaimsConfig {
+            enabled: true,
+            audiences: vec!["https://resources.example".to_string()],
+            ..TokenClaimsConfig::default()
+        };
+        assert!(claims.validate().is_err());
+        let claims = TokenClaimsConfig {
+            enabled: true,
+            audiences: vec!["https://resources.example".to_string()],
+            jwks_file: Some("/secrets/visa.jwks.json".to_string()),
+            ..TokenClaimsConfig::default()
+        };
+        assert!(claims.validate().is_ok());
+        let claims = TokenClaimsConfig {
+            enabled: true,
+            audiences: vec!["https://resources.example".to_string()],
+            jwks_file: Some("/secrets/visa.jwks.json".to_string()),
+            jwks_url: Some("https://visa.example/jwks.json".to_string()),
+            ..TokenClaimsConfig::default()
+        };
+        assert!(claims.validate().is_err());
     }
 }
