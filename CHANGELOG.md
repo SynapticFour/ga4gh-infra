@@ -1,17 +1,20 @@
 # Changelog (workspace)
 
-Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.3` and Compose/GHCR image tags are **`0.2.3`**. **Do not install `ga4gh-infra-v0.1.0`.**
+Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.4` and Compose/GHCR image tags are **`0.2.4`**. **Do not install `ga4gh-infra-v0.1.0`.**
 
 ## [Unreleased]
 
-Proposed tag: `ga4gh-infra-v0.2.4`. The tag is not created in this change. Image tags would be `:0.2.4`.
+## [ga4gh-infra-v0.2.4] - 2026-10-03
+
+Image tags are `:0.2.4`. Crate `version` stays `0.1.0`. The git tag is not created in this commit.
 
 - **Upstream TLS** — optional `tls.extra_ca_bundle` adds a PEM CA to the broker's bundled webpki roots for OIDC discovery, token exchange, userinfo, and JWKS. Unset is unchanged. `SSL_CERT_FILE` is not read. ADR-003.
 - **Service registry liveness** — `GET /services` returns the server `updatedAt` and a `stale` flag. `stale_after_seconds` unset means nothing is stale. Set it to at least twice a registrant's heartbeat. Rows are not deleted. `?type=` matches `type.artifact`. `POST` stays an upsert. `DELETE` stays key-authenticated.
 - **Passport token claims** — `[token_claims]` stays off. On, the flat claim (default `groups`, default visa type `AffiliationAndRole`) comes only from RS256-checked visas, and upstream ID token groups are not copied. One audience is a string `aud` shared by every resource server that accepts it. `verify_embedded_visas` can drop unchecked visas before embedding and stays off. ADR-004.
 - **Docs** — Passport `audit=true` JSON is implemented. SQLite Compose does not use Postgres for service-registry. Keycloak `sub` mapping, the three-service sqlite set, and that audit rows are not a hash chain.
 - **Field board** — Africa and ARM docs name the same board as Ferrum ADR-026: Raspberry Pi 5, 8 GB, 64-bit. The `armv7` binary stays a compile target, not that board.
-- **cargo-audit:** `h2` 0.4.19 (RUSTSEC-2026-0258), `event-listener` 5.4.2 (RUSTSEC-2026-0221). `rustls-pemfile` unmaintained (RUSTSEC-2025-0134) is transitive via bollard → testcontainers (dev/integration only); ignored like tokio-tar.
+- **cargo-audit:** `h2` 0.4.19 (RUSTSEC-2026-0258), `event-listener` 5.4.2 (RUSTSEC-2026-0221), `rustls` 0.23.45 (RUSTSEC-2026-0285). `rustls-pemfile` unmaintained (RUSTSEC-2025-0134) is transitive via bollard → testcontainers (dev/integration only); ignored like tokio-tar.
+- **CI** — push to `main` and pull requests run secret scan and dependency review. Product CI is `workflow_dispatch`. `make verify-release` is the local gate before `ga4gh-infra-v*`.
 - HelixTest pin **v0.1.3** (suite tag; SHA in `VERSIONS.lock`). Helix is the VERIFY brand around that CLI (not a third SKU). Helm chart labelled **SKETCH**.
 - Historical `docker/secrets/*.pem` remain in git objects. **History rewrite is not planned** (accepted residual risk, 2026-08-17). `make prepare-secrets` per clone; never reuse old PEMs.
 - **Release Binaries:** install the 1.91.1 target (not `@stable` vs `rust-toolchain.toml`), cross-compile Intel macOS on `macos-latest`, and allow `workflow_dispatch` to attach assets to an existing `ga4gh-infra-v*` tag.
