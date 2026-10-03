@@ -58,6 +58,7 @@ mod tests {
                 external_url: "https://registry.example.org".to_string(),
                 environment: "prod".to_string(),
                 read_only: true,
+                stale_after_seconds: None,
             },
             database: DatabaseConfig {
                 driver: DatabaseDriver::Postgres,

@@ -27,6 +27,7 @@ sqlite = ["sqlx/sqlite"]
 
 [dependencies]
 ga4gh-types = { workspace = true }
+chrono = { workspace = true }
 anyhow = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }

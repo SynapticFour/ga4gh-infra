@@ -7,6 +7,7 @@ Identity-plane hardening for institute production. Application crates remain at 
 Proposed tag: `ga4gh-infra-v0.2.4`. The tag is not created in this change. Image tags would be `:0.2.4`.
 
 - **Upstream TLS** — optional `tls.extra_ca_bundle` adds a PEM CA to the broker's bundled webpki roots for OIDC discovery, token exchange, userinfo, and JWKS. Unset is unchanged. `SSL_CERT_FILE` is not read. ADR-003.
+- **Service registry liveness** — `GET /services` returns the server `updatedAt` and a `stale` flag. `stale_after_seconds` unset means nothing is stale. Set it to at least twice a registrant's heartbeat. Rows are not deleted. `?type=` matches `type.artifact`. `POST` stays an upsert. `DELETE` stays key-authenticated.
 - **Docs** — Passport `audit=true` JSON is implemented. SQLite Compose does not use Postgres for service-registry. Keycloak `sub` mapping, the three-service sqlite set, and that audit rows are not a hash chain.
 - **Field board** — Africa and ARM docs name the same board as Ferrum ADR-026: Raspberry Pi 5, 8 GB, 64-bit. The `armv7` binary stays a compile target, not that board.
 - **cargo-audit:** `h2` 0.4.19 (RUSTSEC-2026-0258), `event-listener` 5.4.2 (RUSTSEC-2026-0221). `rustls-pemfile` unmaintained (RUSTSEC-2025-0134) is transitive via bollard → testcontainers (dev/integration only); ignored like tokio-tar.

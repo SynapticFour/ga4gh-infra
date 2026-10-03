@@ -32,6 +32,11 @@ pub struct ServerConfig {
     /// When true, registration write endpoints are disabled.
     #[serde(default)]
     pub read_only: bool,
+    /// Age in seconds after which `GET` marks a row `stale`. Unset means every row is fresh.
+    /// Set this to at least twice the heartbeat interval of the services that register here.
+    /// Rows are not deleted.
+    #[serde(default)]
+    pub stale_after_seconds: Option<u64>,
 }
 
 fn default_environment() -> String {
@@ -164,6 +169,7 @@ mod tests {
             .expect("parse config");
 
         assert!(config.server.read_only);
+        assert!(config.server.stale_after_seconds.is_none());
         assert_eq!(config.external_url(), "https://registry.example.org");
         assert_eq!(config.database.driver, DatabaseDriver::Sqlite);
         assert_eq!(

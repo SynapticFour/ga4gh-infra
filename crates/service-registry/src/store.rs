@@ -187,57 +187,65 @@ impl ServiceStore {
         Ok(())
     }
 
-    /// List all registered services.
+    /// List all registered services with the server write timestamp.
     #[instrument(skip(self))]
-    pub async fn list(&self) -> Result<Vec<ExternalService>, RegistryError> {
-        let rows: Vec<(String,)> = match &self.pool {
+    pub async fn list(&self) -> Result<Vec<StoredService>, RegistryError> {
+        let rows: Vec<(String, i64)> = match &self.pool {
             #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query_as("SELECT service_info FROM registered_services ORDER BY id ASC")
-                    .fetch_all(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?
-            }
+            DbPool::Postgres(pool) => sqlx::query_as(
+                "SELECT service_info, updated_at FROM registered_services ORDER BY id ASC",
+            )
+            .fetch_all(pool)
+            .await
+            .map_err(|err| RegistryError::Database(err.to_string()))?,
             #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query_as("SELECT service_info FROM registered_services ORDER BY id ASC")
-                    .fetch_all(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?
-            }
+            DbPool::Sqlite(pool) => sqlx::query_as(
+                "SELECT service_info, updated_at FROM registered_services ORDER BY id ASC",
+            )
+            .fetch_all(pool)
+            .await
+            .map_err(|err| RegistryError::Database(err.to_string()))?,
         };
 
         rows.into_iter()
-            .map(|(value,)| decode_service(value))
+            .map(|(value, updated_at)| {
+                decode_service(value).map(|service| StoredService {
+                    service,
+                    updated_at,
+                })
+            })
             .collect()
     }
 
-    /// Fetch a single registered service by id.
+    /// Fetch a single registered service by id, with the server write timestamp.
     #[instrument(skip(self))]
-    pub async fn get(&self, service_id: &str) -> Result<ExternalService, RegistryError> {
-        let row: Option<(String,)> = match &self.pool {
+    pub async fn get(&self, service_id: &str) -> Result<StoredService, RegistryError> {
+        let row: Option<(String, i64)> = match &self.pool {
             #[cfg(feature = "postgres")]
-            DbPool::Postgres(pool) => {
-                sqlx::query_as("SELECT service_info FROM registered_services WHERE id = $1")
-                    .bind(service_id)
-                    .fetch_optional(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?
-            }
+            DbPool::Postgres(pool) => sqlx::query_as(
+                "SELECT service_info, updated_at FROM registered_services WHERE id = $1",
+            )
+            .bind(service_id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|err| RegistryError::Database(err.to_string()))?,
             #[cfg(feature = "sqlite")]
-            DbPool::Sqlite(pool) => {
-                sqlx::query_as("SELECT service_info FROM registered_services WHERE id = ?1")
-                    .bind(service_id)
-                    .fetch_optional(pool)
-                    .await
-                    .map_err(|err| RegistryError::Database(err.to_string()))?
-            }
+            DbPool::Sqlite(pool) => sqlx::query_as(
+                "SELECT service_info, updated_at FROM registered_services WHERE id = ?1",
+            )
+            .bind(service_id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|err| RegistryError::Database(err.to_string()))?,
         };
 
-        let Some((value,)) = row else {
+        let Some((value, updated_at)) = row else {
             return Err(RegistryError::NotFound);
         };
-        decode_service(value)
+        decode_service(value).map(|service| StoredService {
+            service,
+            updated_at,
+        })
     }
 
     /// List distinct service types across all registered services.
@@ -247,14 +255,14 @@ impl ServiceStore {
         let mut seen = HashSet::new();
         let mut types = Vec::new();
 
-        for service in services {
+        for stored in services {
             let key = (
-                service.info.r#type.group.clone(),
-                service.info.r#type.artifact.clone(),
-                service.info.r#type.version.clone(),
+                stored.service.info.r#type.group.clone(),
+                stored.service.info.r#type.artifact.clone(),
+                stored.service.info.r#type.version.clone(),
             );
             if seen.insert(key) {
-                types.push(service.info.r#type);
+                types.push(stored.service.info.r#type);
             }
         }
 
@@ -269,11 +277,19 @@ impl ServiceStore {
     }
 }
 
+/// A stored registration plus the server clock written on insert or upsert.
+pub struct StoredService {
+    /// JSON the registrant posted. `updatedAt` inside it is not the liveness clock.
+    pub service: ExternalService,
+    /// Unix seconds in the `updated_at` column.
+    pub updated_at: i64,
+}
+
 fn decode_service(value: String) -> Result<ExternalService, RegistryError> {
     serde_json::from_str(&value).map_err(|err| RegistryError::Database(err.to_string()))
 }
 
-fn unix_now() -> i64 {
+pub(crate) fn unix_now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs() as i64)
@@ -338,12 +354,14 @@ mod tests {
 
         store.upsert(&service).await.expect("upsert");
         let listed = store.list().await.expect("list");
-        assert!(listed.iter().any(|entry| entry.info.id == service.info.id));
+        assert!(listed
+            .iter()
+            .any(|entry| entry.service.info.id == service.info.id));
 
         service.info.version = "0.2.0".to_string();
         store.upsert(&service).await.expect("update");
         let fetched = store.get(&service.info.id).await.expect("get");
-        assert_eq!(fetched.info.version, "0.2.0");
+        assert_eq!(fetched.service.info.version, "0.2.0");
 
         let types = store.list_types().await.expect("types");
         assert!(types.iter().any(|ty| ty.artifact == "passport"));
@@ -372,7 +390,8 @@ mod tests {
         store.upsert(&service).await.expect("upsert");
 
         let fetched = store.get(&service.info.id).await.expect("get");
-        assert_eq!(fetched.info.id, service.info.id);
+        assert_eq!(fetched.service.info.id, service.info.id);
+        assert!(fetched.updated_at > 0);
 
         let types = store.list_types().await.expect("types");
         assert_eq!(types.len(), 1);

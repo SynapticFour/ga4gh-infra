@@ -4,24 +4,45 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use ga4gh_types::ServiceType;
+use serde::Deserialize;
 use tracing::instrument;
 
 use crate::app::AppState;
 use crate::auth::verify_registration_key;
 use crate::error::RegistryError;
-use crate::types::ExternalService;
+use crate::store::unix_now;
+use crate::types::{present_service, ExternalService, ServiceView};
+
+/// Query parameters for `GET /services`.
+#[derive(Debug, Default, Deserialize)]
+pub struct ListServicesQuery {
+    /// Exact `type.artifact` match. Absent returns every row.
+    #[serde(default, rename = "type")]
+    pub type_artifact: Option<String>,
+}
 
 /// List all registered GA4GH services.
 #[instrument(skip(state))]
 pub async fn list_services(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<ExternalService>>, RegistryError> {
-    let services = state.store.list().await?;
-    Ok(Json(services))
+    Query(query): Query<ListServicesQuery>,
+) -> Result<Json<Vec<ServiceView>>, RegistryError> {
+    let now = unix_now();
+    let age = state.config.server.stale_after_seconds;
+    let mut views = Vec::new();
+    for stored in state.store.list().await? {
+        if let Some(artifact) = query.type_artifact.as_deref() {
+            if stored.service.info.r#type.artifact != artifact {
+                continue;
+            }
+        }
+        views.push(present_service(stored, now, age));
+    }
+    Ok(Json(views))
 }
 
 /// Fetch a registered service by id.
@@ -29,9 +50,13 @@ pub async fn list_services(
 pub async fn get_service(
     State(state): State<Arc<AppState>>,
     Path(service_id): Path<String>,
-) -> Result<Json<ExternalService>, RegistryError> {
-    let service = state.store.get(&service_id).await?;
-    Ok(Json(service))
+) -> Result<Json<ServiceView>, RegistryError> {
+    let stored = state.store.get(&service_id).await?;
+    Ok(Json(present_service(
+        stored,
+        unix_now(),
+        state.config.server.stale_after_seconds,
+    )))
 }
 
 /// List distinct service types present in the registry.
@@ -125,6 +150,7 @@ mod tests {
                     external_url: "https://registry.example.org".to_string(),
                     environment: "test".to_string(),
                     read_only,
+                    stale_after_seconds: None,
                 },
                 database: DatabaseConfig {
                     driver: DatabaseDriver::Postgres,
@@ -157,5 +183,99 @@ mod tests {
         let state = test_state(false, Some("secret"));
         assert!(ensure_registration_authorized(&state, &headers_with_key("secret")).is_ok());
         assert!(ensure_registration_authorized(&state, &headers_with_key("wrong")).is_err());
+    }
+
+    #[cfg(feature = "sqlite")]
+    #[tokio::test]
+    async fn get_uses_server_time_filters_type_and_marks_stale_without_deleting() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("registry.sqlite");
+        let url = format!("sqlite://{}", path.display());
+        let database = DatabaseConfig {
+            driver: DatabaseDriver::Sqlite,
+            url: Some(url.clone()),
+            url_env: "SERVICE_REGISTRY_DATABASE_URL".to_string(),
+            auto_migrate: true,
+        };
+        let store = ServiceStore::connect(&database, &url)
+            .await
+            .expect("connect");
+        let mut wes = sample_listed("org.example.wes", "wes");
+        wes.info.updated_at = Some("1999-01-01T00:00:00Z".to_string());
+        let drs = sample_listed("org.example.drs", "drsservice");
+        store.upsert(&wes).await.expect("upsert wes");
+        store.upsert(&drs).await.expect("upsert drs");
+        let first = store.get(&wes.info.id).await.expect("get").updated_at;
+        wes.url = "https://wes-2.example.org".to_string();
+        tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
+        store.upsert(&wes).await.expect("reupsert");
+        let second = store.get(&wes.info.id).await.expect("get").updated_at;
+        assert!(second > first, "re-POST must move the server timestamp");
+
+        let mut config = test_state(false, Some("secret")).config;
+        config.server.stale_after_seconds = Some(1);
+        let state = Arc::new(AppState {
+            config,
+            store,
+            registration_key: Some("secret".to_string()),
+        });
+        let Json(filtered) = list_services(
+            State(Arc::clone(&state)),
+            Query(ListServicesQuery {
+                type_artifact: Some("wes".to_string()),
+            }),
+        )
+        .await
+        .expect("list");
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].service.url, "https://wes-2.example.org");
+        assert_ne!(
+            filtered[0].service.info.updated_at.as_deref(),
+            Some("1999-01-01T00:00:00Z")
+        );
+        assert!(!filtered[0].stale, "a re-POST inside the age is not stale");
+        let Json(all) = list_services(
+            State(Arc::clone(&state)),
+            Query(ListServicesQuery {
+                type_artifact: None,
+            }),
+        )
+        .await
+        .expect("list all");
+        assert_eq!(all.len(), 2, "stale rows stay until DELETE");
+        let stored = state.store.get("org.example.drs").await.expect("drs row");
+        let marked = present_service(stored, second + 5, Some(1));
+        assert!(
+            marked.stale,
+            "a row older than stale_after_seconds is marked"
+        );
+    }
+
+    #[cfg(feature = "sqlite")]
+    fn sample_listed(id: &str, artifact: &str) -> ExternalService {
+        use ga4gh_types::{ServiceInfo, ServiceOrganization, ServiceType};
+        ExternalService {
+            info: ServiceInfo {
+                id: id.to_string(),
+                name: id.to_string(),
+                r#type: ServiceType {
+                    group: "org.ga4gh".to_string(),
+                    artifact: artifact.to_string(),
+                    version: "1.0.0".to_string(),
+                },
+                organization: ServiceOrganization {
+                    name: "Example".to_string(),
+                    url: "https://example.org".to_string(),
+                    contact_url: None,
+                },
+                version: "0.1.0".to_string(),
+                description: None,
+                documentation_url: None,
+                created_at: None,
+                updated_at: None,
+                environment: Some("test".to_string()),
+            },
+            url: format!("https://{artifact}.example.org"),
+        }
     }
 }

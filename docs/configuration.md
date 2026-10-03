@@ -145,6 +145,7 @@ File: `service-registry.toml` — see [`config/service-registry.example.toml`](.
 |-------|------|-------------|
 | `host`, `port`, `external_url`, `environment` | | Same as other services |
 | `read_only` | bool | When `true`, reject registration writes (public production mode) |
+| `stale_after_seconds` | number, optional | When set, `GET /services` sets `stale: true` on a row whose server `updatedAt` is older than this many seconds. Unset leaves `stale` false. Use at least twice the heartbeat interval of the services that register. Rows are not deleted |
 
 ### `[database]`
 

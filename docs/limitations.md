@@ -22,6 +22,10 @@ DUO terms are compiled into `duo-service` at **build time**. Live OWL updates fr
 
 SQLite mode (visa-registry) suits demo, desktop, and the field edge board (Raspberry Pi 5, 8 GB, 64-bit, next to Ferrum). It is **not** recommended for multi-writer production clusters. Use PostgreSQL for concurrent DAC/API load.
 
+### Service registry does not expire rows
+
+`POST /services` upserts by id. `GET /services` returns the server's `updatedAt` and a `stale` flag computed at read time from `stale_after_seconds`. Unset means nothing is stale. A stale row stays until `DELETE /services/{id}`. There is no background expiry. Set `stale_after_seconds` to at least twice the heartbeat interval of registrants. `?type=` filters on `type.artifact` exactly.
+
 ### Service-registry SQLite mode
 
 `service-registry` supports **PostgreSQL** (recommended for multi-writer production) and **SQLite** (demo, desktop, single-node edge, and `docker-compose.sqlite.yml` / native all-in-one configs). SQLite is single-writer — not for concurrent multi-node clusters.

@@ -8,6 +8,10 @@ external_url = "https://registry.example.org"
 environment = "dev"
 # When true, registration endpoints reject all write requests (public production mode).
 read_only = false
+# Seconds after which GET marks a row stale. Unset means every row is fresh.
+# Set this to at least twice the heartbeat interval of services that register here.
+# The registry does not delete stale rows. DELETE /services/{id} is still required.
+# stale_after_seconds = 600
 
 [database]
 url_env = "SERVICE_REGISTRY_DATABASE_URL"
