@@ -59,7 +59,16 @@ impl AppState {
         let keys = SigningKeys::from_pem_file(&config.signing.private_key_pem)?;
         let mut keys = keys;
         keys.merge_previous_pems(&config.signing.previous_key_pems)?;
-        let http_client = build_http_client()?;
+        if let Some(path) = config.tls.extra_ca_bundle.as_deref() {
+            tracing::info!(path, "adding extra CA bundle to bundled webpki roots");
+        }
+        let http_client = build_http_client(
+            config
+                .tls
+                .extra_ca_bundle
+                .as_deref()
+                .map(std::path::Path::new),
+        )?;
         let upstream = UpstreamRegistry::discover_all(&config, &http_client).await?;
         let visa_sources = {
             let mut sources = Vec::new();

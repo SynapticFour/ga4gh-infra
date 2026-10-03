@@ -24,6 +24,21 @@ pub struct BrokerConfig {
     /// Optional Access Decision Service integration.
     #[serde(default)]
     pub ads: Option<AdsIntegrationConfig>,
+    /// Upstream TLS trust. Absent means bundled webpki roots only.
+    #[serde(default)]
+    pub tls: TlsConfig,
+}
+
+/// Extra trust anchors for upstream OIDC HTTP.
+///
+/// The broker client uses rustls with the bundled webpki roots. It does not
+/// read the operating-system store or `SSL_CERT_FILE`.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct TlsConfig {
+    /// PEM file of CA certificates added on top of the bundled webpki roots.
+    /// Unset keeps those roots only.
+    #[serde(default)]
+    pub extra_ca_bundle: Option<String>,
 }
 
 /// HTTP server configuration.

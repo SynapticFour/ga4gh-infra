@@ -41,7 +41,7 @@ pub async fn run(config: BrokerConfig) -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{ServerConfig, SessionConfig, SigningConfig};
+    use crate::config::{ServerConfig, SessionConfig, SigningConfig, TlsConfig};
 
     #[test]
     fn rejects_trace_logging_outside_development() {
@@ -71,6 +71,7 @@ mod tests {
             upstream_idps: vec![],
             visa_sources: vec![],
             ads: None,
+            tls: TlsConfig::default(),
         };
 
         assert!(validate_log_level(&config).is_err());

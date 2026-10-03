@@ -226,12 +226,56 @@ impl CoreClientBuilder {
     }
 }
 
-/// Build the shared HTTP client used for upstream OIDC discovery and token exchange.
-pub fn build_http_client() -> Result<Client, BrokerError> {
-    Client::builder()
+/// Build the shared HTTP client used for upstream OIDC discovery, token
+/// exchange, userinfo, and the JWKS fetch those calls perform.
+///
+/// Roots are the bundled webpki set. `extra_ca_bundle`, when set, adds PEM
+/// certificates from that file. `SSL_CERT_FILE` is not read. Verification
+/// stays on.
+pub fn build_http_client(extra_ca_bundle: Option<&std::path::Path>) -> Result<Client, BrokerError> {
+    let mut builder = Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(std::time::Duration::from_secs(10))
-        .connect_timeout(std::time::Duration::from_secs(5))
+        .connect_timeout(std::time::Duration::from_secs(5));
+    if let Some(path) = extra_ca_bundle {
+        let pem = std::fs::read(path).map_err(|err| {
+            BrokerError::Config(format!("tls.extra_ca_bundle {}: {err}", path.display()))
+        })?;
+        let certs = pem_certificates(&pem)?;
+        for cert in certs {
+            builder = builder.add_root_certificate(cert);
+        }
+    }
+    builder
         .build()
         .map_err(|err| BrokerError::Internal(format!("HTTP client: {err}")))
+}
+
+fn pem_certificates(bytes: &[u8]) -> Result<Vec<reqwest::Certificate>, BrokerError> {
+    let text = std::str::from_utf8(bytes)
+        .map_err(|err| BrokerError::Config(format!("tls.extra_ca_bundle is not UTF-8: {err}")))?;
+    let marker = "-----END CERTIFICATE-----";
+    let mut rest = text;
+    let mut certs = Vec::new();
+    while let Some(start) = rest.find("-----BEGIN CERTIFICATE-----") {
+        let after = &rest[start..];
+        let Some(end_rel) = after.find(marker) else {
+            return Err(BrokerError::Config(
+                "tls.extra_ca_bundle has a BEGIN CERTIFICATE without END CERTIFICATE".into(),
+            ));
+        };
+        let end = end_rel + marker.len();
+        let pem = &after.as_bytes()[..end];
+        let cert = reqwest::Certificate::from_pem(pem).map_err(|err| {
+            BrokerError::Config(format!("tls.extra_ca_bundle certificate: {err}"))
+        })?;
+        certs.push(cert);
+        rest = &after[end..];
+    }
+    if certs.is_empty() {
+        return Err(BrokerError::Config(
+            "tls.extra_ca_bundle contains no CERTIFICATE block".into(),
+        ));
+    }
+    Ok(certs)
 }
