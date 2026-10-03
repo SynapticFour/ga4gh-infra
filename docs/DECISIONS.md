@@ -31,3 +31,13 @@ Track important architectural and operational decisions for ga4gh-infra.
 - **Alternatives considered:** Merge broker into Ferrum gateway (rejected: blurs layers); shared Postgres for both (rejected: unnecessary coupling on edge).
 
 ---
+
+### 2026-10-03 - ADR-003: Extra CA bundle for upstream OIDC
+
+- **Status:** Accepted
+- **Context:** The broker's reqwest client is built with `rustls-tls` and bundled webpki roots. It does not load the operating-system trust store and it does not read `SSL_CERT_FILE`. An on-prem IdP whose discovery and JWKS URLs are signed by a private CA fails TLS verification. Disabling verification, or switching the default to native roots, would change trust for every deployment.
+- **Decision:** Optional `tls.extra_ca_bundle` is a PEM file of extra CA certificates added on top of the bundled webpki roots. Unset means webpki roots only. A set path that is missing, unreadable, or has no certificate fails startup. `SSL_CERT_FILE` stays unread. Visa-source and ADS HTTP clients are separate builders and are not changed.
+- **Consequences:** An institute can trust one private CA for upstream OIDC discovery, token exchange, userinfo, and the JWKS fetch those calls make. Public IdPs keep the previous trust set. Operators must not point this at a bundle that replaces or disables the webpki roots.
+- **Alternatives considered:** Honor `SSL_CERT_FILE` whenever it is set (rejected: ambient env would change trust); `danger_accept_invalid_certs` (rejected); rustls-native-certs as the default (rejected: changes the roots this binary already ships).
+
+---
