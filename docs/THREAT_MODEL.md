@@ -50,3 +50,5 @@ See [limitations.md](limitations.md). Passport/visa flows may involve identifiab
 Identity-plane bugs or misconfiguration are **high impact** (they unlock Ferrum). Prefer HelixTest `ferrum+infra` profiles before production cutover.
 
 This document is an internal STRIDE-lite addendum, not a third-party audit. Controls now in code: return_url allowlist, DAC group enforcement, visa `jti` revocation list, Passport denylist (`/revoked-passports`), multi-key JWKS (`previous_key_pems`), login rate limit, security headers, `audit=true` JSON events, checksummed installs. Remaining: bus factor 1 upstream; no third-party audit.
+
+ADR-004: a visa JWT returned by a visa source is embedded without a signature check unless `token_claims.verify_embedded_visas` is on. That option stays off. The optional flat claim, when enabled, uses only visas checked against a configured JWKS and ignores `jku`. One configured audience is shared by every resource server that accepts it, so a token valid for one of them is valid for the others.

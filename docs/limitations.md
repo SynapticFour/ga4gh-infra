@@ -46,6 +46,14 @@ This codebase has **not** undergone an independent third-party security audit. D
 
 ## GA4GH behaviour
 
+### Visa JWTs are embedded without a signature check
+
+The broker copies visa JWTs from a visa source into `ga4gh_passport_v1` without verifying their signatures. It does not read the visa `jku` header. ADR-004 adds `token_claims.verify_embedded_visas` so the same visa verifier can drop a visa before embedding. That option defaults to off, and the example configs leave it off. A resource server that trusts an embedded visa has to verify it, or the operator turns the option on and configures the visa issuer JWKS.
+
+### One passport audience is shared
+
+`PassportClaims.aud` is one string. When `token_claims.enabled` is on and `audiences` has one value, that value is the token `aud`. Every resource server that accepts it accepts the same token: a token valid for one of them is valid for the others. More than one audience refuses startup. With the feature off, `aud` is omitted and `groups` still comes from the upstream ID token.
+
 ### Visa revocation vs issued Passports
 
 Revoking a visa in the registry (`DELETE /visas/:id`) publishes the assertion id on `GET /revoked-jtis`. Clearinghouses drop matching embedded visas on extract. **Already-minted Passport JWTs remain valid until expiry unless revoked** via broker `POST /revoke-passports` (then `GET /revoked-passports`). Keep `passport_lifetime_seconds` short (900s in production examples) and persist the ledger on a shared volume when running more than one broker replica.
