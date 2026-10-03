@@ -15,7 +15,7 @@ Optional: install [just](https://github.com/casey/just) for Docker workflows (`j
 
 ## Code style
 
-- Rust 2021 edition; `cargo fmt` and `cargo clippy -D warnings` enforced in CI.
+- Rust 2021 edition; `cargo fmt` and `cargo clippy -D warnings` are the `make verify-release` gate before a tag. GitHub product CI is `workflow_dispatch` ([docs/CI.md](CI.md)).
 - SPDX license headers on source files.
 - Public library APIs (`ga4gh-types`, `ga4gh-clearinghouse`) require doc comments (`#![deny(missing_docs)]`).
 - Axum routes use **`:param`** syntax, not `{param}`.
