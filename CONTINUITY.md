@@ -64,7 +64,7 @@ Per `RELEASING.md`:
 
 ## Continuity
 
-ga4gh-infra is maintained by a single steward (Synaptic Four). To reduce dependence on any one person, the build is documented from a clean machine in this file, the release steps are written down, and the source can be inspected and built without access to Synaptic Four systems (clean-room check dated 2026-10; workspace crate versions may remain `0.1.0` while stack tags `ga4gh-infra-v*` advance). Operational details such as accounts, publication rights and escrow arrangements are kept in a non-public continuity plan. If you depend on ga4gh-infra in production, ask for it.
+ga4gh-infra is maintained by a single steward (Synaptic Four). To reduce dependence on any one person, the build is documented from a clean machine in this file, the release steps are written down, and the source can be inspected and built without access to Synaptic Four systems (clean-room check dated 2026-10; workspace crate versions may remain `0.1.0` while stack tags `ga4gh-infra-v*` advance). Operational details such as accounts, publication rights and escrow arrangements are being documented in a non-public continuity plan.
 
 ## Minimal operator runbook
 
