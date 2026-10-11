@@ -12,6 +12,7 @@ use axum::Router;
 use tower_http::trace::TraceLayer;
 
 use crate::ads::AdsClient;
+use crate::auth_codes::AuthCodeStore;
 use crate::config::BrokerConfig;
 use crate::handlers;
 use crate::keys::SigningKeys;
@@ -47,6 +48,8 @@ pub struct AppState {
     pub passport_ledger: PassportLedger,
     /// Visa-issuer keys. Present only when a token-claims switch is on.
     pub visa_verifier: Option<crate::visa_verify::VisaVerifier>,
+    /// One-time codes for `response_mode=query` BFF clients.
+    pub auth_codes: AuthCodeStore,
 }
 
 impl AppState {
@@ -131,6 +134,7 @@ impl AppState {
             login_limiter,
             passport_ledger,
             visa_verifier,
+            auth_codes: AuthCodeStore::default(),
         }))
     }
 }
@@ -141,6 +145,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/login", get(handlers::login_default))
         .route("/login/:idp_name", get(handlers::login_named))
         .route("/callback", get(handlers::callback))
+        .route("/oauth/token", post(handlers::oauth_token))
         .route(
             "/.well-known/openid-configuration",
             get(handlers::openid_configuration),

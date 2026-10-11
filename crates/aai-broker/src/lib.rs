@@ -4,6 +4,7 @@
 
 pub mod ads;
 pub mod app;
+pub mod auth_codes;
 pub mod config;
 pub mod error;
 pub mod handlers;

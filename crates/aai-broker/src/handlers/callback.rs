@@ -14,6 +14,7 @@ use openidconnect::TokenResponse;
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::instrument;
+use url::Url;
 
 use crate::app::AppState;
 use crate::error::BrokerError;
@@ -134,14 +135,47 @@ pub async fn callback(
         "scope": "openid ga4gh_passport_v1",
     });
 
+    let id_token = token_response.id_token().map(|token| token.to_string());
+
     let mut response = if let Some(return_url) = return_url {
-        let fragment = format!(
-            "access_token={}&token_type=Bearer&expires_in={}",
-            urlencoding::encode(&passport_jwt),
-            expires_in
-        );
-        let location = format!("{return_url}#{fragment}");
-        Redirect::temporary(&location).into_response()
+        if session.response_mode == "query" {
+            let challenge = session
+                .code_challenge
+                .clone()
+                .ok_or(BrokerError::AuthenticationFailed)?;
+            let client_state = session
+                .client_state
+                .clone()
+                .ok_or(BrokerError::AuthenticationFailed)?;
+            let client_nonce = session
+                .client_nonce
+                .clone()
+                .ok_or(BrokerError::AuthenticationFailed)?;
+            let code = state.auth_codes.issue(crate::auth_codes::PendingCode {
+                passport_jwt: passport_jwt.clone(),
+                id_token,
+                redirect_uri: return_url.clone(),
+                code_challenge: challenge,
+                client_nonce,
+                passport_exp: exp,
+                created: std::time::Instant::now(),
+            })?;
+            let mut location =
+                Url::parse(&return_url).map_err(|_| BrokerError::AuthenticationFailed)?;
+            location
+                .query_pairs_mut()
+                .append_pair("code", &code)
+                .append_pair("state", &client_state);
+            Redirect::temporary(location.as_str()).into_response()
+        } else {
+            let fragment = format!(
+                "access_token={}&token_type=Bearer&expires_in={}",
+                urlencoding::encode(&passport_jwt),
+                expires_in
+            );
+            let location = format!("{return_url}#{fragment}");
+            Redirect::temporary(&location).into_response()
+        }
     } else if headers
         .get(header::ACCEPT)
         .and_then(|value| value.to_str().ok())
@@ -271,6 +305,10 @@ mod tests {
             nonce: None,
             created_at: unix_now(),
             return_url: None,
+            response_mode: "fragment".to_string(),
+            client_state: None,
+            code_challenge: None,
+            client_nonce: None,
         };
 
         assert!(validate_csrf_state(&session, "expected-state").is_ok());

@@ -106,7 +106,10 @@ pub struct AuthorizationRequest {
 impl UpstreamIdp {
     /// Build an authorization request with PKCE for this upstream IdP.
     #[instrument(skip(self))]
-    pub fn authorization_request(&self) -> Result<AuthorizationRequest, BrokerError> {
+    pub fn authorization_request(
+        &self,
+        login_hint: Option<&str>,
+    ) -> Result<AuthorizationRequest, BrokerError> {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
         let mut request = self
             .client
@@ -119,6 +122,9 @@ impl UpstreamIdp {
 
         for scope in &self.scopes {
             request = request.add_scope(Scope::new(scope.clone()));
+        }
+        if let Some(hint) = login_hint.filter(|h| !h.is_empty() && h.len() <= 128) {
+            request = request.add_extra_param("login_hint", hint);
         }
 
         let (auth_url, csrf_token, nonce) = request.url();

@@ -4,6 +4,12 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+## [aai-broker-v0.2.5] - 2026-10-11
+
+Image tag `:0.2.5` (crate tag `aai-broker-v0.2.5`). Crate `version` stays `0.1.0`.
+
+- **BFF authorization code flow:** `response_mode=query` with PKCE S256, client `state`/`nonce`, one-time `/oauth/token` exchange, and exact `redirect_uri` match. Optional `login_hint` forwarded to Keycloak.
+
 ## [ga4gh-infra-v0.2.4] - 2026-10-03
 
 Image tags are `:0.2.4`. Crate `version` stays `0.1.0`. The git tag is not created in this commit.

@@ -30,9 +30,25 @@ pub struct RpSession {
     pub nonce: Option<String>,
     /// Unix timestamp when the session was created.
     pub created_at: i64,
-    /// Optional UI return URL (fragment receives `access_token` after login).
+    /// Optional UI return URL (fragment or query code, see `response_mode`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub return_url: Option<String>,
+    /// `fragment` (default) or `query` (one-time code for confidential BFF clients).
+    #[serde(default = "default_response_mode")]
+    pub response_mode: String,
+    /// Opaque state from the confidential client (echoed on query redirect).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_state: Option<String>,
+    /// S256 code_challenge from the confidential client (required for `query` mode).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_challenge: Option<String>,
+    /// Opaque nonce from the confidential client (required for `query` mode; echoed at `/oauth/token`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_nonce: Option<String>,
+}
+
+fn default_response_mode() -> String {
+    "fragment".to_string()
 }
 
 /// Signed session cookie helper for RP login state.
@@ -136,6 +152,10 @@ mod tests {
             nonce: Some("nonce-789".to_string()),
             created_at: unix_now(),
             return_url: None,
+            response_mode: "fragment".to_string(),
+            client_state: None,
+            code_challenge: None,
+            client_nonce: None,
         };
 
         let header = manager.create_set_cookie(&session).expect("create cookie");
@@ -158,6 +178,10 @@ mod tests {
             nonce: None,
             created_at: unix_now() - 3600,
             return_url: None,
+            response_mode: "fragment".to_string(),
+            client_state: None,
+            code_challenge: None,
+            client_nonce: None,
         };
         let header = manager.create_set_cookie(&session).expect("create cookie");
         let raw = header
@@ -178,6 +202,10 @@ mod tests {
             nonce: None,
             created_at: unix_now(),
             return_url: None,
+            response_mode: "fragment".to_string(),
+            client_state: None,
+            code_challenge: None,
+            client_nonce: None,
         };
         let header = manager.create_set_cookie(&session).expect("create cookie");
         let raw = header
@@ -200,6 +228,10 @@ mod tests {
             nonce: Some("nonce".to_string()),
             created_at: unix_now(),
             return_url: None,
+            response_mode: "fragment".to_string(),
+            client_state: None,
+            code_challenge: None,
+            client_nonce: None,
         };
         let header = manager.create_set_cookie(&session).expect("cookie");
         let raw = header

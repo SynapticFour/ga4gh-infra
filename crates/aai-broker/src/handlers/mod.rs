@@ -7,9 +7,11 @@ pub mod login;
 pub mod oidc;
 pub mod revoke;
 pub mod service_info;
+pub mod token;
 
 pub use callback::callback;
 pub use login::{login_default, login_named};
 pub use oidc::{jwks, openid_configuration, userinfo};
 pub use revoke::{list_revoked_passports, revoke_passports};
 pub use service_info::service_info;
+pub use token::oauth_token;

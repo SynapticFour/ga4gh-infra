@@ -18,6 +18,18 @@ use crate::session::{unix_now, RpSession};
 pub struct LoginQuery {
     /// HTTPS (or localhost HTTP) URL to return to after passport issuance.
     pub return_url: Option<String>,
+    /// `fragment` (default) or `query` (one-time code + `/oauth/token`).
+    pub response_mode: Option<String>,
+    /// Opaque state for the confidential client (required when `response_mode=query`).
+    pub state: Option<String>,
+    /// S256 code_challenge from the confidential client (required when `response_mode=query`).
+    pub code_challenge: Option<String>,
+    /// Must be `S256` when `code_challenge` is set.
+    pub code_challenge_method: Option<String>,
+    /// Optional Keycloak `login_hint` (username).
+    pub login_hint: Option<String>,
+    /// Opaque nonce for the confidential client (required when `response_mode=query`).
+    pub nonce: Option<String>,
 }
 
 /// Start the upstream OIDC flow using the default configured IdP.
@@ -27,7 +39,7 @@ pub async fn login_default(
     Query(query): Query<LoginQuery>,
     headers: HeaderMap,
 ) -> Result<Response, BrokerError> {
-    start_login(state, None, query.return_url, headers).await
+    start_login(state, None, query, headers).await
 }
 
 /// Start the upstream OIDC flow for a named IdP.
@@ -38,7 +50,7 @@ pub async fn login_named(
     Query(query): Query<LoginQuery>,
     headers: HeaderMap,
 ) -> Result<Response, BrokerError> {
-    start_login(state, Some(idp_name), query.return_url, headers).await
+    start_login(state, Some(idp_name), query, headers).await
 }
 
 fn origin_key(parsed: &Url) -> Option<String> {
@@ -91,7 +103,7 @@ fn validate_return_url(
 async fn start_login(
     state: Arc<AppState>,
     idp_name: Option<String>,
-    return_url: Option<String>,
+    query: LoginQuery,
     headers: HeaderMap,
 ) -> Result<Response, BrokerError> {
     let idp = match idp_name {
@@ -99,7 +111,38 @@ async fn start_login(
         None => state.upstream.default()?,
     };
 
-    let auth = idp.authorization_request()?;
+    let response_mode = query
+        .response_mode
+        .as_deref()
+        .unwrap_or("fragment")
+        .to_ascii_lowercase();
+    if response_mode != "fragment" && response_mode != "query" {
+        return Err(BrokerError::BadRequest("unsupported response_mode".into()));
+    }
+    let (client_state, code_challenge, client_nonce) = if response_mode == "query" {
+        let state = query
+            .state
+            .filter(|s| !s.is_empty() && s.len() <= 256)
+            .ok_or_else(|| BrokerError::BadRequest("state required for query mode".into()))?;
+        let challenge = query
+            .code_challenge
+            .filter(|s| !s.is_empty() && s.len() <= 128);
+        let method = query.code_challenge_method.as_deref().unwrap_or("S256");
+        if challenge.is_none() || method != "S256" {
+            return Err(BrokerError::BadRequest(
+                "code_challenge with S256 required for query mode".into(),
+            ));
+        }
+        let nonce = query
+            .nonce
+            .filter(|s| !s.is_empty() && s.len() <= 256)
+            .ok_or_else(|| BrokerError::BadRequest("nonce required for query mode".into()))?;
+        (Some(state), challenge, Some(nonce))
+    } else {
+        (None, None, None)
+    };
+
+    let auth = idp.authorization_request(query.login_hint.as_deref())?;
     if !state
         .login_limiter
         .allow(&ga4gh_http::client_key(&headers))
@@ -107,7 +150,8 @@ async fn start_login(
     {
         return Err(BrokerError::TooManyRequests);
     }
-    let return_url = return_url
+    let return_url = query
+        .return_url
         .as_deref()
         .map(|raw| {
             validate_return_url(
@@ -117,6 +161,11 @@ async fn start_login(
             )
         })
         .transpose()?;
+    if response_mode == "query" && return_url.is_none() {
+        return Err(BrokerError::BadRequest(
+            "return_url required for query mode".into(),
+        ));
+    }
     let session = RpSession {
         idp_name: idp.name.clone(),
         csrf_state: auth.csrf_state,
@@ -124,6 +173,10 @@ async fn start_login(
         nonce: Some(auth.nonce),
         created_at: unix_now(),
         return_url,
+        response_mode,
+        client_state,
+        code_challenge,
+        client_nonce,
     };
 
     let cookie = state.sessions.create_set_cookie(&session)?;
