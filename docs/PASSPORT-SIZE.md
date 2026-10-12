@@ -52,17 +52,30 @@ Regression test: `aai-broker` `showcase_scale_embed_vs_userinfo_access_token_siz
 3. Do not switch Visa signing to ES256 by default in this release.
 4. Showcase may still reduce grant count for demos, but that is orthogonal.
 
-## What Ferrum / Solum / admin-ui need when `embed_visas = false`
+## Consumer matrix (`embed_visas = false`)
 
-| Consumer | Today | Required |
-|----------|-------|----------|
-| **Ferrum** (`auth.mode=external` + clearinghouse) | Validates Bearer Passport JWT and extracts embedded Visas | After JWKS validation, if `ga4gh_passport_v1` is empty: `GET {iss}/userinfo` with the same Bearer; verify each Visa JWT; **cache by Passport `jti` until `exp`** (and drop on revoke list hit) |
-| **Solum** | Same pattern when it trusts broker Passports | Same UserInfo fetch + cache |
-| **admin-ui** | Broker fragment → session cookie; uses Passport claims | Session must either store Visas from UserInfo at login or fetch UserInfo when the access token has an empty Visa array |
-| **sample-resource / clearinghouse lib** | Embedded Visas | Same as Ferrum |
+| Consumer (this repo) | Status with `embed_visas = false` | Notes |
+|----------------------|-----------------------------------|--------|
+| **admin-ui** | **Supported** | Session is built from outer Passport claims (`sub`, `name`, `email`, admin `groups` claim). It does **not** read `ga4gh_passport_v1`. Works as long as those identity claims remain on the access token (unchanged by ADR-005). |
+| **access-decision-service (ADS)** | **N/A** | Issues Visas / permissions; not a Passport resource server. |
+| **duo-service** | **N/A** | Ontology / codes; not a Passport resource server. |
+| **ga4gh-clearinghouse** | **Not supported** | Validates embedded Visa JWTs only. Empty `ga4gh_passport_v1` → empty Visa set → policy deny. No UserInfo fetch in this tag. |
+| **sample-resource** | **Not supported** | Uses `ga4gh-clearinghouse`; same limitation. |
+| **visa-registry / agreement-registry / service-registry / mock-idp** | **N/A** | Not Passport Clearinghouses for broker access tokens. |
+
+Out-of-repo: **Ferrum** (external auth) must fetch UserInfo when `ga4gh_passport_v1` is empty (proposed Ferrum `v0.3.5`). **Solum** same pattern when it trusts broker Passports.
 
 Do not put the Visa document store behind the public apex without auth. UserInfo already requires a valid Bearer.
 
+## In-memory store bounds and restart
+
+| Bound | Value | Behaviour |
+|------:|-------|-----------|
+| TTL | Passport `exp` | Expired documents are purged on insert and ignored on get |
+| Max entries | 10 000 live documents | Insert refused → mint fails closed (500) |
+| Max Visa bytes | 64 MiB total JWT string bytes | Insert refused → mint fails closed |
+| Restart | Store empty | Valid token + empty claim + missing document → `/userinfo` **401** (fail closed); re-login |
+
 ## Multi-replica
 
-The Visa document cache is **in-memory per broker process**. HA with `embed_visas = false` needs a shared store (follow-up) or sticky sessions to the issuing replica.
+The Visa document cache is **in-memory per broker process**. HA with `embed_visas = false` needs a shared store (follow-up) or sticky sessions to the issuing replica. A restart of any replica that minted the token fails closed for that token’s UserInfo until the researcher logs in again on a live replica that still holds the document.

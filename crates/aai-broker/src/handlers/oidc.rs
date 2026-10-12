@@ -89,13 +89,14 @@ pub async fn userinfo(
     let now = unix_now();
 
     // ADR-005: when the access token omits embedded visas, return the stored document.
+    // Missing document (broker restart, eviction, revoke, or never stored) → 401 fail closed.
     let ga4gh_passport_v1 = if claims.ga4gh_passport_v1.is_empty() {
         state
             .visa_documents
             .get(&claims.jti, &claims.sub, now)
             .await
             .map(|doc| doc.visas)
-            .unwrap_or_default()
+            .ok_or(BrokerError::InvalidAccessToken)?
     } else {
         claims.ga4gh_passport_v1
     };

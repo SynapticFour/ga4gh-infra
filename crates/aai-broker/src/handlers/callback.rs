@@ -114,6 +114,7 @@ pub async fn callback(
         )
         .await?;
     if !embed_visas {
+        let now = crate::session::unix_now();
         state
             .visa_documents
             .insert(
@@ -123,8 +124,17 @@ pub async fn callback(
                     exp: minted.exp,
                     visas: minted.visas.clone(),
                 },
+                now,
             )
-            .await;
+            .await
+            .map_err(|err| {
+                tracing::error!(
+                    error = %err,
+                    jti = %minted.jti,
+                    "visa document store refused insert; fail closed (ADR-005)"
+                );
+                BrokerError::Internal(format!("visa document store: {err}"))
+            })?;
     }
     let passport_jwt = minted.jwt;
     let exp = minted.exp;

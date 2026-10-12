@@ -52,7 +52,7 @@ The broker copies visa JWTs from a visa source into `ga4gh_passport_v1` without 
 
 ### Embedded Visas make `Authorization` large
 
-Default `passport.embed_visas = true` puts every Visa JWT in the access token (~28 KiB for a showcase researcher with 22 Visas). Set `embed_visas = false` to use the AAI UserInfo path; Clearinghouses must then call `/userinfo`. See [PASSPORT-SIZE.md](PASSPORT-SIZE.md) and ADR-005.
+Default `passport.embed_visas = true` puts every Visa JWT in the access token (~28 KiB for a showcase researcher with 22 Visas). Set `embed_visas = false` to use the AAI UserInfo path; Clearinghouses must then call `/userinfo`. The broker holds Visas in memory (TTL = Passport `exp`, max 10 000 entries / 64 MiB); restart drops the store and `/userinfo` returns 401 until re-login. In this repo, **admin-ui** works; **ga4gh-clearinghouse** / **sample-resource** do **not** (no UserInfo fetch). ADS and DUO are not Passport Clearinghouses. See [PASSPORT-SIZE.md](PASSPORT-SIZE.md) and ADR-005.
 
 ### One passport audience is shared
 
