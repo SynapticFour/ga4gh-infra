@@ -30,6 +30,32 @@ pub struct BrokerConfig {
     /// Optional flat claim and audience. Absent leaves passport bytes unchanged.
     #[serde(default)]
     pub token_claims: TokenClaimsConfig,
+    /// Passport assembly options (visa embedding). Absent keeps today's embed-on default.
+    #[serde(default)]
+    pub passport: PassportConfig,
+}
+
+fn default_embed_visas() -> bool {
+    true
+}
+
+/// How Visa JWTs are delivered to Passport Clearinghouses (ADR-005).
+#[derive(Debug, Clone, Deserialize)]
+pub struct PassportConfig {
+    /// When `true` (default), embed Visa JWTs in the access-token claim
+    /// `ga4gh_passport_v1` (self-contained; large `Authorization` header).
+    /// When `false`, mint an empty `ga4gh_passport_v1` and return the Visas from
+    /// `GET /userinfo` (GA4GH AAI Passport-scoped access token + UserInfo pattern).
+    #[serde(default = "default_embed_visas")]
+    pub embed_visas: bool,
+}
+
+impl Default for PassportConfig {
+    fn default() -> Self {
+        Self {
+            embed_visas: default_embed_visas(),
+        }
+    }
 }
 
 /// Extra trust anchors for upstream OIDC HTTP.
@@ -413,7 +439,45 @@ mod tests {
         assert!(!config.token_claims.enabled);
         assert!(!config.token_claims.verify_embedded_visas);
         assert!(config.token_claims.audiences.is_empty());
+        assert!(config.passport.embed_visas);
         assert!(config.validate_token_claims().is_ok());
+    }
+
+    #[test]
+    fn passport_embed_visas_can_be_turned_off() {
+        let toml = r#"
+            [server]
+            host = "0.0.0.0"
+            port = 8080
+            external_url = "https://aai.example.org"
+            environment = "test"
+
+            [signing]
+            private_key_pem = "/secrets/broker_rs256.pem"
+            passport_lifetime_seconds = 900
+            token_lifetime_seconds = 900
+
+            [session]
+            cookie_secret_env = "BROKER_COOKIE_SECRET"
+            session_lifetime_seconds = 600
+
+            [passport]
+            embed_visas = false
+
+            [[upstream_idps]]
+            name = "my-institute"
+            issuer = "https://idp.example.org/realms/main"
+            client_id = "ga4gh-broker"
+            client_secret_env = "MY_INSTITUTE_CLIENT_SECRET"
+            scopes = ["openid"]
+        "#;
+        let config: BrokerConfig = config::Config::builder()
+            .add_source(config::File::from_str(toml, config::FileFormat::Toml))
+            .build()
+            .expect("build")
+            .try_deserialize()
+            .expect("parse");
+        assert!(!config.passport.embed_visas);
     }
 
     #[test]

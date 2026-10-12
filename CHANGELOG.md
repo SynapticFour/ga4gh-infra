@@ -4,6 +4,10 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+### Passport size (proposed `ga4gh-infra-v0.2.6` / `aai-broker-v0.2.6`)
+
+- **`[passport] embed_visas`** — default **`true`** (unchanged). When **`false`**, the access token carries an empty `ga4gh_passport_v1` and Visas are returned from `GET /userinfo` (GA4GH AAI pattern). ADR-005. Measurement and options: [docs/PASSPORT-SIZE.md](docs/PASSPORT-SIZE.md). Size regression test in `aai-broker`. Existing Clearinghouses keep working on the default.
+
 ## [aai-broker-v0.2.5] - 2026-10-11
 
 Image tag `:0.2.5` (crate tag `aai-broker-v0.2.5`). Crate `version` stays `0.1.0`.

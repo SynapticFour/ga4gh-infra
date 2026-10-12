@@ -73,6 +73,7 @@ mod tests {
             ads: None,
             tls: TlsConfig::default(),
             token_claims: crate::config::TokenClaimsConfig::default(),
+            passport: crate::config::PassportConfig::default(),
         };
 
         assert!(validate_log_level(&config).is_err());
