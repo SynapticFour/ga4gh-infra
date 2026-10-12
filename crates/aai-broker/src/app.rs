@@ -20,6 +20,7 @@ use crate::passport_ledger::PassportLedger;
 use crate::profile::ProfileStore;
 use crate::session::SessionManager;
 use crate::upstream::{build_http_client, UpstreamRegistry};
+use crate::visa_documents::VisaDocumentStore;
 use crate::visas::VisaSourceClient;
 use ga4gh_http::SlidingWindowLimiter;
 use reqwest::Client;
@@ -40,6 +41,8 @@ pub struct AppState {
     pub ads: Option<AdsClient>,
     /// Cached researcher profiles for `/userinfo`.
     pub profiles: ProfileStore,
+    /// Visa documents for access tokens that omit embedded visas (ADR-005).
+    pub visa_documents: VisaDocumentStore,
     /// Shared HTTP client for upstream OIDC requests.
     pub http_client: Client,
     /// Sliding-window limiter for `/login` and `/callback`.
@@ -130,6 +133,7 @@ impl AppState {
             visa_sources,
             ads,
             profiles: ProfileStore::default(),
+            visa_documents: VisaDocumentStore::default(),
             http_client,
             login_limiter,
             passport_ledger,

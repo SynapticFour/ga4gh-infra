@@ -50,6 +50,10 @@ This codebase has **not** undergone an independent third-party security audit. D
 
 The broker copies visa JWTs from a visa source into `ga4gh_passport_v1` without verifying their signatures. It does not read the visa `jku` header. ADR-004 adds `token_claims.verify_embedded_visas` so the same visa verifier can drop a visa before embedding. That option defaults to off, and the example configs leave it off. A resource server that trusts an embedded visa has to verify it, or the operator turns the option on and configures the visa issuer JWKS.
 
+### Embedded Visas make `Authorization` large
+
+Default `passport.embed_visas = true` puts every Visa JWT in the access token (~28 KiB for a showcase researcher with 22 Visas). Set `embed_visas = false` to use the AAI UserInfo path; Clearinghouses must then call `/userinfo`. The broker holds Visas in memory (TTL = Passport `exp`, max 10 000 entries / 64 MiB); restart drops the store and `/userinfo` returns 401 until re-login. In this repo, **admin-ui** works; **ga4gh-clearinghouse** / **sample-resource** do **not** (no UserInfo fetch). ADS and DUO are not Passport Clearinghouses. See [PASSPORT-SIZE.md](PASSPORT-SIZE.md) and ADR-005.
+
 ### One passport audience is shared
 
 `PassportClaims.aud` is one string. When `token_claims.enabled` is on and `audiences` has one value, that value is the token `aud`. Every resource server that accepts it accepts the same token: a token valid for one of them is valid for the others. More than one audience refuses startup. With the feature off, `aud` is omitted and `groups` still comes from the upstream ID token.

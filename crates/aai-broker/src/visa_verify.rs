@@ -281,6 +281,7 @@ mod tests {
             3600,
             &TokenClaimsConfig::default(),
             None,
+            true,
         )
         .expect("mint");
         let claims = payload(&minted.jwt);
@@ -320,6 +321,7 @@ mod tests {
             3600,
             &policy,
             Some(&verifier()),
+            true,
         )
         .expect("mint");
         let claims = payload(&minted.jwt);
@@ -344,6 +346,7 @@ mod tests {
             3600,
             &enabled_policy(),
             None,
+            true,
         )
         .expect("mint");
         let claims = payload(&minted.jwt);
@@ -379,6 +382,7 @@ mod tests {
             3600,
             &checked,
             Some(&verifier()),
+            true,
         )
         .expect("mint");
         let claims = payload(&dropped.jwt);
@@ -396,6 +400,7 @@ mod tests {
             3600,
             &enabled_policy(),
             Some(&verifier()),
+            true,
         )
         .expect("mint");
         let kept_claims = payload(&kept.jwt);
@@ -418,6 +423,7 @@ mod tests {
             3600,
             &no_verifier,
             None,
+            true,
         )
         .expect("mint");
         let empty_claims = payload(&empty.jwt);
@@ -481,6 +487,7 @@ mod tests {
             3600,
             &policy,
             Some(&verifier()),
+            true,
         );
         assert!(err.is_err());
     }
@@ -540,6 +547,7 @@ mod tests {
             3600,
             &policy,
             Some(&verifier()),
+            true,
         )
         .expect("mint");
         let claims = payload(&minted.jwt);

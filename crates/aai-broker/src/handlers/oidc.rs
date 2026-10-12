@@ -86,13 +86,27 @@ pub async fn userinfo(
 ) -> Result<Response, BrokerError> {
     let token = bearer_token(&headers).ok_or(BrokerError::InvalidAccessToken)?;
     let claims = decode_passport(&state, token)?;
+    let now = unix_now();
 
-    let profile = state.profiles.get(&claims.sub, unix_now()).await;
+    // ADR-005: when the access token omits embedded visas, return the stored document.
+    // Missing document (broker restart, eviction, revoke, or never stored) → 401 fail closed.
+    let ga4gh_passport_v1 = if claims.ga4gh_passport_v1.is_empty() {
+        state
+            .visa_documents
+            .get(&claims.jti, &claims.sub, now)
+            .await
+            .map(|doc| doc.visas)
+            .ok_or(BrokerError::InvalidAccessToken)?
+    } else {
+        claims.ga4gh_passport_v1
+    };
+
+    let profile = state.profiles.get(&claims.sub, now).await;
     let response = UserinfoResponse {
         sub: claims.sub,
         email: profile.as_ref().and_then(|value| value.email.clone()),
         affiliation: profile.as_ref().and_then(|value| value.affiliation.clone()),
-        ga4gh_passport_v1: claims.ga4gh_passport_v1,
+        ga4gh_passport_v1,
     };
 
     Ok((StatusCode::OK, Json(response)).into_response())
@@ -151,6 +165,7 @@ mod tests {
             3600,
             &crate::config::TokenClaimsConfig::default(),
             None,
+            true,
         )
         .expect("mint");
         let token = minted.jwt;

@@ -42,6 +42,16 @@ Track important architectural and operational decisions for ga4gh-infra.
 
 ---
 
+### 2026-10-12 - ADR-005: Optional omission of embedded visas (UserInfo delivery)
+
+- **Status:** Accepted
+- **Context:** Showcase researcher Passports embed ~22 Visa JWTs (~28 KiB `Authorization`). Caddy’s shared `:443` `MaxHeaderBytes` had to rise to 64 KiB. GA4GH AAI defines a Passport-scoped access token whose `scope` includes `ga4gh_passport_v1` and requires Visas at the Broker UserInfo endpoint; Token Exchange is preferred for a self-contained Passport JWT. Today this broker puts Visas in the access token itself, so every resource call carries the full bundle.
+- **Decision:** Add `[passport] embed_visas` (default **`true`**, unchanged bytes). When **`false`**, mint an empty `ga4gh_passport_v1` in the access token, store the selected Visa JWTs keyed by Passport `jti` until Passport `exp` (TTL bound), and return them from `GET /userinfo`. The in-memory store refuses inserts that would exceed **10 000** live documents or **64 MiB** total Visa bytes (fail closed at mint). Revoke drops those documents. A still-valid token whose document is missing (broker **restart**, eviction, or revoke) gets **401** from `/userinfo` — fail closed; re-authenticate. Flat-claim / `verify_embedded_visas` behaviour (ADR-004) is unchanged and applies to the selected Visa set either way.
+- **Consequences:** Default keeps existing Clearinghouses working without UserInfo fetches. Operators who set `embed_visas = false` must use Clearinghouses that call `GET {issuer}/userinfo` after validating the access token (cache by token hash / `jti` until `exp`). In-repo consumers: see [PASSPORT-SIZE.md](PASSPORT-SIZE.md#consumer-matrix-embed_visas--false). Multi-replica brokers need a shared Visa-document store before enabling the flag in HA. This does not implement Token Exchange for a second self-contained Passport JWT.
+- **Alternatives considered:** ES256 for Visa signatures (rejected as default: ~6 KiB savings, still large headers, every Clearinghouse must accept ES256); merging ControlledAccessGrants (rejected: Passport v1 uses one value per Visa); shortening showcase grants only (rejected: demo-only, not a broker fix); Token Exchange as the only path (deferred: larger consumer change); returning empty `ga4gh_passport_v1` on store miss (rejected: looks like success with no Visas; fail closed with 401 instead).
+
+---
+
 ### 2026-10-03 - ADR-004: Optional flat claim from signature-checked visas
 
 - **Status:** Accepted

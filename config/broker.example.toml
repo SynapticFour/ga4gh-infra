@@ -39,6 +39,12 @@ url = "http://visa-registry:8081"
 api_key_env = "REGISTRY_BOOTSTRAP_API_KEY"
 required = true
 
+# Visa delivery. true (default) embeds Visa JWTs in the access token.
+# false: empty ga4gh_passport_v1; Visas from GET /userinfo (ADR-005).
+# Keep true until Clearinghouses fetch UserInfo.
+[passport]
+embed_visas = true
+
 # Flat claim from signature-checked visas. Off keeps today's passport:
 # groups come from the upstream ID token, aud is omitted, and visas are
 # embedded without a signature check. One audience is shared by every

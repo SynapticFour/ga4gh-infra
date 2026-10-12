@@ -45,6 +45,11 @@ groups = "groups"
 # name = "name"
 # preferred_username = "preferred_username"
 
+# Visa delivery (ADR-005). Default true embeds Visas in the access token.
+# Set false only when Clearinghouses call GET /userinfo for ga4gh_passport_v1.
+[passport]
+embed_visas = true
+
 # Visa collection — internal Docker/service URL (not public HTTPS).
 [[visa_sources]]
 name = "local-registry"

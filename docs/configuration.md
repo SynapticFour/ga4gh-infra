@@ -71,6 +71,19 @@ Maps upstream JWT claim names to GA4GH identity fields (`sub`, `email`, `affilia
 
 When configured, the broker calls `POST /ads/v1/researchers/sync` after upstream login and merges signed visas from `GET /ads/v1/researchers/:id/signed-visas` into the Passport.
 
+### `[passport]` (optional)
+
+Controls whether Visa JWTs are embedded in the access token. See [ADR-005](DECISIONS.md) and [PASSPORT-SIZE.md](PASSPORT-SIZE.md).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `embed_visas` | bool | Default **`true`**. When `true`, Visa JWTs are placed in `ga4gh_passport_v1` inside the access token (self-contained; large `Authorization`). When `false`, `ga4gh_passport_v1` is empty in the token and `GET /userinfo` returns the Visas from an in-memory store (TTL = Passport `exp`; max 10 000 entries / 64 MiB; restart → 401 until re-login). Default keeps existing Clearinghouses working. See [PASSPORT-SIZE.md](PASSPORT-SIZE.md) consumer matrix before flipping to `false` |
+
+```toml
+[passport]
+embed_visas = true
+```
+
 ### `[token_claims]` (optional)
 
 Default off. Off leaves passport bytes as they are today: `groups` comes from the verified upstream ID token, `aud` is omitted, and visa JWTs are embedded without a signature check. See [ADR-004](DECISIONS.md).

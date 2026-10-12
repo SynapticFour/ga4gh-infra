@@ -83,6 +83,7 @@ pub async fn callback(
         let mut signed = ads.fetch_signed_visas(&identity.sub).await?;
         visas.append(&mut signed);
     }
+    let embed_visas = state.config.passport.embed_visas;
     let minted = mint_passport_jwt(
         &state.keys,
         state.config.issuer_url(),
@@ -91,8 +92,10 @@ pub async fn callback(
         state.config.signing.passport_lifetime_seconds,
         &state.config.token_claims,
         state.visa_verifier.as_ref(),
+        embed_visas,
     )?;
-    let visa_jtis: Vec<String> = visas
+    let visa_jtis: Vec<String> = minted
+        .visas
         .iter()
         .filter_map(|jwt| {
             jwt_payload_value(jwt)?
@@ -110,6 +113,29 @@ pub async fn callback(
             visa_jtis,
         )
         .await?;
+    if !embed_visas {
+        let now = crate::session::unix_now();
+        state
+            .visa_documents
+            .insert(
+                minted.jti.clone(),
+                crate::visa_documents::StoredVisaDocument {
+                    sub: identity.sub.clone(),
+                    exp: minted.exp,
+                    visas: minted.visas.clone(),
+                },
+                now,
+            )
+            .await
+            .map_err(|err| {
+                tracing::error!(
+                    error = %err,
+                    jti = %minted.jti,
+                    "visa document store refused insert; fail closed (ADR-005)"
+                );
+                BrokerError::Internal(format!("visa document store: {err}"))
+            })?;
+    }
     let passport_jwt = minted.jwt;
     let exp = minted.exp;
     state.profiles.insert(&identity, exp).await;
@@ -122,7 +148,8 @@ pub async fn callback(
         event = "passport.issued",
         sub = %identity.sub,
         idp = %session.idp_name,
-        visa_count = visas.len(),
+        visa_count = minted.visas.len(),
+        embed_visas,
         expires_in,
         return_url_set = session.return_url.is_some(),
         client_ip = %ga4gh_http::client_key(&headers),

@@ -67,6 +67,9 @@ pub async fn revoke_passports(
             body.visa_jti.as_deref(),
         )
         .await?;
+    // Drop userinfo Visa documents for newly revoked Passport JTIs (ADR-005).
+    let revoked = state.passport_ledger.revoked_jtis().await;
+    state.visa_documents.remove_jtis(&revoked).await;
     tracing::info!(
         audit = true,
         event = "passport.revoked",
@@ -76,7 +79,5 @@ pub async fn revoke_passports(
         added,
         "passports revoked"
     );
-    Ok(Json(RevokedPassportsResponse {
-        jtis: state.passport_ledger.revoked_jtis().await,
-    }))
+    Ok(Json(RevokedPassportsResponse { jtis: revoked }))
 }

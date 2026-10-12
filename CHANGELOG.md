@@ -4,6 +4,14 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+### Passport size (proposed tag `ga4gh-infra-v0.2.6` / image `:0.2.6`)
+
+Tag proposal only — **do not create the tag until `make verify-release` is green on the merge commit.** Crate `version` stays `0.1.0`.
+
+- **`[passport] embed_visas`** — default **`true`** (unchanged). When **`false`**, the access token carries an empty `ga4gh_passport_v1` and Visas are returned from `GET /userinfo` (GA4GH AAI pattern). ADR-005. Measurement and options: [docs/PASSPORT-SIZE.md](docs/PASSPORT-SIZE.md). Size regression test in `aai-broker`. Existing Clearinghouses keep working on the default.
+- **In-memory Visa document store bounds** — TTL = Passport `exp`; max **10 000** live entries; max **64 MiB** total Visa JWT bytes. Insert over limit fails closed at mint. Broker **restart** empties the store; `/userinfo` then returns **401** for tokens with an empty claim (fail closed; re-authenticate).
+- **Consumer matrix** — **admin-ui** supported (identity claims only). **ADS** / **duo-service** N/A (not Passport RSes). **ga4gh-clearinghouse** and **sample-resource** **not supported** with `embed_visas = false` in this tag (no UserInfo fetch).
+
 ## [aai-broker-v0.2.5] - 2026-10-11
 
 Image tag `:0.2.5` (crate tag `aai-broker-v0.2.5`). Crate `version` stays `0.1.0`.
