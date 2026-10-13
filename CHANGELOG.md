@@ -14,6 +14,7 @@ Image tags are `:0.2.7`. Crate `version` stays `0.1.0`. **Do not create the git 
 - **sample-resource** — passes Bearer into `extract_visas` (works with `embed_visas = false`).
 - **Consumer matrix** — **admin-ui** supported (identity claims). **ADS** / **duo-service** N/A (not Passport Clearinghouses). **ga4gh-clearinghouse** / **sample-resource** **supported** with `embed_visas = false` in this tag.
 - Includes ADR-005 broker work already on `main` (not in `v0.2.6`): `[passport] embed_visas`, in-memory Visa document store (TTL = `exp`; max 10 000 / 64 MiB), `/userinfo` 401 on restart miss. See [docs/PASSPORT-SIZE.md](docs/PASSPORT-SIZE.md).
+- **cargo-audit:** `quinn-proto` 0.11.16 → 0.11.18 (RUSTSEC-2026-0338 … 0342).
 
 **Runner minutes (public repo, rough):** push/PR → secret-scan + dependency-review ≈ **2–4**. Before tag: `workflow_dispatch` `ci.yml` ≈ **40–90**. Tag `ga4gh-infra-v0.2.7` → `docker-release.yml` ≈ **20–40** + `release-binaries.yml` ≈ **15–40**. Total if you run full product CI then tag: about **75–170** minutes.
 
