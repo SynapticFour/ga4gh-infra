@@ -75,7 +75,8 @@ fn passport_status(error: &ClearinghouseError) -> StatusCode {
         | ClearinghouseError::UnknownKeyId(_)
         | ClearinghouseError::VisaSubjectMismatch
         | ClearinghouseError::RevokedVisa
-        | ClearinghouseError::RevokedPassport => StatusCode::UNAUTHORIZED,
+        | ClearinghouseError::RevokedPassport
+        | ClearinghouseError::UserInfoFailed(_) => StatusCode::UNAUTHORIZED,
         ClearinghouseError::InvalidTokenFormat | ClearinghouseError::InvalidClaims(_) => {
             StatusCode::BAD_REQUEST
         }
@@ -99,6 +100,9 @@ fn passport_message(error: &ClearinghouseError) -> String {
         ClearinghouseError::RevokedPassport => "Passport has been revoked".to_string(),
         ClearinghouseError::InvalidTokenFormat => "Invalid passport token format".to_string(),
         ClearinghouseError::InvalidClaims(_) => "Invalid passport claims".to_string(),
+        ClearinghouseError::UserInfoFailed(_) => {
+            "Unable to fetch visas from issuer userinfo".to_string()
+        }
         ClearinghouseError::JwksFetchFailed(_) => "Unable to fetch issuer keys".to_string(),
         ClearinghouseError::Internal(_) => "Internal clearinghouse error".to_string(),
     }

@@ -11,6 +11,7 @@ use crate::config::ClearinghouseConfig;
 use crate::error::ClearinghouseError;
 use crate::jwks::{JwksCache, SharedJwksCache};
 use crate::policy::{evaluate_policy, PolicyCheck, PolicyResult};
+use crate::userinfo_visas;
 
 /// Passport clearinghouse that validates broker-issued Passports and Visas.
 pub struct Clearinghouse {
@@ -45,14 +46,29 @@ impl Clearinghouse {
         Ok(Passport::from_claims(claims))
     }
 
-    /// Extract and validate individual visa JWTs embedded in a validated Passport.
-    #[instrument(skip(self, passport))]
+    /// Extract and validate Visa JWTs for a validated Passport.
+    ///
+    /// When `passport.visa_jwts` is non-empty, those embedded strings are verified
+    /// (unchanged). When empty (broker `[passport] embed_visas = false`, ADR-005),
+    /// Visas are fetched from `GET {issuer}/userinfo` via OIDC discovery of the
+    /// **trusted Passport `iss` only** (ADR-006 / Ferrum ADR-034). `raw_passport_jwt`
+    /// is the Bearer token (cache key + UserInfo Authorization). Fail closed on
+    /// discovery/HTTP/JSON errors and UserInfo 401 (broker restart).
+    #[instrument(skip(self, passport, raw_passport_jwt))]
     pub async fn extract_visas(
         &self,
         passport: &Passport,
+        raw_passport_jwt: &str,
     ) -> Result<Vec<Visa>, ClearinghouseError> {
-        let mut visas = Vec::with_capacity(passport.visa_jwts.len());
-        for visa_jwt in &passport.visa_jwts {
+        let visa_jwts = if passport.visa_jwts.is_empty() {
+            userinfo_visas::visas_from_userinfo(&passport.iss, raw_passport_jwt, passport.exp)
+                .await?
+        } else {
+            passport.visa_jwts.clone()
+        };
+
+        let mut visas = Vec::with_capacity(visa_jwts.len());
+        for visa_jwt in &visa_jwts {
             let claims: VisaJwtClaims =
                 self.jwks
                     .verify_and_decode(visa_jwt)

@@ -32,7 +32,8 @@ let clearinghouse = Clearinghouse::new(ClearinghouseConfig::new(
 .await?;
 
 let passport = clearinghouse.validate_passport(raw_jwt).await?;
-let visas = clearinghouse.extract_visas(&passport).await?;
+// Pass the same Bearer: embedded Visas, or UserInfo when ga4gh_passport_v1 is empty (ADR-006).
+let visas = clearinghouse.extract_visas(&passport, raw_jwt).await?;
 let result = clearinghouse.check_policy(
     &visas,
     &PolicyCheck::HasControlledAccess {

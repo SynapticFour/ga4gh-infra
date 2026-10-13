@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- UserInfo Visa fetch when `ga4gh_passport_v1` is empty (ADR-006): OIDC discovery of trusted Passport `iss` only, Bearer forward, SHA-256(token) cache until `exp` (max 1024), fail closed. `extract_visas` now takes `raw_passport_jwt`.
 - Passport JWT revocation list (`passport_revocation_uri`, default `{jwks origin}/revoked-passports`).
 - `peek_jti` helper for unverified JWT payloads.
 

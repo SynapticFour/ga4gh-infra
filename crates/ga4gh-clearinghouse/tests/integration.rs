@@ -54,7 +54,7 @@ async fn validates_elixir_shaped_passport_and_visas() {
     assert_eq!(passport.visa_jwts.len(), 3);
 
     let visas = clearinghouse
-        .extract_visas(&passport)
+        .extract_visas(&passport, &passport_jwt)
         .await
         .expect("extract visas");
     assert_eq!(visas.len(), 3);
@@ -187,13 +187,14 @@ async fn rejects_expired_visa() {
     .await
     .expect("clearinghouse");
 
+    let passport_jwt = issuer.mint_passport_jwt("researcher@example.org", vec![expired_visa]);
     let passport = clearinghouse
-        .validate_passport(&issuer.mint_passport_jwt("researcher@example.org", vec![expired_visa]))
+        .validate_passport(&passport_jwt)
         .await
         .expect("passport");
 
     let err = clearinghouse
-        .extract_visas(&passport)
+        .extract_visas(&passport, &passport_jwt)
         .await
         .expect_err("expired visa");
     assert!(matches!(err, ClearinghouseError::ExpiredVisa));
@@ -247,7 +248,7 @@ async fn drops_revoked_embedded_visas() {
         .await
         .expect("validate passport");
     let visas = clearinghouse
-        .extract_visas(&passport)
+        .extract_visas(&passport, &passport_jwt)
         .await
         .expect("extract visas");
     assert_eq!(visas.len(), 2);
@@ -291,4 +292,78 @@ async fn rejects_revoked_passport_jti() {
         .await
         .expect_err("revoked passport");
     assert!(matches!(err, ClearinghouseError::RevokedPassport));
+}
+
+#[tokio::test]
+async fn fetches_visas_from_userinfo_when_embedded_empty() {
+    let issuer = TestIssuer::new();
+    let broker_mock = MockServer::start().await;
+    let visa_mock = MockServer::start().await;
+    let broker_issuer = broker_mock.uri();
+
+    let subject = "researcher@uni-heidelberg.de";
+    let visa_jwts = issuer.elixir_shaped_visas(subject);
+    // Empty ga4gh_passport_v1 in the access token (ADR-005 embed_visas=false).
+    let passport_jwt = issuer.mint_passport_jwt_for_issuer(&broker_issuer, subject, vec![]);
+
+    Mock::given(method("GET"))
+        .and(path("/.well-known/openid-configuration"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "issuer": broker_issuer,
+            "userinfo_endpoint": format!("{broker_issuer}/userinfo"),
+            "jwks_uri": format!("{broker_issuer}/jwks.json"),
+        })))
+        .mount(&broker_mock)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/jwks.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(issuer.broker_jwks_json()))
+        .mount(&broker_mock)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/userinfo"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "sub": subject,
+            "ga4gh_passport_v1": visa_jwts,
+        })))
+        .expect(1)
+        .mount(&broker_mock)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/visa/jwks.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(issuer.visa_jwks_json()))
+        .mount(&visa_mock)
+        .await;
+
+    let clearinghouse = Clearinghouse::new(ClearinghouseConfig::new(
+        vec![
+            TrustedBroker::new(broker_issuer.clone(), format!("{broker_issuer}/jwks.json")),
+            TrustedBroker::new(VISA_ISSUER, format!("{}/visa/jwks.json", visa_mock.uri())),
+        ],
+        Duration::from_secs(300),
+    ))
+    .await
+    .expect("clearinghouse");
+
+    let passport = clearinghouse
+        .validate_passport(&passport_jwt)
+        .await
+        .expect("validate passport");
+    assert!(passport.visa_jwts.is_empty());
+
+    let visas = clearinghouse
+        .extract_visas(&passport, &passport_jwt)
+        .await
+        .expect("userinfo visas");
+    assert_eq!(visas.len(), 3);
+
+    // Second call must hit the UserInfo cache (userinfo mock expects 1).
+    let again = clearinghouse
+        .extract_visas(&passport, &passport_jwt)
+        .await
+        .expect("cached userinfo visas");
+    assert_eq!(again.len(), 3);
 }

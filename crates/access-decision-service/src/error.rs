@@ -40,7 +40,8 @@ impl From<ClearinghouseError> for AdsError {
             | ClearinghouseError::ExpiredVisa
             | ClearinghouseError::VisaSubjectMismatch
             | ClearinghouseError::RevokedVisa
-            | ClearinghouseError::RevokedPassport => Self::Unauthorized,
+            | ClearinghouseError::RevokedPassport
+            | ClearinghouseError::UserInfoFailed(_) => Self::Unauthorized,
             ClearinghouseError::InvalidTokenFormat => {
                 Self::BadRequest("invalid token format".to_string())
             }

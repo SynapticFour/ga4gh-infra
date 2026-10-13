@@ -40,6 +40,11 @@ pub enum ClearinghouseError {
     /// Token claims could not be parsed into GA4GH types.
     #[error("invalid claims: {0}")]
     InvalidClaims(String),
+    /// UserInfo Visa fetch failed (discovery, HTTP, timeout, or broker restart 401).
+    ///
+    /// Fail closed when `ga4gh_passport_v1` is empty (ADR-006).
+    #[error("userinfo visa fetch failed: {0}")]
+    UserInfoFailed(String),
     /// An internal error occurred.
     #[error("internal error: {0}")]
     Internal(String),

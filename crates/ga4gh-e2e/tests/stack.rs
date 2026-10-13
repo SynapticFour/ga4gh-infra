@@ -75,7 +75,7 @@ async fn stack_authenticates_passport_and_evaluates_policies() {
     assert_eq!(passport.sub, subject);
 
     let visas = clearinghouse
-        .extract_visas(&passport)
+        .extract_visas(&passport, &passport_jwt)
         .await
         .expect("extract visas");
     assert!(!visas.is_empty());

@@ -107,8 +107,28 @@ impl TestIssuer {
         self.mint_passport_jwt_with_expiry(subject, visa_jwts, unix_now() + 3600)
     }
 
+    /// Mint a Passport whose `iss` is `issuer` (for UserInfo discovery against a mock).
+    pub fn mint_passport_jwt_for_issuer(
+        &self,
+        issuer: &str,
+        subject: &str,
+        visa_jwts: Vec<String>,
+    ) -> String {
+        self.mint_passport_jwt_with_issuer_and_expiry(issuer, subject, visa_jwts, unix_now() + 3600)
+    }
+
     pub fn mint_passport_jwt_with_expiry(
         &self,
+        subject: &str,
+        visa_jwts: Vec<String>,
+        exp: i64,
+    ) -> String {
+        self.mint_passport_jwt_with_issuer_and_expiry(BROKER_ISSUER, subject, visa_jwts, exp)
+    }
+
+    pub fn mint_passport_jwt_with_issuer_and_expiry(
+        &self,
+        issuer: &str,
         subject: &str,
         visa_jwts: Vec<String>,
         exp: i64,
@@ -116,7 +136,7 @@ impl TestIssuer {
         let now = unix_now();
         let claims = PassportClaims {
             sub: subject.to_string(),
-            iss: BROKER_ISSUER.to_string(),
+            iss: issuer.to_string(),
             iat: now,
             exp,
             jti: "test-passport-jti".to_string(),

@@ -13,6 +13,7 @@ mod error;
 mod jwks;
 mod policy;
 mod token;
+mod userinfo_visas;
 
 #[cfg(feature = "axum")]
 pub mod axum;
@@ -23,3 +24,4 @@ pub use error::ClearinghouseError;
 pub use jwks::JwksCache;
 pub use policy::{PolicyCheck, PolicyResult};
 pub use token::{peek_expiry, peek_issuer, peek_jti};
+pub use userinfo_visas::USERINFO_VISA_CACHE_MAX;

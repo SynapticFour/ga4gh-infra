@@ -127,7 +127,8 @@ async fn ensure_controlled_access(
         }
     }
 
-    let visas = state.clearinghouse.extract_visas(passport).await?;
+    let token = bearer_token(headers)?;
+    let visas = state.clearinghouse.extract_visas(passport, token).await?;
     let result = state.clearinghouse.check_policy(
         &visas,
         &PolicyCheck::HasControlledAccess {
