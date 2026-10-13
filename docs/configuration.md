@@ -77,7 +77,7 @@ Controls whether Visa JWTs are embedded in the access token. See [ADR-005](DECIS
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `embed_visas` | bool | Default **`true`**. When `true`, Visa JWTs are placed in `ga4gh_passport_v1` inside the access token (self-contained; large `Authorization`). When `false`, `ga4gh_passport_v1` is empty in the token and `GET /userinfo` returns the Visas from an in-memory store (TTL = Passport `exp`; max 10 000 entries / 64 MiB; restart → 401 until re-login). In-repo **ga4gh-clearinghouse** / **sample-resource** fetch UserInfo when the claim is empty (ADR-006; proposed `ga4gh-infra-v0.2.7`). See [PASSPORT-SIZE.md](PASSPORT-SIZE.md) before flipping to `false` |
+| `embed_visas` | bool | Default **`true`**. When `true`, Visa JWTs are placed in `ga4gh_passport_v1` inside the access token (self-contained; large `Authorization`). When `false`, `ga4gh_passport_v1` is empty in the token and `GET /userinfo` returns the Visas from an in-memory store (TTL = Passport `exp`; max 10 000 entries / 64 MiB; restart → 401 until re-login). In-repo **ga4gh-clearinghouse** / **sample-resource** fetch UserInfo when the claim is empty (ADR-006; proposed `ga4gh-infra-v0.2.8`). See [PASSPORT-SIZE.md](PASSPORT-SIZE.md) before flipping to `false` |
 
 ```toml
 [passport]

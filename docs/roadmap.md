@@ -239,4 +239,4 @@ Local `audit-main` worktree (`_worktrees/ga4gh-infra-audit`) is intentionally le
 
 ---
 
-*Last updated: 2026-10-13 — ADR-006 Clearinghouse UserInfo Visas; proposed stack tag `ga4gh-infra-v0.2.7`.*
+*Last updated: 2026-10-13 — ADR-006 Clearinghouse UserInfo Visas; proposed stack tag `ga4gh-infra-v0.2.8` (`v0.2.7` already published at `c2bc16c`).*

@@ -59,7 +59,7 @@ Regression test: `aai-broker` `showcase_scale_embed_vs_userinfo_access_token_siz
 | **admin-ui** | **Supported** | Session is built from outer Passport claims (`sub`, `name`, `email`, admin `groups` claim). It does **not** read `ga4gh_passport_v1`. Works as long as those identity claims remain on the access token (unchanged by ADR-005). |
 | **access-decision-service (ADS)** | **N/A** | Issues Visas / permissions; not a Passport resource server (Bearer used for researcher identity / introspect, not Visa policy). |
 | **duo-service** | **N/A** | Ontology / codes; not a Passport resource server. |
-| **ga4gh-clearinghouse** | **Supported** (proposed `ga4gh-infra-v0.2.7`) | Empty `ga4gh_passport_v1` → OIDC discovery of trusted `iss` → `GET /userinfo` (ADR-006; same rules as Ferrum ADR-034). |
+| **ga4gh-clearinghouse** | **Supported** (proposed `ga4gh-infra-v0.2.8`) | Empty `ga4gh_passport_v1` → OIDC discovery of trusted `iss` → `GET /userinfo` (ADR-006; same rules as Ferrum ADR-034). |
 | **sample-resource** | **Supported** (via clearinghouse) | Passes Bearer into `extract_visas`. |
 | **visa-registry / agreement-registry / service-registry / mock-idp** | **N/A** | Not Passport Clearinghouses for broker access tokens. |
 
