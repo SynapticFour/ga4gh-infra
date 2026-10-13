@@ -42,6 +42,16 @@ Track important architectural and operational decisions for ga4gh-infra.
 
 ---
 
+### 2026-10-12 - ADR-006: Clearinghouse UserInfo Visa fetch (empty `ga4gh_passport_v1`)
+
+- **Status:** Accepted
+- **Context:** ADR-005 lets the broker mint Passport-scoped access tokens with an empty `ga4gh_passport_v1` and deliver Visas from `GET /userinfo`. `ga4gh-clearinghouse` (and **sample-resource**) only read embedded Visas, so `embed_visas = false` denied every controlled-access check. Taking a UserInfo URL from token claims would be SSRF. Ferrum ADR-034 already defines the same consumer rules for external auth.
+- **Decision:** When `extract_visas` sees an empty `passport.visa_jwts`, the clearinghouse GETs `userinfo_endpoint` from **OIDC discovery of the verified Passport `iss` only** (issuer string match, scheme match). Forward the same Bearer (`raw_passport_jwt`). Cache Visa JWT strings keyed by **SHA-256 of the raw token**, TTL bounded by token `exp`, max **1024** entries. Any discovery/HTTP/JSON/scheme error, timeout, or non-2xx (including broker restart → UserInfo 401) **fails closed** (`UserInfoFailed`). Embedded Visas keep the previous path. ADS and duo-service are not Passport Clearinghouses and do not call this path. admin-ui does not read `ga4gh_passport_v1`.
+- **Consequences:** Operators can set `embed_visas = false` for in-repo sample-resource once images include this release. Callers must pass the raw Bearer into `extract_visas`. Cache memory is bounded; after broker restart, UserInfo 401 denies until re-login. No UserInfo URL is taken from JWT claims.
+- **Alternatives considered:** Always require embedded Visas (rejected: fights ADR-005); follow `userinfo` from token claims (rejected: SSRF); unbounded cache (rejected); treat empty Visas as anonymous success (rejected: fail closed); leave sample-resource broken (rejected: blocks showcase header step-down).
+
+---
+
 ### 2026-10-12 - ADR-005: Optional omission of embedded visas (UserInfo delivery)
 
 - **Status:** Accepted

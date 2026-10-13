@@ -47,7 +47,7 @@ Regression test: `aai-broker` `showcase_scale_embed_vs_userinfo_access_token_siz
 
 ## Recommendation
 
-1. Keep **`passport.embed_visas = true`** (default) until Ferrum, Solum, and admin-ui fetch UserInfo.
+1. Keep **`passport.embed_visas = true`** (default) until Ferrum, Solum, and in-repo Clearinghouses that need Visas are on a release with UserInfo fetch.
 2. Prefer **D** for public edges: set `embed_visas = false`, then lower Caddy header limits.
 3. Do not switch Visa signing to ES256 by default in this release.
 4. Showcase may still reduce grant count for demos, but that is orthogonal.
@@ -57,13 +57,13 @@ Regression test: `aai-broker` `showcase_scale_embed_vs_userinfo_access_token_siz
 | Consumer (this repo) | Status with `embed_visas = false` | Notes |
 |----------------------|-----------------------------------|--------|
 | **admin-ui** | **Supported** | Session is built from outer Passport claims (`sub`, `name`, `email`, admin `groups` claim). It does **not** read `ga4gh_passport_v1`. Works as long as those identity claims remain on the access token (unchanged by ADR-005). |
-| **access-decision-service (ADS)** | **N/A** | Issues Visas / permissions; not a Passport resource server. |
+| **access-decision-service (ADS)** | **N/A** | Issues Visas / permissions; not a Passport resource server (Bearer used for researcher identity / introspect, not Visa policy). |
 | **duo-service** | **N/A** | Ontology / codes; not a Passport resource server. |
-| **ga4gh-clearinghouse** | **Not supported** | Validates embedded Visa JWTs only. Empty `ga4gh_passport_v1` → empty Visa set → policy deny. No UserInfo fetch in this tag. |
-| **sample-resource** | **Not supported** | Uses `ga4gh-clearinghouse`; same limitation. |
+| **ga4gh-clearinghouse** | **Supported** (proposed `ga4gh-infra-v0.2.7`) | Empty `ga4gh_passport_v1` → OIDC discovery of trusted `iss` → `GET /userinfo` (ADR-006; same rules as Ferrum ADR-034). |
+| **sample-resource** | **Supported** (via clearinghouse) | Passes Bearer into `extract_visas`. |
 | **visa-registry / agreement-registry / service-registry / mock-idp** | **N/A** | Not Passport Clearinghouses for broker access tokens. |
 
-Out-of-repo: **Ferrum** (external auth) must fetch UserInfo when `ga4gh_passport_v1` is empty (proposed Ferrum `v0.3.5`). **Solum** same pattern when it trusts broker Passports.
+Out-of-repo: **Ferrum** (external auth) fetches UserInfo when `ga4gh_passport_v1` is empty (ADR-034; Ferrum `v0.3.5`). **Solum** same pattern when it trusts broker Passports.
 
 Do not put the Visa document store behind the public apex without auth. UserInfo already requires a valid Bearer.
 

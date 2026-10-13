@@ -4,13 +4,29 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
-### Passport size (proposed tag `ga4gh-infra-v0.2.6` / image `:0.2.6`)
+## [ga4gh-infra-v0.2.7] - 2026-10-13
 
-Tag proposal only — **do not create the tag until `make verify-release` is green on the merge commit.** Crate `version` stays `0.1.0`.
+Image tags are `:0.2.7`. Crate `version` stays `0.1.0`. **Do not create the git tag until `make verify-release` is green on the release commit.** Do **not** move `ga4gh-infra-v0.2.6` (still peels to `f2ac411`, no Visa document store).
 
-- **`[passport] embed_visas`** — default **`true`** (unchanged). When **`false`**, the access token carries an empty `ga4gh_passport_v1` and Visas are returned from `GET /userinfo` (GA4GH AAI pattern). ADR-005. Measurement and options: [docs/PASSPORT-SIZE.md](docs/PASSPORT-SIZE.md). Size regression test in `aai-broker`. Existing Clearinghouses keep working on the default.
-- **In-memory Visa document store bounds** — TTL = Passport `exp`; max **10 000** live entries; max **64 MiB** total Visa JWT bytes. Insert over limit fails closed at mint. Broker **restart** empties the store; `/userinfo` then returns **401** for tokens with an empty claim (fail closed; re-authenticate).
-- **Consumer matrix** — **admin-ui** supported (identity claims only). **ADS** / **duo-service** N/A (not Passport RSes). **ga4gh-clearinghouse** and **sample-resource** **not supported** with `embed_visas = false` in this tag (no UserInfo fetch).
+### Clearinghouse UserInfo + passport size
+
+- **`ga4gh-clearinghouse` UserInfo Visas** — when `ga4gh_passport_v1` is empty after Passport validation, fetch Visas from OIDC discovery of the trusted Passport `iss` only (issuer match, scheme match), forward Bearer, cache by SHA-256(token) until `exp` (max 1024). Fail closed on errors/timeouts/401. ADR-006 (Ferrum ADR-034 rules). `extract_visas(passport, raw_jwt)` now requires the raw Bearer.
+- **sample-resource** — passes Bearer into `extract_visas` (works with `embed_visas = false`).
+- **Consumer matrix** — **admin-ui** supported (identity claims). **ADS** / **duo-service** N/A (not Passport Clearinghouses). **ga4gh-clearinghouse** / **sample-resource** **supported** with `embed_visas = false` in this tag.
+- Includes ADR-005 broker work already on `main` (not in `v0.2.6`): `[passport] embed_visas`, in-memory Visa document store (TTL = `exp`; max 10 000 / 64 MiB), `/userinfo` 401 on restart miss. See [docs/PASSPORT-SIZE.md](docs/PASSPORT-SIZE.md).
+
+**Runner minutes (public repo, rough):** push/PR → secret-scan + dependency-review ≈ **2–4**. Before tag: `workflow_dispatch` `ci.yml` ≈ **40–90**. Tag `ga4gh-infra-v0.2.7` → `docker-release.yml` ≈ **20–40** + `release-binaries.yml` ≈ **15–40**. Total if you run full product CI then tag: about **75–170** minutes.
+
+**Owner manual checks before/after tag:** `make verify-release` on the tip; confirm `git rev-parse ga4gh-infra-v0.2.6^{}` still `f2ac411`; after images publish, smoke `embed_visas=false` login → sample-resource controlled-access with small Authorization; broker restart → UserInfo 401 until re-login; admin-ui still opens; ADS/duo unchanged.
+
+**s4-showcase (after `0.2.7` images exist):** pin suite/broker images to `:0.2.7` digests; set `[passport] embed_visas = false` in `deploy/ga4gh/broker.toml.tpl`; step Caddy `:443` `max_header_size` from **64KB → 16KB** (and update `check.sh` / `render-config.sh` assertions); re-login after broker restart; Ferrum already has ADR-034 on `v0.3.5`.
+
+### Passport size (on main; tag `ga4gh-infra-v0.2.6` does **not** include this)
+
+Published tag `ga4gh-infra-v0.2.6` / image `:0.2.6` peels to `f2ac411` and **lacks** the Visa document store. The broker commits below are on `main` and ship in **`ga4gh-infra-v0.2.7`**.
+
+- **`[passport] embed_visas`** — default **`true`**. When **`false`**, empty `ga4gh_passport_v1` + Visas from `GET /userinfo`. ADR-005.
+- **In-memory Visa document store bounds** — as above.
 
 ## [aai-broker-v0.2.5] - 2026-10-11
 

@@ -229,4 +229,14 @@ Never use these outside local development.
 
 ---
 
-*Last updated: August 2026 — authentication hardening (return_url allowlist, DAC group enforcement, signed installs, visa revocation list).*
+## Other task (not merged)
+
+| Branch | Why left | Notes |
+|--------|----------|-------|
+| `evidence/g-continuity` | Docs-only but **not accurate for current `main`** | Adds `CONTINUITY.md` (“continuity: no unwritten plan promise”). Audited tip still named as `999b103` / tag `ga4gh-infra-v0.2.4`; `main` has moved (Passport size / UserInfo). Belongs to another task — refresh against current tip before merge. Worktree: `_worktrees/ga4gh-infra-g-continuity` (untouched). |
+
+Local `audit-main` worktree (`_worktrees/ga4gh-infra-audit`) is intentionally left alone.
+
+---
+
+*Last updated: 2026-10-13 — ADR-006 Clearinghouse UserInfo Visas; proposed stack tag `ga4gh-infra-v0.2.7`.*
