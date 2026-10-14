@@ -1,0 +1,57 @@
+# Supply-chain policy for ga4gh-infra. Modelled on Ferrum deny.toml
+# (licenses, advisories, bans, sources). ga4gh-infra is Apache-2.0.
+# BUSL-1.1 is not allowed: this workspace does not ship BUSL crates.
+
+[graph]
+targets            = []
+exclude-unpublished = true
+
+[advisories]
+yanked       = "warn"
+unmaintained = "workspace"
+ignore       = [
+    # Same residual as Ferrum deny.toml. CI cargo-audit already ignores this ID.
+    { id = "RUSTSEC-2023-0071", reason = "rsa 0.9.10 via jsonwebtoken 10.4.0 (Passport/JWT). No patched rsa release. Not upgraded here." },
+]
+
+[licenses]
+version              = 2
+confidence-threshold = 0.8
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    # webpki-roots 0.26.11 and 1.0.7 ship CDLA-Permissive-2.0 as their sole license.
+    "CDLA-Permissive-2.0",
+]
+# Crates with publish = false (sample-resource, integration tests, service bins).
+[licenses.private]
+ignore = true
+
+[[licenses.clarify]]
+name          = "ring"
+expression    = "ISC AND MIT AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+[[licenses.clarify]]
+name       = "fuchsia-cprng"
+version    = "0.1.1"
+expression = "BSD-3-Clause"
+license-files = [{ path = "LICENSE", hash = 0xf04ece33 }]
+
+[bans]
+multiple-versions = "warn"
+wildcards         = "warn"
+highlight         = "all"
+deny              = []
+skip              = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git      = "deny"
+allow-registry   = ["https://github.com/rust-lang/crates.io-index"]
+allow-git        = []
