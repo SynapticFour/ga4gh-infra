@@ -32,7 +32,7 @@ help:
 	@echo "  make logs       Follow compose logs (make logs ARGS='broker -f')"
 	@echo "  make seed       Load demo data into running postgres stack"
 	@echo "  make seed-sqlite  Load demo data into running sqlite stack"
-	@echo "  make test       cargo test --workspace"
+	@echo "  make test       cargo test --locked --workspace"
 	@echo "  make prove      Zero-risk proof: workspace tests (no Docker)"
 	@echo "  make verify-release  Gate before a ga4gh-infra-v* tag (fmt, clippy, tests, cargo audit)"
 	@echo ""
@@ -144,7 +144,7 @@ logs:
 	$(COMPOSE) logs -f $(ARGS)
 
 test:
-	cargo test --workspace
+	cargo test --locked --workspace
 
 prove: test
 	@echo "ga4gh-infra prove OK. Live stack: make up"
