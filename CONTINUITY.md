@@ -2,7 +2,7 @@
 
 Survivability notes. **True on `origin/main` today.** Not legal advice.
 
-**Audited revision:** `origin/main` @ `999b103dc1cae1c3a5ccb35b125cdb603515f68f`. Latest tag on origin: `ga4gh-infra-v0.2.4` (same commit as this main tip). Workspace crate versions on main: `0.1.0` (see `docs/versioning.md`).
+Checked on 2026-10-14. Release tags: `git tag` (do not copy a tag into this file). Stack image labels and crate versions: `VERSIONS.lock` and `docs/versioning.md`. The broker is an OIDC relying party, not an institute identity provider.
 
 ## What this project is
 
@@ -24,7 +24,8 @@ Self-hostable Rust **identity plane**: OIDC brokering, Passport/Visa issuance, a
 ```bash
 git clone https://github.com/SynapticFour/ga4gh-infra.git
 cd ga4gh-infra
-git checkout ga4gh-infra-v0.2.4   # or another ga4gh-infra-v* tag on origin
+git tag -l 'ga4gh-infra-v*'
+git checkout <tag>   # a tag from that list; do not assume a version number written here
 ```
 
 ### Proof (no Docker)
