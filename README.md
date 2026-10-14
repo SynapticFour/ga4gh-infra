@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/SynapticFour/ga4gh-infra/graph/badge.svg)](https://codecov.io/gh/SynapticFour/ga4gh-infra)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Self-hostable Rust identity plane: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, and a Service Registry. The broker is an OIDC Relying Party — it does not replace an institute IdP.
+Self-hostable Rust identity plane: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, and a Service Registry. The broker is an OIDC relying party. It is not an identity provider and it does not replace an institute IdP. `mock-idp` is only a test identity provider.
 
 **Maturity: Active (beta) — Compose path.** Helm under `deploy/k8s/chart` is a **sketch**, not the supported production path. No third-party security audit. Not GA4GH certification.
 
