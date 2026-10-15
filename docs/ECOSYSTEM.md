@@ -2,13 +2,13 @@
 
 Ferrum, ga4gh-infra, Solum, and BioResearch Assistant sit alongside Helix/HelixTest (API checks), HELIOS (pipeline evidence), Ferrum companions, and local demos. Glue is GA4GH; Solum extends into clinical data. Canonical map: [Ferrum PORTFOLIO.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/PORTFOLIO.md).
 
-**You are here:** [ga4gh-infra](https://github.com/SynapticFour/ga4gh-infra) — identity plane (broker, visas, DUO, ADS, service registry). Apache-2.0 **open-core**: software is free; commercial motion is Ferrum/Solum/BRA licenses plus optional support.
+**You are here:** [ga4gh-infra](https://github.com/SynapticFour/ga4gh-infra) — identity plane. The broker is an OIDC relying party, not an institute identity provider. Apache-2.0: software is free; commercial motion is Ferrum/Solum/BRA licenses plus optional support.
 
 ## Repositories
 
 | Kind | Repository | Role | License |
 |------|------------|------|---------|
-| Product | **ga4gh-infra** (this repo) | Identity plane | Apache-2.0 |
+| Product | **ga4gh-infra** (this repo) | OIDC relying party, visas, DUO, ADS, service registry. Not an institute IdP. | Apache-2.0 |
 | Product | [Ferrum](https://github.com/SynapticFour/Ferrum) | GA4GH data/compute | BUSL-1.1 |
 | Product | [Solum](https://github.com/SynapticFour/Solum) | Clinical overlay | BUSL-1.1 |
 | Product | [BioResearch Assistant](https://github.com/SynapticFour/bioresearch-assistant) | Researcher workbench | BUSL-1.1 |
@@ -22,7 +22,7 @@ Ferrum, ga4gh-infra, Solum, and BioResearch Assistant sit alongside Helix/HelixT
 
 | Layer | Owner | Notes |
 |-------|--------|--------|
-| Identity | **ga4gh-infra** | Broker, visas, DUO, ADS, service registry |
+| Identity | **ga4gh-infra** | OIDC relying-party broker, visas, DUO, ADS, service registry. Not an institute IdP. |
 | Data/compute | **Ferrum** | DRS, WES/TES, TRS, Beacon; built-in passports in standalone mode |
 | Deployment | **Ferrum-Lab-Kit** | Selective GA4GH surfaces for labs; does not fork Ferrum |
 | Demo/benchmark | **Ferrum-GA4GH-Demo** | Reproducible GIAB benchmark; optional `--with-infra` |
