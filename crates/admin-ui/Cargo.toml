@@ -3,6 +3,8 @@ name = "admin-ui"
 version = "0.1.0"
 edition = "2021"
 description = "Server-rendered GA4GH infrastructure admin dashboard"
+# Internal binary. No license field, so it must not be published to crates.io.
+publish = false
 
 [[bin]]
 name = "admin-ui"

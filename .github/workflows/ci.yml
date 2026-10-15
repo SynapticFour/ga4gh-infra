@@ -35,7 +35,7 @@ jobs:
         run: make prove
 
       - name: Library tests (all features)
-        run: cargo test -p ga4gh-types -p ga4gh-clearinghouse --all-features
+        run: cargo test --locked -p ga4gh-types -p ga4gh-clearinghouse --all-features
 
   audit:
     name: cargo-audit
@@ -69,8 +69,8 @@ jobs:
 
       - name: Postgres integration tests (testcontainers)
         run: |
-          cargo test -p ga4gh-integration --test visa_registry_postgres -- --ignored --test-threads=1
-          cargo test -p ga4gh-integration --test ads_postgres -- --ignored --test-threads=1
+          cargo test --locked -p ga4gh-integration --test visa_registry_postgres -- --ignored --test-threads=1
+          cargo test --locked -p ga4gh-integration --test ads_postgres -- --ignored --test-threads=1
 
   coverage:
     name: Coverage
@@ -130,4 +130,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build workspace (aarch64 release)
-        run: cargo build --workspace --release
+        run: cargo build --locked --workspace --release
