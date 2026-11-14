@@ -8,7 +8,7 @@ How to run `ga4gh-infra` in common environments.
 
 **Approach:**
 
-1. Install via [`getting-started.md`](getting-started.md) native path, or build from source:
+1. Install via [`GETTING-STARTED.md`](GETTING-STARTED.md) native path, or build from source:
    ```bash
    cargo build --release -p ga4gh-infra-cli
    ```
@@ -18,7 +18,7 @@ How to run `ga4gh-infra` in common environments.
 
 Optionally add an `[admin_ui]` section to the all-in-one TOML to co-start the dashboard on port **8095** — see [admin-ui/configuration.md](admin-ui/configuration.md).
 
-**Field board:** Raspberry Pi 5, 8 GB, 64-bit OS (Ferrum ADR-026). Prebuilt `aarch64` binaries: [getting-started.md](getting-started.md). The `armv7` binary is a compile target for older 32-bit boards and is not the field board.
+**Field board:** Raspberry Pi 5, 8 GB, 64-bit OS (Ferrum ADR-026). Prebuilt `aarch64` binaries: [GETTING-STARTED.md](GETTING-STARTED.md). The `armv7` binary is a compile target for older 32-bit boards and is not the field board.
 
 **Limitations:** Service-registry still needs PostgreSQL unless you use Docker `just up-sqlite` instead. Not suitable for multi-user production load on SQLite.
 

@@ -6,7 +6,7 @@ Checked on 2026-10-14. Release tags: `git tag` (do not copy a tag into this file
 
 ## What this project is
 
-Self-hostable Rust **identity plane**: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, Service Registry. The broker is an OIDC Relying Party — it does **not** replace an institute IdP. License: **Apache-2.0**. Maturity: Active (beta) — **Compose is the supported deploy**; Helm under `deploy/k8s/chart` is a sketch.
+Self-hostable Rust **identity plane**: OIDC brokering, Passport/Visa issuance, access decisions (ADS), DUO matching, Service Registry. The broker is an OIDC Relying Party — it does **not** replace an institute IdP. License: **Apache-2.0**. Maturity on this branch: **Early use** on the Compose path (registry GA4GH-INFRA-MATURITY-001). The claim's plain text still says beta. Helm under `deploy/k8s/chart` is a sketch. Until this branch is merged, `origin/main` still says Active (beta).
 
 ## Build from a clean machine (from a given tag)
 

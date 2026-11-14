@@ -4,7 +4,7 @@ This document records what has been built, what is intentionally out of scope, a
 
 Related docs:
 
-- [architecture.md](architecture.md) — component layout, auth flow, docker/e2e instructions
+- [architecture.md](ARCHITECTURE.md) — component layout, auth flow, docker/e2e instructions
 - [README.md](../README.md) — quick start and crate overview
 - [security.md](security.md) — production security contract
 
@@ -22,7 +22,7 @@ All items from the original implementation plan are done, plus publication/CI po
 | 4 | `visa-registry` — PostgreSQL, DAC API, signed visa JWTs | Done |
 | 5 | `duo-service` — OWL → static catalog, `/terms`, `/match` | Done |
 | 6 | `service-registry` — GA4GH read APIs, internal write API | Done |
-| 7 | Docker Compose stack, `ga4gh-e2e`, `docs/architecture.md` | Done |
+| 7 | Docker Compose stack, `ga4gh-e2e`, `docs/ARCHITECTURE.md` | Done |
 | 8 | Root README, `.gitignore`, GitHub Actions CI, crates.io metadata for libraries | Done |
 | 9 | `sample-resource` — clearinghouse `ExtractedPassport` reference API, e2e extension | Done |
 | A | Combined `ga4gh-infra` CLI + `all-in-one` | Done |
@@ -102,7 +102,7 @@ Several services use different URLs depending on caller context:
 | Container-to-container HTTP | `http://aai-broker:8080`, `http://visa-registry:8081`, etc. |
 | Browser/e2e authorize step | Rewrite `mock-idp:9000` → `localhost:9000` on the host |
 
-See `docker/config/*.toml` and `docs/architecture.md` for the current dev layout.
+See `docker/config/*.toml` and `docs/ARCHITECTURE.md` for the current dev layout.
 
 ### JSON login sets session cookie
 

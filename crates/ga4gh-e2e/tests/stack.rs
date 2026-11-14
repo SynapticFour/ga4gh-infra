@@ -22,7 +22,7 @@ use support::{
 };
 
 #[tokio::test]
-#[ignore = "requires docker compose stack (see docs/architecture.md)"]
+#[ignore = "requires docker compose stack (see docs/ARCHITECTURE.md)"]
 async fn stack_authenticates_passport_and_evaluates_policies() {
     let client = Client::builder()
         .redirect(reqwest::redirect::Policy::none())

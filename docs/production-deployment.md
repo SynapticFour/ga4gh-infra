@@ -314,9 +314,9 @@ Passport issuance writes structured JSON logs with `audit=true`. That matches [r
 
 ## Related documents
 
-- [getting-started.md](getting-started.md) — local demo paths
+- [GETTING-STARTED.md](GETTING-STARTED.md) — local demo paths
 - [security.md](security.md) — production security contract
 - [deployment-scenarios.md](deployment-scenarios.md) — scenario overview
 - [configuration.md](configuration.md) — all config fields
-- [architecture.md](architecture.md) — component interactions
+- [architecture.md](ARCHITECTURE.md) — component interactions
 - [docker/reverse-proxy/README.md](../docker/reverse-proxy/README.md) — proxy config usage
