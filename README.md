@@ -7,6 +7,7 @@ For an institute that already runs its own sign-in and wants those GA4GH tokens 
 **Status: Early use.** Compose path. Registry: GA4GH-INFRA-MATURITY-001. Early use is the public label for the stage the claim calls beta. Only the Docker Compose path is labelled this way.
 
 [![CI](https://github.com/SynapticFour/ga4gh-infra/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/ga4gh-infra/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/SynapticFour/ga4gh-infra/graph/badge.svg)](https://codecov.io/gh/SynapticFour/ga4gh-infra)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 GA4GH is a set of shared interfaces for genomic and health data. A Passport is a token that says who may access what. This repository brokers the institute's sign-in and issues that token. It is not the identity provider. [HelixTest](https://github.com/SynapticFour/HelixTest) checks a running API and does not issue Passports. [HELIOS](https://github.com/SynapticFour/HELIOS) signs a file already on disk.
