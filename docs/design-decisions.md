@@ -67,4 +67,4 @@ Architecture Decision Record (ADR) style log of key choices in `ga4gh-infra`.
 
 **Decision:** All parameterized routes use **colon syntax** (`/visas/:id`, `/datasets/:dataset_id`).
 
-**Consequences:** Integration tests must use `:param` when adding routes. Documented in [architecture.md](architecture.md) and [roadmap.md](roadmap.md).
+**Consequences:** Integration tests must use `:param` when adding routes. Documented in [architecture.md](ARCHITECTURE.md) and [roadmap.md](roadmap.md).

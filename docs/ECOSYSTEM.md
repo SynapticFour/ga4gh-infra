@@ -54,7 +54,7 @@ Repos that run a **local Docker stack** share the same verbs:
 
 | Repository | Deploy | Stop | Destroy | Notes |
 |------------|--------|------|---------|-------|
-| **ga4gh-infra** | `make up` / `just up` | `make down` | `make destroy` | Native binary: [getting-started.md](getting-started.md) |
+| **ga4gh-infra** | `make up` / `just up` | `make down` | `make destroy` | Native binary: [GETTING-STARTED.md](GETTING-STARTED.md) |
 | **Ferrum** | `make up` / `ferrum demo start` | `make down` | `make destroy` | Laptop: `ferrum demo start --offline` |
 | **Ferrum-Lab-Kit** | `make up` | `make down` | `make destroy` | Co-deploy: `make up-with-infra` |
 | **Ferrum-GA4GH-Demo** | `make up` / `./run` | `make down` | `make destroy` | Co-deploy: `make up-with-infra` |

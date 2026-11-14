@@ -2,7 +2,7 @@
 
 **Status:** Living · 2026-08-12
 **Audience:** Operators co-deploying with Ferrum
-**Related:** [limitations.md](limitations.md) · [architecture.md](architecture.md) · Ferrum [THREAT_MODEL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/THREAT_MODEL.md)
+**Related:** [limitations.md](limitations.md) · [architecture.md](ARCHITECTURE.md) · Ferrum [THREAT_MODEL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/THREAT_MODEL.md)
 
 This is a **short identity-plane addendum**, not a full STRIDE document. When Ferrum uses `[auth] mode = "external"`, **ga4gh-infra becomes part of Ferrum’s trust boundary**.
 
