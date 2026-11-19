@@ -1,5 +1,9 @@
 name: Docker Release
 
+# Every image is published for linux/amd64 and linux/arm64. Each architecture
+# builds natively on its own runner (no QEMU: Rust under emulation takes hours),
+# pushes by digest, and a merge job joins both digests under the release tags.
+
 on:
   push:
     tags:
@@ -19,107 +23,112 @@ permissions:
   packages: write
 
 jobs:
-  # Per-crate tags still push one image (aai-broker-v0.3.0 → aai-broker:0.3.0).
-  crate-image:
-    name: Build crate image
-    if: ${{ !startsWith(github.ref_name, 'ga4gh-infra-v') }}
+  # Per-crate tags push one image (aai-broker-v0.3.0 → aai-broker:0.3.0).
+  # Stack tag ga4gh-infra-vX.Y.Z pushes every service image as :X.Y.Z
+  # so compose pins match the git tag (crate Cargo.toml may stay 0.1.0).
+  plan:
+    name: Plan images
     runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
+      version: ${{ steps.plan.outputs.version }}
+      owner: ${{ steps.plan.outputs.owner }}
+    steps:
+      - id: plan
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          all='[
+            {"image":"aai-broker","dockerfile":"docker/Dockerfile.broker"},
+            {"image":"visa-registry","dockerfile":"docker/Dockerfile.visa-registry"},
+            {"image":"duo-service","dockerfile":"docker/Dockerfile.duo-service"},
+            {"image":"service-registry","dockerfile":"docker/Dockerfile.service-registry"},
+            {"image":"access-decision-service","dockerfile":"docker/Dockerfile.access-decision-service"},
+            {"image":"agreement-registry","dockerfile":"docker/Dockerfile.agreement-registry"},
+            {"image":"admin-ui","dockerfile":"docker/Dockerfile.admin-ui"},
+            {"image":"sample-resource","dockerfile":"docker/Dockerfile.sample-resource"},
+            {"image":"mock-idp","dockerfile":"docker/Dockerfile.mock-idp"},
+            {"image":"register-tools","dockerfile":"docker/Dockerfile.register"},
+            {"image":"ga4gh-infra","dockerfile":"docker/Dockerfile.all-in-one"}
+          ]'
+          case "${tag}" in
+            ga4gh-infra-v*) images="$(jq -c . <<<"${all}")" ;;
+            aai-broker-v*|visa-registry-v*|duo-service-v*|service-registry-v*|access-decision-service-v*)
+              name="${tag%-v*}"
+              images="$(jq -c --arg n "${name}" '[.[] | select(.image == $n)]' <<<"${all}")" ;;
+            *) echo "Unsupported tag: ${tag}" >&2; exit 1 ;;
+          esac
+          [ "$(jq length <<<"${images}")" -gt 0 ] || { echo "No image for ${tag}" >&2; exit 1; }
+          echo "images=${images}" >> "${GITHUB_OUTPUT}"
+          echo "version=${tag##*-v}" >> "${GITHUB_OUTPUT}"
+          echo "owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')" >> "${GITHUB_OUTPUT}"
+
+  build:
+    name: Build ${{ matrix.target.image }} (${{ matrix.arch }})
+    needs: plan
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.plan.outputs.images) }}
+        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Prepare Docker vendor tree
         run: ./scripts/prepare-docker-vendor.sh
-      - name: Parse crate tag
-        id: meta
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          case "${tag}" in
-            aai-broker-v*) image=aai-broker; dockerfile=docker/Dockerfile.broker ;;
-            visa-registry-v*) image=visa-registry; dockerfile=docker/Dockerfile.visa-registry ;;
-            duo-service-v*) image=duo-service; dockerfile=docker/Dockerfile.duo-service ;;
-            service-registry-v*) image=service-registry; dockerfile=docker/Dockerfile.service-registry ;;
-            access-decision-service-v*) image=access-decision-service; dockerfile=docker/Dockerfile.access-decision-service ;;
-            *) echo "Unsupported crate tag: ${tag}" >&2; exit 1 ;;
-          esac
-          version="${tag##*-v}"
-          owner="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
-          echo "image=${image}" >> "${GITHUB_OUTPUT}"
-          echo "dockerfile=${dockerfile}" >> "${GITHUB_OUTPUT}"
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "owner=${owner}" >> "${GITHUB_OUTPUT}"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - id: push
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ steps.meta.outputs.dockerfile }}
-          push: true
-          tags: |
-            ghcr.io/${{ steps.meta.outputs.owner }}/${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ steps.meta.outputs.owner }}/${{ steps.meta.outputs.image }}:latest
+          file: ${{ matrix.target.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=ghcr.io/${{ needs.plan.outputs.owner }}/${{ matrix.target.image }},push-by-digest=true,name-canonical=true,push=true
+      - name: Keep digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.push.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.target.image }}-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
-  # Stack tag ga4gh-infra-vX.Y.Z pushes every service image as :X.Y.Z
-  # so compose pins match the git tag (crate Cargo.toml may stay 0.1.0).
-  stack-images:
-    name: Stack ${{ matrix.image }}
-    if: ${{ startsWith(github.ref_name, 'ga4gh-infra-v') }}
+  merge:
+    name: Publish ${{ matrix.target.image }}
+    needs: [plan, build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: aai-broker
-            dockerfile: docker/Dockerfile.broker
-          - image: visa-registry
-            dockerfile: docker/Dockerfile.visa-registry
-          - image: duo-service
-            dockerfile: docker/Dockerfile.duo-service
-          - image: service-registry
-            dockerfile: docker/Dockerfile.service-registry
-          - image: access-decision-service
-            dockerfile: docker/Dockerfile.access-decision-service
-          - image: agreement-registry
-            dockerfile: docker/Dockerfile.agreement-registry
-          - image: admin-ui
-            dockerfile: docker/Dockerfile.admin-ui
-          - image: sample-resource
-            dockerfile: docker/Dockerfile.sample-resource
-          - image: mock-idp
-            dockerfile: docker/Dockerfile.mock-idp
-          - image: register-tools
-            dockerfile: docker/Dockerfile.register
-          - image: ga4gh-infra
-            dockerfile: docker/Dockerfile.all-in-one
+        target: ${{ fromJSON(needs.plan.outputs.images) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Prepare Docker vendor tree
-        run: ./scripts/prepare-docker-vendor.sh
-      - name: Stack version
-        id: meta
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          version="${tag##*-v}"
-          owner="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "owner=${owner}" >> "${GITHUB_OUTPUT}"
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-${{ matrix.target.image }}-*
+          merge-multiple: true
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: |
-            ghcr.io/${{ steps.meta.outputs.owner }}/${{ matrix.image }}:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ steps.meta.outputs.owner }}/${{ matrix.image }}:latest
+      - name: Create multi-arch tags
+        working-directory: /tmp/digests
+        run: |
+          repo="ghcr.io/${{ needs.plan.outputs.owner }}/${{ matrix.target.image }}"
+          [ "$(ls | wc -l)" -eq 2 ] || { echo "expected 2 digests, got: $(ls)" >&2; exit 1; }
+          docker buildx imagetools create \
+            -t "${repo}:${{ needs.plan.outputs.version }}" \
+            -t "${repo}:latest" \
+            $(printf "${repo}@sha256:%s " *)
+          docker buildx imagetools inspect "${repo}:${{ needs.plan.outputs.version }}"
