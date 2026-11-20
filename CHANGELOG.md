@@ -4,6 +4,10 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+### Images
+
+- **GHCR images for `linux/amd64` and `linux/arm64`** — `docker-release.yml` builds each architecture natively (arm64 on `ubuntu-24.04-arm`), pushes by digest and joins both under the release tags. Applies from the next release tag; tags already published stay amd64-only.
+
 ## [ga4gh-infra-v0.2.9] - 2026-11-20
 
 Image tags are `:0.2.9`. Crate `version` stays `0.1.0`. Create the git tag only after `make verify-release` is green on the release commit.
