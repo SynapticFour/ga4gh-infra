@@ -4,9 +4,9 @@
 
 use std::sync::OnceLock;
 
-use rand::SeedableRng;
+use rand_chacha::rand_core::SeedableRng;
 use rsa::pkcs8::EncodePrivateKey;
-use rsa::RsaPrivateKey;
+use rsa::PrivateKey as RsaPrivateKey;
 
 use crate::keys::SigningKeys;
 

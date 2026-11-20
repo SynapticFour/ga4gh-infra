@@ -363,15 +363,15 @@ mod tests {
     async fn caches_decoding_key_after_successful_fetch() {
         use base64::engine::general_purpose::URL_SAFE_NO_PAD;
         use base64::Engine;
-        use rand::SeedableRng;
+        use rand_chacha::rand_core::SeedableRng;
         use rsa::traits::PublicKeyParts;
-        use rsa::RsaPrivateKey;
+        use rsa::PrivateKey as RsaPrivateKey;
 
         let private =
             RsaPrivateKey::new(&mut rand_chacha::ChaCha8Rng::seed_from_u64(7), 2048).expect("rsa");
         let public = private.to_public_key();
-        let n = URL_SAFE_NO_PAD.encode(public.n().to_bytes_be());
-        let e = URL_SAFE_NO_PAD.encode(public.e().to_bytes_be());
+        let n = URL_SAFE_NO_PAD.encode(public.n().to_be_bytes_trimmed_vartime());
+        let e = URL_SAFE_NO_PAD.encode(public.e().to_be_bytes_trimmed_vartime());
 
         let server = MockServer::start().await;
         let jwks = serde_json::json!({

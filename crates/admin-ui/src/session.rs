@@ -73,7 +73,7 @@ impl UserSession {
         encode(
             &Header::default(),
             self,
-            &EncodingKey::from_secret(secret.as_bytes()),
+            &EncodingKey::from_secret(secret.as_bytes())?,
         )
     }
 }
@@ -96,15 +96,14 @@ fn extract_groups(claims: &serde_json::Value, claim_name: &str) -> Vec<String> {
 }
 
 pub fn decode_session(cookie_value: &str, secret: &str) -> Option<UserSession> {
-    let mut validation = Validation::default();
-    validation.validate_exp = true;
-    decode::<UserSession>(
-        cookie_value,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &validation,
-    )
-    .ok()
-    .map(|data| data.claims)
+    let validation = Validation {
+        validate_exp: true,
+        ..Validation::default()
+    };
+    let key = DecodingKey::from_secret(secret.as_bytes()).ok()?;
+    decode::<UserSession>(cookie_value, &key, &validation)
+        .ok()
+        .map(|data| data.claims)
 }
 
 pub fn set_session_cookie(headers: &mut HeaderMap, token: &str, max_age_secs: u64, secure: bool) {

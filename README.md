@@ -18,7 +18,7 @@ GA4GH is a set of shared interfaces for genomic and health data. A Passport is a
 - The broker is a relying party. Researchers sign in at the institute. `mock-idp` is only a test identity provider.
 - `make prove` runs the workspace tests. It does not need Docker.
 - `make up` starts the Compose stack. That is the supported path.
-- Crate versions in this workspace are 0.1.0. The stack tag is `ga4gh-infra-v0.2.8`. Those are different numbers on purpose. Image labels in `docker/.env.example` use 0.2.8. Registry: WEB-VERSION-002.
+- Crate versions in this workspace are 0.1.0. The stack tag is `ga4gh-infra-v0.2.9`. Those are different numbers on purpose. Image labels in `docker/.env.example` use 0.2.8. Registry: WEB-VERSION-002.
 
 ## Limits
 
@@ -31,7 +31,7 @@ GA4GH is a set of shared interfaces for genomic and health data. A Passport is a
 
 ## Quick start
 
-Prerequisites for `make prove`: Rust 1.91.1, pinned in `rust-toolchain.toml`.
+Prerequisites for `make prove`: Rust 1.100.0, pinned in `rust-toolchain.toml`.
 
 ```bash
 make prove

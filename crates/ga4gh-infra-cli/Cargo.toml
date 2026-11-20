@@ -4,6 +4,7 @@ description = "Combined GA4GH infrastructure CLI (broker, visa registry, DUO, se
 version = "0.1.0"
 publish = false
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
@@ -33,8 +34,8 @@ tracing-subscriber = { workspace = true }
 serde = { workspace = true }
 config = { workspace = true }
 toml = "0.8"
-rsa = { version = "0.9", features = ["pem", "sha2"] }
-rand = "0.8"
+rsa = "0.10"
+getrandom = { version = "0.4", features = ["sys_rng"] }
 
 [dev-dependencies]
 serde_json = { workspace = true }

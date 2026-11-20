@@ -9,7 +9,7 @@ use base64::Engine;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use rsa::pkcs8::{DecodePrivateKey, DecodePublicKey};
 use rsa::traits::PublicKeyParts;
-use rsa::{RsaPrivateKey, RsaPublicKey};
+use rsa::{PrivateKey as RsaPrivateKey, PublicKey as RsaPublicKey};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -36,9 +36,10 @@ impl SigningKeys {
             .map_err(|err| RegistryError::Config(format!("parsing signing key: {err}")))?;
         let public_key = private_key.to_public_key();
 
-        let n = URL_SAFE_NO_PAD.encode(public_key.n().to_bytes_be());
-        let e = URL_SAFE_NO_PAD.encode(public_key.e().to_bytes_be());
-        let kid = URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_bytes_be()));
+        let n = URL_SAFE_NO_PAD.encode(public_key.n().to_be_bytes_trimmed_vartime());
+        let e = URL_SAFE_NO_PAD.encode(public_key.e().to_be_bytes_trimmed_vartime());
+        let kid =
+            URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_be_bytes_trimmed_vartime()));
 
         let jwks = json!({
             "keys": [{
@@ -107,9 +108,9 @@ fn jwk_from_pem(pem: &str) -> Result<Value, String> {
         RsaPublicKey::from_public_key_pem(pem)
             .map_err(|err| format!("parsing previous signing key: {err}"))?
     };
-    let n = URL_SAFE_NO_PAD.encode(public_key.n().to_bytes_be());
-    let e = URL_SAFE_NO_PAD.encode(public_key.e().to_bytes_be());
-    let kid = URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_bytes_be()));
+    let n = URL_SAFE_NO_PAD.encode(public_key.n().to_be_bytes_trimmed_vartime());
+    let e = URL_SAFE_NO_PAD.encode(public_key.e().to_be_bytes_trimmed_vartime());
+    let kid = URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_be_bytes_trimmed_vartime()));
     Ok(json!({
         "kty": "RSA",
         "kid": kid,

@@ -4,6 +4,7 @@ description = "Reference GA4GH resource service using ga4gh-clearinghouse axum i
 version = "0.1.0"
 publish = false
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true

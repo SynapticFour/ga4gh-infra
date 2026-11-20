@@ -50,9 +50,9 @@ jobs:
         with:
           ref: ${{ github.event.inputs.release_tag || github.ref }}
 
-      # rust-toolchain.toml pins 1.91.1. @stable would install a different
-      # toolchain, then cargo would switch back to 1.91.1 without the target.
-      - uses: dtolnay/rust-toolchain@1.91.1
+      # rust-toolchain.toml pins 1.100.0. @stable would install a different
+      # toolchain, then cargo would switch back to 1.100.0 without the target.
+      - uses: dtolnay/rust-toolchain@1.100.0
         with:
           targets: ${{ matrix.target }}
 

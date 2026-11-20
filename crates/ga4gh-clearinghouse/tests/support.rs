@@ -6,10 +6,10 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use ga4gh_types::{PassportClaims, VisaClaim, VisaJwtClaims, VisaType};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use rand::SeedableRng;
+use rand_chacha::rand_core::SeedableRng;
 use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use rsa::traits::PublicKeyParts;
-use rsa::RsaPrivateKey;
+use rsa::PrivateKey as RsaPrivateKey;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
@@ -50,8 +50,8 @@ impl TestIssuer {
 
         let broker_public = broker_key.to_public_key();
         let visa_public = visa_key.to_public_key();
-        let broker_kid = kid_from_modulus(broker_public.n().to_bytes_be());
-        let visa_kid = kid_from_modulus(visa_public.n().to_bytes_be());
+        let broker_kid = kid_from_modulus(broker_public.n().to_be_bytes_trimmed_vartime());
+        let visa_kid = kid_from_modulus(visa_public.n().to_be_bytes_trimmed_vartime());
 
         Self {
             broker_encoding_key: EncodingKey::from_rsa_pem(broker_private_pem.as_bytes())
@@ -208,8 +208,8 @@ fn deterministic_rsa_key(seed: u64) -> RsaPrivateKey {
     RsaPrivateKey::new(&mut rng, 2048).expect("rsa key")
 }
 
-fn kid_from_modulus(modulus: Vec<u8>) -> String {
-    URL_SAFE_NO_PAD.encode(Sha256::digest(modulus))
+fn kid_from_modulus(modulus: impl AsRef<[u8]>) -> String {
+    URL_SAFE_NO_PAD.encode(Sha256::digest(modulus.as_ref()))
 }
 
 fn jwks_from_pem(private_pem: &str, kid: &str) -> serde_json::Value {
@@ -221,8 +221,8 @@ fn jwks_from_pem(private_pem: &str, kid: &str) -> serde_json::Value {
             "kid": kid,
             "use": "sig",
             "alg": "RS256",
-            "n": URL_SAFE_NO_PAD.encode(public_key.n().to_bytes_be()),
-            "e": URL_SAFE_NO_PAD.encode(public_key.e().to_bytes_be()),
+            "n": URL_SAFE_NO_PAD.encode(public_key.n().to_be_bytes_trimmed_vartime()),
+            "e": URL_SAFE_NO_PAD.encode(public_key.e().to_be_bytes_trimmed_vartime()),
         }]
     })
 }

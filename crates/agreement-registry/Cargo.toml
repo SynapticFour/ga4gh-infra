@@ -3,6 +3,7 @@ name = "agreement-registry"
 description = "Policy profile and agreement template registry for GA4GH DUO compatibility (optional component)"
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
