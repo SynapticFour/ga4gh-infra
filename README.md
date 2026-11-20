@@ -31,7 +31,7 @@ GA4GH is a set of shared interfaces for genomic and health data. A Passport is a
 
 ## Quick start
 
-Prerequisites for `make prove`: Rust 1.91.1, pinned in `rust-toolchain.toml`.
+Prerequisites for `make prove`: Rust 1.100.0, pinned in `rust-toolchain.toml`.
 
 ```bash
 make prove

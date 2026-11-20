@@ -16,7 +16,7 @@ All Docker build contexts live under `docker/`. Build from the **repository root
 | `Dockerfile.sample-resource` | `sample-resource` | `SAMPLE_RESOURCE_VERSION` |
 | `Dockerfile.register` | curl helper for one-shot registration | — |
 
-Images use a multi-stage build (`rust:1-bookworm` → `debian:bookworm-slim`) and run as non-root user `ga4gh` (uid 1000). Runtime images include `curl` for Compose health checks.
+Images use a multi-stage build (`rust:1.100.0-bookworm` → `debian:bookworm-slim`) and run as non-root user `ga4gh` (uid 1000). Runtime images include `curl` for Compose health checks.
 
 Example manual build:
 

@@ -176,16 +176,18 @@ impl AdsStore {
                         "{select} AND dac_group IN ({}) ORDER BY created_at ASC",
                         placeholders.join(", ")
                     );
-                    let mut query = sqlx::query(&sql);
+                    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                     for group in groups {
                         query = query.bind(group);
                     }
                     query.fetch_all(pool).await.map_err(map_db_err)?
                 } else {
-                    sqlx::query(&format!("{select} ORDER BY created_at ASC"))
-                        .fetch_all(pool)
-                        .await
-                        .map_err(map_db_err)?
+                    sqlx::query(sqlx::AssertSqlSafe(format!(
+                        "{select} ORDER BY created_at ASC"
+                    )))
+                    .fetch_all(pool)
+                    .await
+                    .map_err(map_db_err)?
                 };
                 rows.into_iter()
                     .map(|row| -> Result<AccessRequest, AdsError> {
@@ -202,16 +204,18 @@ impl AdsStore {
                     let sql = format!(
                         "{select} AND dac_group IN ({placeholders}) ORDER BY created_at ASC"
                     );
-                    let mut query = sqlx::query(&sql);
+                    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                     for group in groups {
                         query = query.bind(group);
                     }
                     query.fetch_all(pool).await.map_err(map_db_err)?
                 } else {
-                    sqlx::query(&format!("{select} ORDER BY created_at ASC"))
-                        .fetch_all(pool)
-                        .await
-                        .map_err(map_db_err)?
+                    sqlx::query(sqlx::AssertSqlSafe(format!(
+                        "{select} ORDER BY created_at ASC"
+                    )))
+                    .fetch_all(pool)
+                    .await
+                    .map_err(map_db_err)?
                 };
                 rows.into_iter()
                     .map(|row| -> Result<AccessRequest, AdsError> {

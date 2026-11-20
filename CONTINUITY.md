@@ -13,7 +13,7 @@ Self-hostable Rust **identity plane**: OIDC brokering, Passport/Visa issuance, a
 ### Prerequisites
 
 - Git, `make`, Docker Engine + Compose
-- rustup toolchain **1.91.1** (`rust-toolchain.toml`) for native `make prove`
+- rustup toolchain **1.100.0** (`rust-toolchain.toml`) for native `make prove`
 - Debian/Ubuntu native builds: `pkg-config`, `libssl-dev`
 - Network: crates.io; container registries for base images used by Compose
 - Optional: `cargo-audit` for `make verify-release`

@@ -176,16 +176,18 @@ impl AdsStore {
                         "{select} WHERE dac_group IN ({}) ORDER BY created_at DESC",
                         placeholders.join(", ")
                     );
-                    let mut query = sqlx::query(&sql);
+                    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                     for group in groups {
                         query = query.bind(group);
                     }
                     query.fetch_all(pool).await.map_err(map_db_err)?
                 } else {
-                    sqlx::query(&format!("{select} ORDER BY created_at DESC"))
-                        .fetch_all(pool)
-                        .await
-                        .map_err(map_db_err)?
+                    sqlx::query(sqlx::AssertSqlSafe(format!(
+                        "{select} ORDER BY created_at DESC"
+                    )))
+                    .fetch_all(pool)
+                    .await
+                    .map_err(map_db_err)?
                 };
                 rows.into_iter()
                     .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
@@ -200,16 +202,18 @@ impl AdsStore {
                     let sql = format!(
                         "{select} WHERE dac_group IN ({placeholders}) ORDER BY created_at DESC"
                     );
-                    let mut query = sqlx::query(&sql);
+                    let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                     for group in groups {
                         query = query.bind(group);
                     }
                     query.fetch_all(pool).await.map_err(map_db_err)?
                 } else {
-                    sqlx::query(&format!("{select} ORDER BY created_at DESC"))
-                        .fetch_all(pool)
-                        .await
-                        .map_err(map_db_err)?
+                    sqlx::query(sqlx::AssertSqlSafe(format!(
+                        "{select} ORDER BY created_at DESC"
+                    )))
+                    .fetch_all(pool)
+                    .await
+                    .map_err(map_db_err)?
                 };
                 rows.into_iter()
                     .map(|row| -> Result<Dataset, AdsError> { Ok(parse_dataset!(&row)) })
@@ -249,7 +253,7 @@ impl AdsStore {
                     sql.push_str(&format!(" AND resource_type = ${bind_idx}"));
                 }
                 sql.push_str(" ORDER BY created_at DESC");
-                let mut query = sqlx::query(&sql);
+                let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                 for v in &visibilities {
                     query = query.bind(*v);
                 }
@@ -271,7 +275,7 @@ impl AdsStore {
                     sql.push_str(" AND resource_type = ?");
                 }
                 sql.push_str(" ORDER BY created_at DESC");
-                let mut query = sqlx::query(&sql);
+                let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                 for v in &visibilities {
                     query = query.bind(*v);
                 }

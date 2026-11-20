@@ -1,8 +1,8 @@
 # GA4GH agreement-registry image. Build from repo root:
 #   docker build -f docker/Dockerfile.agreement-registry -t ghcr.io/<org>/agreement-registry:0.1.0 .
 
-# Tag: rust:1-bookworm
-FROM rust:1-bookworm@sha256:114c7a4425406451c2866b6aafe69fe29b1b298832db1277d411ac73c82d04d6 AS builder
+# Tag: rust:1.100.0-bookworm
+FROM rust:1.100.0-bookworm@sha256:PENDING_RUST_BOOKWORM_DIGEST AS builder
 WORKDIR /app
 COPY docker/.cargo/config.toml .cargo/config.toml
 COPY docker/vendor ./vendor
