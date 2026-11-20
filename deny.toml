@@ -10,8 +10,13 @@ exclude-unpublished = true
 yanked       = "warn"
 unmaintained = "workspace"
 ignore       = [
-    # Same residual as Ferrum deny.toml. CI cargo-audit already ignores this ID.
-    { id = "RUSTSEC-2023-0071", reason = "rsa 0.9.10 via jsonwebtoken 10.4.0 (Passport/JWT). No patched rsa release. Not upgraded here." },
+    # rsa 0.9 (Marvin timing side channel, no patched 0.9 release) remains via openidconnect 4
+    # in aai-broker (OIDC client; verifies signatures, does no RSA decryption). jsonwebtoken
+    # is on 12 / rsa 0.10. CI cargo-audit and verify-release ignore the same ID.
+    { id = "RUSTSEC-2023-0071", reason = "rsa 0.9.10 via openidconnect 4 (aai-broker OIDC client, signature verification only). No patched rsa 0.9 release." },
+    # chrono: "unmaintained" notice only (no vulnerability, no patched version). Same decision
+    # as Ferrum (deny.toml, issue "Replace chrono with jiff or time"); revisit by 2027-03-31.
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained (no vulnerability); migration tracked with Ferrum, revisit by 2027-03-31" },
 ]
 
 [licenses]

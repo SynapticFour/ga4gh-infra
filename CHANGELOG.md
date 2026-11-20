@@ -11,7 +11,8 @@ Image tags are `:0.2.9`. Crate `version` stays `0.1.0`. Create the git tag only 
 ### Security
 
 - Toolchain Rust 1.100.0 (was 1.91.1), builder images `rust:1.100.0-bookworm`. sqlx 0.9 (`runtime-tokio` + `tls-rustls-ring-webpki`, same TLS stack as before) with libsqlite3-sys 0.40 (fixes RUSTSEC-2026-0459). Dynamic SQL in access-decision-service (constant column lists plus generated `$n`/`?` placeholders) is marked with `sqlx::AssertSqlSafe`; values stay bound.
-- `jsonwebtoken` 12 and `rsa` 0.10 in every crate (fixes RUSTSEC-2023-0071, Marvin, and the `crypto-bigint` timing advisories). Lockfile updates within semver: rustls 0.23.46, rustls-webpki, webpki-roots, quinn-proto, quinn-udp. All crates declare `rust-version`. Deterministic test keys use `rand_chacha` 0.10; the CLI key generator uses the OS RNG directly. Empty HMAC secrets in admin-ui now fail closed.
+- `jsonwebtoken` 12 and `rsa` 0.10 for JWT signing and verification (fixes the `crypto-bigint` timing advisories; RUSTSEC-2023-0071, Marvin, no longer reaches JWT handling). `rsa` 0.9 remains only via `openidconnect` 4 in aai-broker (OIDC client, signature verification, no RSA decryption); RUSTSEC-2023-0071 stays ignored for that path. Lockfile updates within semver: rustls 0.23.46, rustls-webpki, webpki-roots, quinn-proto, quinn-udp. All crates declare `rust-version`. Deterministic test keys use `rand_chacha` 0.10; the CLI key generator uses the OS RNG directly. Empty HMAC secrets in admin-ui now fail closed.
+- Integration tests: `testcontainers` 0.27 / `testcontainers-modules` 0.15 (uses astral-tokio-tar; `tokio-tar` and its GHSA-j5gw-2vrg-8fgx are gone). Dev-dependency only.
 
 ## [ga4gh-infra-v0.2.8] - 2026-10-13
 
