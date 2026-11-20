@@ -6,9 +6,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use rand::thread_rng;
+
 use rsa::pkcs8::{EncodePrivateKey, LineEnding};
-use rsa::RsaPrivateKey;
+use rsa::PrivateKey as RsaPrivateKey;
 
 /// Generate a new RS256 private key and write PKCS#8 PEM to `output`.
 pub fn generate_pem(output: &Path, bits: usize) -> Result<()> {
@@ -27,7 +27,7 @@ pub fn generate_pem(output: &Path, bits: usize) -> Result<()> {
         anyhow::bail!("refusing to overwrite existing key at {}", output.display());
     }
 
-    let mut rng = thread_rng();
+    let mut rng = getrandom::SysRng;
     let private_key = RsaPrivateKey::new(&mut rng, bits).context("generating RSA private key")?;
     let pem = private_key
         .to_pkcs8_pem(LineEnding::LF)

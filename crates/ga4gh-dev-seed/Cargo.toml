@@ -3,6 +3,7 @@ name = "ga4gh-dev-seed"
 description = "Idempotent demo data seeding for local and test GA4GH stacks"
 version = "0.1.0"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true

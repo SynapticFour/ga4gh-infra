@@ -175,9 +175,9 @@ mod tests {
 
     use ga4gh_types::{VisaClaim, VisaJwtClaims, VisaType};
     use jsonwebtoken::{decode, encode, Algorithm, Validation};
-    use rand::SeedableRng;
+    use rand_chacha::rand_core::SeedableRng;
     use rsa::pkcs8::EncodePrivateKey;
-    use rsa::RsaPrivateKey;
+    use rsa::PrivateKey as RsaPrivateKey;
     use serde_json::Value;
     use wiremock::matchers::method;
     use wiremock::{Mock, MockServer, ResponseTemplate};

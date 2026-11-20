@@ -3,6 +3,7 @@ name = "ga4gh-integration"
 description = "Integration tests for ga4gh-infra (testcontainers, ignored by default)"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true
 publish = false
 
 [dev-dependencies]

@@ -4,6 +4,7 @@ description = "Shared HTTP hardening helpers for ga4gh-infra services"
 version = "0.1.0"
 publish = false
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
