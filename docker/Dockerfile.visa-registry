@@ -3,7 +3,7 @@
 #   docker build -f docker/Dockerfile.visa-registry -t ghcr.io/<org>/visa-registry:0.1.0 .
 
 # Tag: rust:1.100.0-bookworm
-FROM rust:1.100.0-bookworm@sha256:PENDING_RUST_BOOKWORM_DIGEST AS builder
+FROM rust:1.100.0-bookworm@sha256:ade39a710ef85f3506cffcfec3e8a24ba090badef1dff2fb798f71d878833fea AS builder
 WORKDIR /app
 
 COPY docker/.cargo/config.toml .cargo/config.toml
