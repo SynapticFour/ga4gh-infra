@@ -15,7 +15,7 @@ use base64::Engine;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use rsa::pkcs8::DecodePrivateKey;
 use rsa::traits::PublicKeyParts;
-use rsa::RsaPrivateKey;
+use rsa::PrivateKey as RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -51,15 +51,16 @@ impl MockIdpState {
             .map_err(|err| anyhow::anyhow!("reading mock IdP key `{key_path}`: {err}"))?;
         let private_key = RsaPrivateKey::from_pkcs8_pem(&pem)?;
         let public_key = private_key.to_public_key();
-        let kid = URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_bytes_be()));
+        let kid =
+            URL_SAFE_NO_PAD.encode(Sha256::digest(public_key.n().to_be_bytes_trimmed_vartime()));
         let jwks = json!({
             "keys": [{
                 "kty": "RSA",
                 "kid": kid,
                 "use": "sig",
                 "alg": "RS256",
-                "n": URL_SAFE_NO_PAD.encode(public_key.n().to_bytes_be()),
-                "e": URL_SAFE_NO_PAD.encode(public_key.e().to_bytes_be()),
+                "n": URL_SAFE_NO_PAD.encode(public_key.n().to_be_bytes_trimmed_vartime()),
+                "e": URL_SAFE_NO_PAD.encode(public_key.e().to_be_bytes_trimmed_vartime()),
             }]
         });
         let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes())?;

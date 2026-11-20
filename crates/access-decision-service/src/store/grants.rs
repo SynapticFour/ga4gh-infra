@@ -76,16 +76,16 @@ impl AdsStore {
                              AND d.dac_group IN ({})",
                             placeholders.join(", ")
                         );
-                        let mut query = sqlx::query(&sql).bind(sub);
+                        let mut query = sqlx::query(sqlx::AssertSqlSafe(sql)).bind(sub);
                         for group in groups {
                             query = query.bind(group);
                         }
                         query.fetch_all(pool).await.map_err(map_db_err)?
                     }
-                    (Some(sub), None) => sqlx::query(&format!(
+                    (Some(sub), None) => sqlx::query(sqlx::AssertSqlSafe(format!(
                         "SELECT {grant_cols} FROM grants g
                              WHERE g.researcher_id = $1 AND g.revoked_at IS NULL"
-                    ))
+                    )))
                     .bind(sub)
                     .fetch_all(pool)
                     .await
@@ -99,15 +99,15 @@ impl AdsStore {
                              WHERE g.revoked_at IS NULL AND d.dac_group IN ({})",
                             placeholders.join(", ")
                         );
-                        let mut query = sqlx::query(&sql);
+                        let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                         for group in groups {
                             query = query.bind(group);
                         }
                         query.fetch_all(pool).await.map_err(map_db_err)?
                     }
-                    (None, None) => sqlx::query(&format!(
+                    (None, None) => sqlx::query(sqlx::AssertSqlSafe(format!(
                         "SELECT {grant_cols} FROM grants g WHERE g.revoked_at IS NULL"
-                    ))
+                    )))
                     .fetch_all(pool)
                     .await
                     .map_err(map_db_err)?,
@@ -129,16 +129,16 @@ impl AdsStore {
                              WHERE g.researcher_id = ? AND g.revoked_at IS NULL
                              AND d.dac_group IN ({placeholders})"
                         );
-                        let mut query = sqlx::query(&sql).bind(sub);
+                        let mut query = sqlx::query(sqlx::AssertSqlSafe(sql)).bind(sub);
                         for group in groups {
                             query = query.bind(group);
                         }
                         query.fetch_all(pool).await.map_err(map_db_err)?
                     }
-                    (Some(sub), None) => sqlx::query(&format!(
+                    (Some(sub), None) => sqlx::query(sqlx::AssertSqlSafe(format!(
                         "SELECT {grant_cols} FROM grants g
                              WHERE g.researcher_id = ? AND g.revoked_at IS NULL"
-                    ))
+                    )))
                     .bind(sub)
                     .fetch_all(pool)
                     .await
@@ -152,15 +152,15 @@ impl AdsStore {
                              INNER JOIN datasets d ON g.dataset_id = d.id
                              WHERE g.revoked_at IS NULL AND d.dac_group IN ({placeholders})"
                         );
-                        let mut query = sqlx::query(&sql);
+                        let mut query = sqlx::query(sqlx::AssertSqlSafe(sql));
                         for group in groups {
                             query = query.bind(group);
                         }
                         query.fetch_all(pool).await.map_err(map_db_err)?
                     }
-                    (None, None) => sqlx::query(&format!(
+                    (None, None) => sqlx::query(sqlx::AssertSqlSafe(format!(
                         "SELECT {grant_cols} FROM grants g WHERE g.revoked_at IS NULL"
-                    ))
+                    )))
                     .fetch_all(pool)
                     .await
                     .map_err(map_db_err)?,

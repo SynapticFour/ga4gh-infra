@@ -154,7 +154,7 @@ impl AdsStore {
             #[cfg(feature = "sqlite")]
             DbPool::Sqlite(pool) => {
                 let select_sqlite = select.replace("$1", "?");
-                let rows = sqlx::query(&select_sqlite)
+                let rows = sqlx::query(sqlx::AssertSqlSafe(select_sqlite))
                     .bind(researcher_id)
                     .fetch_all(pool)
                     .await
