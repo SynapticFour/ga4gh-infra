@@ -21,7 +21,7 @@ Images use a multi-stage build (`rust:1.100.0-bookworm` → `debian:bookworm-sli
 Example manual build:
 
 ```bash
-docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.8 .
+docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.9 .
 ```
 
 ## Compose stacks
@@ -64,12 +64,12 @@ docker compose -f docker/docker-compose.sqlite.yml --env-file docker/.env.exampl
 
 ### Version pins (`.env`)
 
-Image tags follow the **stack** git tag. Checked 2026-10-14: `ga4gh-infra-v0.2.8` is the same commit as `origin/main`, so the example labels are `:0.2.8` (crate Cargo.toml may stay `0.1.0`). Local `make up` applies these labels; it does not pull GHCR. See [docs/versioning.md](../docs/versioning.md):
+Image tags follow the **stack** git tag: `ga4gh-infra-v0.2.9` publishes `:0.2.9` (crate Cargo.toml may stay `0.1.0`).
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
-AAI_BROKER_VERSION=0.2.8
-VISA_REGISTRY_VERSION=0.2.8
+AAI_BROKER_VERSION=0.2.9
+VISA_REGISTRY_VERSION=0.2.9
 # ...
 ```
 
