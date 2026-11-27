@@ -53,20 +53,32 @@ pub async fn get_researcher_signed_visas(
     Path(id): Path<String>,
     RequireDac(_operator): RequireDac,
 ) -> Result<Json<SignedVisasResponse>, AdsError> {
-    let researcher = state.store.get_researcher(&id).await?;
-    let grants = state.store.list_grants(Some(&id), None).await?;
-    let claims = researcher_visas(&researcher, &grants, &state.config.visas);
-
-    let visa_jwts = if let Some(client) = &state.visa_registry {
-        client.publish_and_fetch_jwts(&id, &claims.visas).await?
-    } else {
+    if state.visa_registry.is_none() {
         return Err(AdsError::Config(
             "visa_registry integration is not configured".to_string(),
         ));
-    };
+    }
+    let visa_jwts = sync_researcher_visas(&state, &id).await?;
 
     Ok(Json(SignedVisasResponse {
         researcher_id: id,
         visa_jwts,
     }))
+}
+
+/// Bring the visa-registry in line with the researcher's active grants and
+/// return the signed visa JWTs. Without a configured registry this is a no-op.
+pub(crate) async fn sync_researcher_visas(
+    state: &AppState,
+    id: &str,
+) -> Result<Vec<String>, AdsError> {
+    let Some(client) = &state.visa_registry else {
+        return Ok(Vec::new());
+    };
+    let researcher = state.store.get_researcher(id).await?;
+    let grants = state.store.list_grants(Some(id), None).await?;
+    let claims = researcher_visas(&researcher, &grants, &state.config.visas);
+    client
+        .publish_and_fetch_jwts(id, &claims.visas, &state.config.visas.default_source_url)
+        .await
 }

@@ -4,6 +4,10 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+### Security
+
+- **Revoking a grant now removes its visa** (access-decision-service). Before, `POST /grants/{id}/revoke` only marked the grant in the ADS store, while the `ControlledAccessGrants` visa stayed active in visa-registry. Passport consumers that read UserInfo visas (Ferrum since ADR-034) kept granting access. Revoke now syncs the researcher's visas with the registry (`DELETE /visas/{jti}`, so the jti also lands in `/revoked-jtis`) and returns HTTP 500 if that fails. `GET /ads/v1/researchers/{id}/signed-visas` runs the same sync: it creates only missing visas (no more duplicates per call) and deletes ADS-issued `ControlledAccessGrants` visas that no active grant backs. Visas from other sources are not touched. Consumers that cache visas until token `exp` still see the old visa until then.
+
 ### Images
 
 - **GHCR images for `linux/amd64` and `linux/arm64`** — `docker-release.yml` builds each architecture natively (arm64 on `ubuntu-24.04-arm`), pushes by digest and joins both under the release tags. Applies from the next release tag; tags already published stay amd64-only.
