@@ -1,12 +1,17 @@
 # Changelog (workspace)
 
-Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.4` and Compose/GHCR image tags are **`0.2.4`**. **Do not install `ga4gh-infra-v0.1.0`.**
+Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.10` and Compose/GHCR image tags are **`0.2.10`**. **Do not install `ga4gh-infra-v0.1.0`.**
 
 ## [Unreleased]
+
+## [ga4gh-infra-v0.2.10] - 2026-11-27
+
+Image tags are `:0.2.10`. Crate `version` stays `0.1.0`. Create the git tag only after `make verify-release` is green on the release commit.
 
 ### Security
 
 - **Revoking a grant now removes its visa** (access-decision-service). Before, `POST /grants/{id}/revoke` only marked the grant in the ADS store, while the `ControlledAccessGrants` visa stayed active in visa-registry. Passport consumers that read UserInfo visas (Ferrum since ADR-034) kept granting access. Revoke now syncs the researcher's visas with the registry (`DELETE /visas/{jti}`, so the jti also lands in `/revoked-jtis`) and returns HTTP 500 if that fails. `GET /ads/v1/researchers/{id}/signed-visas` runs the same sync: it creates only missing visas (no more duplicates per call) and deletes ADS-issued `ControlledAccessGrants` visas that no active grant backs. Visas from other sources are not touched. Consumers that cache visas until token `exp` still see the old visa until then.
+- `url` 2.5.8 → 2.5.9 (RUSTSEC-2026-0592, stack overflow in `Url::origin()` on nested `blob:` URLs). Lockfile only.
 
 ### Images
 
