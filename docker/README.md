@@ -21,7 +21,7 @@ Images use a multi-stage build (`rust:1.100.0-bookworm` → `debian:bookworm-sli
 Example manual build:
 
 ```bash
-docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.9 .
+docker build -f docker/Dockerfile.broker -t ghcr.io/<org>/aai-broker:0.2.10 .
 ```
 
 ## Compose stacks
@@ -64,12 +64,12 @@ docker compose -f docker/docker-compose.sqlite.yml --env-file docker/.env.exampl
 
 ### Version pins (`.env`)
 
-Image tags follow the **stack** git tag: `ga4gh-infra-v0.2.9` publishes `:0.2.9` (crate Cargo.toml may stay `0.1.0`).
+Image tags follow the **stack** git tag: `ga4gh-infra-v0.2.10` publishes `:0.2.10` (crate Cargo.toml may stay `0.1.0`).
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
-AAI_BROKER_VERSION=0.2.9
-VISA_REGISTRY_VERSION=0.2.9
+AAI_BROKER_VERSION=0.2.10
+VISA_REGISTRY_VERSION=0.2.10
 # ...
 ```
 
