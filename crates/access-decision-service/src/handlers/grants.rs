@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::app::AppState;
 use crate::auth::{AuthenticatedResearcher, DacOperator};
 use crate::error::AdsError;
+use crate::handlers::researchers::sync_researcher_visas;
 
 use crate::query::DacGroupQuery;
 
@@ -79,5 +80,16 @@ pub async fn revoke_grant(
 ) -> Result<Json<Grant>, AdsError> {
     DacOperator::from_headers(&state, &headers).await?;
     let grant = state.store.revoke_grant(id).await?;
+    // The registry may still hold a ControlledAccessGrants visa for this grant,
+    // and Passport consumers accept it without asking ADS. Remove it now.
+    match sync_researcher_visas(&state, &grant.researcher_id).await {
+        Ok(_) | Err(AdsError::NotFound) => {}
+        Err(err) => {
+            tracing::error!(grant = %id, error = %err, "grant revoked but visa-registry sync failed");
+            return Err(AdsError::Internal(format!(
+                "grant revoked, but removing its visa from the registry failed: {err}"
+            )));
+        }
+    }
     Ok(Json(grant))
 }
