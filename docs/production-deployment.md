@@ -248,12 +248,12 @@ Changes from dev stack:
 | Dev API keys in compose | Secrets from env file / secret manager |
 | `external_url = http://localhost:...` | Public `https://...` URLs |
 
-Pin image versions in `.env` to the **stack** tag (`ga4gh-infra-v0.2.10` → `:0.2.10`). Do not use `ga4gh-infra-v0.1.0`:
+Pin image versions in `.env` to the **stack** tag (`ga4gh-infra-v0.2.11` → `:0.2.11`). Do not use `ga4gh-infra-v0.1.0`:
 
 ```env
 GA4GH_IMAGE_PREFIX=ghcr.io/synapticfour
-AAI_BROKER_VERSION=0.2.10
-VISA_REGISTRY_VERSION=0.2.10
+AAI_BROKER_VERSION=0.2.11
+VISA_REGISTRY_VERSION=0.2.11
 ```
 
 Start internal stack, then reverse proxy:
