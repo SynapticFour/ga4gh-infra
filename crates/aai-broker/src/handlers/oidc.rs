@@ -87,19 +87,32 @@ pub async fn userinfo(
     let token = bearer_token(&headers).ok_or(BrokerError::InvalidAccessToken)?;
     let claims = decode_passport(&state, token)?;
     let now = unix_now();
+    // A revoked Passport gets no Visas in either mode. In embed mode this used to
+    // answer 200 with the embedded Visas after revoke-passports.
+    if state
+        .passport_ledger
+        .revoked_jtis()
+        .await
+        .iter()
+        .any(|jti| jti == &claims.jti)
+    {
+        return Err(BrokerError::InvalidAccessToken);
+    }
 
-    // ADR-005: when the access token omits embedded visas, return the stored document.
-    // Missing document (broker restart, eviction, revoke, or never stored) → 401 fail closed.
-    let ga4gh_passport_v1 = if claims.ga4gh_passport_v1.is_empty() {
+    let stored = if claims.ga4gh_passport_v1.is_empty() {
         state
             .visa_documents
             .get(&claims.jti, &claims.sub, now)
             .await
             .map(|doc| doc.visas)
-            .ok_or(BrokerError::InvalidAccessToken)?
     } else {
-        claims.ga4gh_passport_v1
+        None
     };
+    let ga4gh_passport_v1 = userinfo_visas(
+        claims.ga4gh_passport_v1,
+        stored,
+        state.config.passport.embed_visas,
+    )?;
 
     let profile = state.profiles.get(&claims.sub, now).await;
     let response = UserinfoResponse {
@@ -110,6 +123,32 @@ pub async fn userinfo(
     };
 
     Ok((StatusCode::OK, Json(response)).into_response())
+}
+
+/// Which Visas UserInfo returns for a valid Passport.
+///
+/// - Visas embedded in the token: those.
+/// - `embed_visas = false` (ADR-005): the document stored at login. A missing
+///   document means the broker no longer knows this token (restart, eviction,
+///   revoke): 401, fail closed. Every login in this mode stores a document, an
+///   empty one for a user without Visas, so 401 never means "no Visas".
+/// - `embed_visas = true` and an empty embedded list: the user has no Visas and
+///   the token is complete without broker state, so UserInfo answers an empty
+///   list (200). Before, this case answered 401, and Passport consumers could
+///   not tell "no Visas" from "token unknown" (Ferrum ADR-036, TD-17).
+fn userinfo_visas(
+    embedded: Vec<String>,
+    stored: Option<Vec<String>>,
+    embed_visas: bool,
+) -> Result<Vec<String>, BrokerError> {
+    if !embedded.is_empty() {
+        return Ok(embedded);
+    }
+    match stored {
+        Some(visas) => Ok(visas),
+        None if embed_visas => Ok(Vec::new()),
+        None => Err(BrokerError::InvalidAccessToken),
+    }
 }
 
 fn bearer_token(headers: &HeaderMap) -> Option<&str> {
@@ -136,6 +175,33 @@ mod tests {
     use crate::passport::mint_passport_jwt;
     use crate::test_support::test_signing_keys;
     use axum::http::HeaderValue;
+
+    #[test]
+    fn userinfo_returns_embedded_visas() {
+        let visas = userinfo_visas(vec!["v1".to_string()], None, true).unwrap();
+        assert_eq!(visas, vec!["v1".to_string()]);
+    }
+
+    #[test]
+    fn userinfo_returns_stored_document_when_not_embedded() {
+        let visas = userinfo_visas(vec![], Some(vec!["v2".to_string()]), false).unwrap();
+        assert_eq!(visas, vec!["v2".to_string()]);
+        let empty = userinfo_visas(vec![], Some(vec![]), false).unwrap();
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn userinfo_without_document_fails_closed_when_not_embedded() {
+        assert!(matches!(
+            userinfo_visas(vec![], None, false),
+            Err(BrokerError::InvalidAccessToken)
+        ));
+    }
+
+    #[test]
+    fn userinfo_embed_mode_without_visas_is_empty_not_401() {
+        assert!(userinfo_visas(vec![], None, true).unwrap().is_empty());
+    }
 
     #[test]
     fn extracts_bearer_token() {

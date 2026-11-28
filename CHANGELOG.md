@@ -4,6 +4,10 @@ Identity-plane hardening for institute production. Application crates remain at 
 
 ## [Unreleased]
 
+### Security
+
+- **UserInfo 401 now means "token not known" (aai-broker, ADR-007).** `GET /userinfo` answers 401 for a revoked Passport `jti` in both modes (embed mode used to answer 200 with the embedded Visas). With `embed_visas = true`, a Passport without Visas gets 200 and an empty `ga4gh_passport_v1` instead of 401, so consumers can treat 401 as a rejection (Ferrum TD-17). `embed_visas = false` behaviour is unchanged: a missing document is still 401.
+
 ## [ga4gh-infra-v0.2.10] - 2026-11-27
 
 Image tags are `:0.2.10`. Crate `version` stays `0.1.0`. Create the git tag only after `make verify-release` is green on the release commit.
