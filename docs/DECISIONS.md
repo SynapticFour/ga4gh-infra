@@ -42,6 +42,16 @@ Track important architectural and operational decisions for ga4gh-infra.
 
 ---
 
+### 2026-11-28 - ADR-007: UserInfo 401 means "token not known", never "no Visas"
+
+- **Status:** Accepted
+- **Context:** With `embed_visas = true`, a user without Visas gets a Passport with an empty `ga4gh_passport_v1` and no stored document, so `GET /userinfo` answered 401. With `embed_visas = false`, 401 means the broker no longer knows the token (restart, eviction, revoke). A Passport consumer sees an empty list in both cases and could not tell the two 401s apart. Ferrum ADR-036 therefore treats a UserInfo 401 as "no Visas" and keeps identity-only access, which breaks fail closed after a broker restart. In embed mode, UserInfo also kept answering 200 for a revoked Passport.
+- **Decision:** `GET /userinfo` answers 401 for a revoked Passport `jti` in both modes. In embed mode, an empty embedded list without a stored document answers 200 with an empty `ga4gh_passport_v1`: the token is complete without broker state. In `embed_visas = false` mode a missing document stays 401 (every login in that mode stores a document, an empty one for a user without Visas).
+- **Consequences:** From this release, a UserInfo 401 from this broker means the token is invalid, unknown or revoked, so consumers may reject the request (Ferrum can drop the ADR-036 fallback for this case). ga4gh-clearinghouse needs no change: an empty list grants nothing, as the 401 did. Older brokers still answer 401 for users without Visas in embed mode.
+- **Alternatives considered:** Omit `ga4gh_passport_v1` when `embed_visas = false` so consumers see the mode (rejected for now: `ga4gh-types::PassportClaims` requires the claim, so every consumer would have to change first); a new claim or header that names the mode (rejected: non-standard).
+
+---
+
 ### 2026-10-12 - ADR-006: Clearinghouse UserInfo Visa fetch (empty `ga4gh_passport_v1`)
 
 - **Status:** Accepted
