@@ -1,8 +1,12 @@
 # Changelog (workspace)
 
-Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.10` and Compose/GHCR image tags are **`0.2.10`**. **Do not install `ga4gh-infra-v0.1.0`.**
+Identity-plane hardening for institute production. Application crates remain at `0.1.0` (library semver); the **stack** release tag is `ga4gh-infra-v0.2.11` and Compose/GHCR image tags are **`0.2.11`**. **Do not install `ga4gh-infra-v0.1.0`.**
 
 ## [Unreleased]
+
+## [ga4gh-infra-v0.2.11] - 2026-11-28
+
+Image tags are `:0.2.11`. Crate `version` stays `0.1.0`. Create the git tag only after `make verify-release` is green on the release commit. Pair with Ferrum v0.3.15 (ADR-037).
 
 ### Security
 
